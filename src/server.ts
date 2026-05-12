@@ -1,3 +1,9 @@
+/**
+ * Production HTTP entry for TanStack Start (SSR + routing).
+ * - Vite: `tanstackStart.server.entry: "server"` resolves this file under `src/`.
+ * - Cloudflare: `wrangler.jsonc` → `"main": "src/server.ts"` must point here.
+ * - Vercel: Nitro build uses the same TanStack server graph; do not add a second “main” server file.
+ */
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
