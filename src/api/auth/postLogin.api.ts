@@ -2,7 +2,19 @@ import { getApiBaseUrl } from "@/api/client";
 import type { LoginApiRequestBody } from "@/types/api/auth/login.request.types";
 import type { LoginApiResponseJson, LoginApiSuccessResponse } from "@/types/api/auth/login.response.types";
 
+function assertProductionApiConfigured() {
+  if (!import.meta.env.PROD) return;
+  const base = getApiBaseUrl();
+  if (base.includes("localhost") || base.includes("127.0.0.1")) {
+    throw new Error(
+      "This build still points at localhost. Set VITE_API_BASE_URL in Vercel (Production) and redeploy so login hits your real API."
+    );
+  }
+}
+
 export async function postLoginApi(body: LoginApiRequestBody): Promise<LoginApiSuccessResponse> {
+  assertProductionApiConfigured();
+
   const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
