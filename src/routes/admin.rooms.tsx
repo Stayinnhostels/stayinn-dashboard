@@ -1,13 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -19,25 +16,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Trash2, Eye, BedDouble, LayoutGrid, List as ListIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { RoomFormDialog, type RoomDraft } from "@/components/admin/room-form-dialog";
+import { rooms as store, newId, nowIso, type Room, type RoomStatus } from "@/lib/mock-store";
 
-export const Route = createFileRoute("/admin/rooms")({
-  component: RoomsAdminPage,
-});
-
-type Room = {
-  id: string;
-  title: string;
-  description: string | null;
-  price_per_night: number;
-  status: "available" | "full" | "maintenance" | "draft";
-  category: string;
-  capacity: number;
-  beds_total: number;
-  beds_available: number;
-  amenities: string[];
-  images: string[];
-  created_at: string;
-};
+export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
 const PAGE_SIZE = 12;
 
@@ -60,78 +41,66 @@ function RoomsAdminPage() {
   const [bulkDelete, setBulkDelete] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const { data: rooms = [], isLoading } = useQuery({
-    queryKey: ["admin", "rooms"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rooms").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Room[];
-    },
+  const { data: rooms = [] } = useQuery({
+    queryKey: ["mock", "rooms"],
+    queryFn: async () => [...store].sort((a, b) => b.created_at.localeCompare(a.created_at)),
   });
 
   const upsert = useMutation({
     mutationFn: async (input: { id?: string; values: RoomDraft }) => {
       if (input.id) {
-        const { error } = await supabase.from("rooms").update(input.values).eq("id", input.id);
-        if (error) throw error;
+        const idx = store.findIndex((r) => r.id === input.id);
+        if (idx >= 0) store[idx] = { ...store[idx], ...input.values };
       } else {
-        const { error } = await supabase.from("rooms").insert(input.values);
-        if (error) throw error;
+        store.unshift({ id: newId("r"), created_at: nowIso(), ...input.values });
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "rooms"] });
+      qc.invalidateQueries({ queryKey: ["mock"] });
       toast.success("Room saved");
-      setEditing(null);
-      setCreating(false);
+      setEditing(null); setCreating(false);
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const remove = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("rooms").delete().in("id", ids);
-      if (error) throw error;
+      ids.forEach((id) => {
+        const i = store.findIndex((r) => r.id === id);
+        if (i >= 0) store.splice(i, 1);
+      });
     },
     onSuccess: (_, ids) => {
-      qc.invalidateQueries({ queryKey: ["admin", "rooms"] });
+      qc.invalidateQueries({ queryKey: ["mock"] });
       toast.success(`${ids.length} room${ids.length > 1 ? "s" : ""} deleted`);
-      setDeleteId(null);
-      setBulkDelete(false);
-      setSelected(new Set());
+      setDeleteId(null); setBulkDelete(false); setSelected(new Set());
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const bulkStatus = useMutation({
-    mutationFn: async ({ ids, status }: { ids: string[]; status: Room["status"] }) => {
-      const { error } = await supabase.from("rooms").update({ status }).in("id", ids);
-      if (error) throw error;
+    mutationFn: async ({ ids, status }: { ids: string[]; status: RoomStatus }) => {
+      ids.forEach((id) => {
+        const r = store.find((x) => x.id === id);
+        if (r) r.status = status;
+      });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "rooms"] });
+      qc.invalidateQueries({ queryKey: ["mock"] });
       toast.success("Status updated");
       setSelected(new Set());
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = useMemo(() => {
-    return rooms.filter(
-      (r) =>
-        (statusFilter === "all" || r.status === statusFilter) &&
-        (r.title.toLowerCase().includes(query.toLowerCase()) ||
-          r.category.toLowerCase().includes(query.toLowerCase())),
-    );
-  }, [rooms, query, statusFilter]);
+  const filtered = useMemo(() => rooms.filter(
+    (r) =>
+      (statusFilter === "all" || r.status === statusFilter) &&
+      (r.title.toLowerCase().includes(query.toLowerCase()) ||
+        r.category.toLowerCase().includes(query.toLowerCase())),
+  ), [rooms, query, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRooms = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function toggleAll(checked: boolean) {
-    setSelected(checked ? new Set(pageRooms.map((r) => r.id)) : new Set());
-  }
+  function toggleAll(checked: boolean) { setSelected(checked ? new Set(pageRooms.map((r) => r.id)) : new Set()); }
   function toggleOne(id: string, checked: boolean) {
     const next = new Set(selected);
     if (checked) next.add(id); else next.delete(id);
@@ -144,12 +113,7 @@ function RoomsAdminPage() {
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-              placeholder="Search rooms…"
-              className="pl-9"
-            />
+            <Input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search rooms…" className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
@@ -177,7 +141,7 @@ function RoomsAdminPage() {
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="flex flex-wrap items-center gap-3 p-3">
             <p className="text-sm font-semibold">{selected.size} selected</p>
-            <Select onValueChange={(v) => bulkStatus.mutate({ ids: [...selected], status: v as Room["status"] })}>
+            <Select onValueChange={(v) => bulkStatus.mutate({ ids: [...selected], status: v as RoomStatus })}>
               <SelectTrigger className="h-9 w-44"><SelectValue placeholder="Set status…" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="available">Available</SelectItem>
@@ -194,9 +158,7 @@ function RoomsAdminPage() {
         </Card>
       )}
 
-      {isLoading ? (
-        <Card className="border-border/60"><CardContent className="py-16 text-center text-sm text-muted-foreground">Loading rooms…</CardContent></Card>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <Card className="border-border/60">
           <CardContent className="py-20 text-center">
             <BedDouble className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -210,11 +172,8 @@ function RoomsAdminPage() {
           {pageRooms.map((r) => (
             <Card key={r.id} className="overflow-hidden border-border/60 transition-shadow hover:shadow-lg">
               <div className="relative aspect-[4/3] bg-muted">
-                {r.images?.[0] ? (
-                  <img src={r.images[0]} alt={r.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center"><BedDouble className="h-12 w-12 text-muted-foreground/40" /></div>
-                )}
+                {r.images?.[0] ? <img src={r.images[0]} alt={r.title} className="h-full w-full object-cover" /> :
+                  <div className="flex h-full items-center justify-center"><BedDouble className="h-12 w-12 text-muted-foreground/40" /></div>}
                 <div className="absolute left-2 top-2">
                   <Checkbox checked={selected.has(r.id)} onCheckedChange={(c) => toggleOne(r.id, !!c)} className="bg-background/80" />
                 </div>
@@ -242,15 +201,9 @@ function RoomsAdminPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox checked={selected.size > 0 && selected.size === pageRooms.length} onCheckedChange={(c) => toggleAll(!!c)} />
-                  </TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Beds</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-10"><Checkbox checked={selected.size > 0 && selected.size === pageRooms.length} onCheckedChange={(c) => toggleAll(!!c)} /></TableHead>
+                  <TableHead>Title</TableHead><TableHead>Category</TableHead><TableHead>Price</TableHead>
+                  <TableHead>Beds</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -261,9 +214,7 @@ function RoomsAdminPage() {
                     <TableCell className="capitalize">{r.category}</TableCell>
                     <TableCell>${Number(r.price_per_night).toLocaleString()}</TableCell>
                     <TableCell>{r.beds_available}/{r.beds_total}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`capitalize ${statusVariants[r.status]}`}>{r.status}</Badge>
-                    </TableCell>
+                    <TableCell><Badge variant="outline" className={`capitalize ${statusVariants[r.status]}`}>{r.status}</Badge></TableCell>
                     <TableCell className="text-right">
                       <Button asChild size="icon" variant="ghost"><Link to="/admin/rooms/$id" params={{ id: r.id }}><Eye className="h-4 w-4" /></Link></Button>
                       <Button size="icon" variant="ghost" onClick={() => setEditing(r)}><Pencil className="h-4 w-4" /></Button>
@@ -301,9 +252,7 @@ function RoomsAdminPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => remove.mutate(bulkDelete ? [...selected] : deleteId ? [deleteId] : [])}>
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => remove.mutate(bulkDelete ? [...selected] : deleteId ? [deleteId] : [])}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

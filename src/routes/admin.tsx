@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useLayoutEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { useAuth } from "@/lib/auth-context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin")({
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin": { title: "Dashboard Overview", subtitle: "High-level performance at a glance" },
   "/admin/rooms": { title: "Room Management", subtitle: "Inventory, pricing & availability" },
-  "/admin/bookings": {
-    title: "Booking Management",
-    subtitle: "All reservations across the property",
-  },
+  "/admin/bookings": { title: "Booking Management", subtitle: "All reservations across the property" },
   "/admin/users": { title: "User Management", subtitle: "Registered guests and staff" },
   "/admin/payments": { title: "Payments", subtitle: "Transactions, refunds and invoices" },
   "/admin/financials": { title: "Revenue & Analytics", subtitle: "Deep financial insights" },
@@ -29,6 +26,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
 
 function resolveMeta(pathname: string) {
   if (TITLES[pathname]) return TITLES[pathname];
+  // Detail routes like /admin/rooms/abc
   const seg = pathname.split("/").filter(Boolean);
   if (seg[0] === "admin" && seg[1]) {
     const base = `/admin/${seg[1]}`;
@@ -38,28 +36,22 @@ function resolveMeta(pathname: string) {
 }
 
 function AdminLayout() {
-  const { user } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileNav, setMobileNav] = useState(false);
 
-  const isAdminRole =
-    user?.role === "admin" || user?.role === "super_admin";
+  useEffect(() => {
+    if (loading) return;
+    if (!user) navigate({ to: "/login" });
+    else if (!isAdmin) navigate({ to: "/" });
+  }, [loading, user, isAdmin, navigate]);
 
-  useLayoutEffect(() => {
-    if (!user) {
-      navigate({ to: "/login", replace: true });
-      return;
-    }
-    if (!isAdminRole) {
-      navigate({ to: "/dashboard", replace: true });
-    }
-  }, [user, isAdminRole, navigate]);
-
-  if (!user || !isAdminRole) {
+  if (loading || !user || !isAdmin) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-muted/30">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto px-4 py-16 space-y-4 max-w-2xl">
+        <Skeleton className="h-10 w-1/2" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
       </div>
     );
   }

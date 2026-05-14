@@ -1,13 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -15,11 +12,9 @@ import {
 import { ArrowLeft, BedDouble, Pencil, Trash2, Wallet, Users } from "lucide-react";
 import { toast } from "sonner";
 import { RoomFormDialog, type RoomDraft } from "@/components/admin/room-form-dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { rooms as roomStore, bookings as bookingStore } from "@/lib/mock-store";
 
-export const Route = createFileRoute("/admin/rooms/$id")({
-  component: RoomDetailPage,
-});
+export const Route = createFileRoute("/admin/rooms/$id")({ component: RoomDetailPage });
 
 function RoomDetailPage() {
   const { id } = Route.useParams();
@@ -29,57 +24,34 @@ function RoomDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
-  const { data: room, isLoading } = useQuery({
-    queryKey: ["admin", "room", id],
+  const { data } = useQuery({
+    queryKey: ["mock", "room", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rooms").select("*").eq("id", id).single();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: bookings = [] } = useQuery({
-    queryKey: ["admin", "room-bookings", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bookings").select("*").eq("room_id", id).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const room = roomStore.find((r) => r.id === id);
+      const roomBookings = bookingStore.filter((b) => b.room_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return room ? { room, bookings: roomBookings } : null;
     },
   });
 
   const update = useMutation({
     mutationFn: async (values: RoomDraft) => {
-      const { error } = await supabase.from("rooms").update(values).eq("id", id);
-      if (error) throw error;
+      const i = roomStore.findIndex((r) => r.id === id);
+      if (i >= 0) roomStore[i] = { ...roomStore[i], ...values };
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "room", id] });
-      toast.success("Room updated");
-      setEditing(false);
-    },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["mock"] }); toast.success("Room updated"); setEditing(false); },
   });
 
   const remove = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("rooms").delete().eq("id", id);
-      if (error) throw error;
+      const i = roomStore.findIndex((r) => r.id === id);
+      if (i >= 0) roomStore.splice(i, 1);
     },
-    onSuccess: () => {
-      toast.success("Room deleted");
-      navigate({ to: "/admin/rooms" });
-    },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => { toast.success("Room deleted"); navigate({ to: "/admin/rooms" }); },
   });
 
-  if (isLoading || !room) {
-    return <Card className="border-border/60"><CardContent className="py-16 text-center text-sm text-muted-foreground">Loading…</CardContent></Card>;
-  }
-
-  const revenue = bookings
-    .filter((b) => b.status !== "cancelled")
-    .reduce((s, b) => s + Number(b.total_amount ?? 0), 0);
+  if (!data) return <Card className="border-border/60"><CardContent className="py-16 text-center text-sm text-muted-foreground">Room not found.</CardContent></Card>;
+  const { room, bookings } = data;
+  const revenue = bookings.filter((b) => b.status !== "cancelled").reduce((s, b) => s + b.total_amount, 0);
 
   return (
     <div className="space-y-6">
@@ -102,7 +74,7 @@ function RoomDetailPage() {
           </div>
           {room.images?.length > 1 && (
             <div className="flex gap-2 overflow-x-auto p-3">
-              {room.images.map((src: string, i: number) => (
+              {room.images.map((src, i) => (
                 <button key={i} onClick={() => setActiveImage(i)}
                   className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 ${i === activeImage ? "border-primary" : "border-transparent"}`}>
                   <img src={src} alt="" className="h-full w-full object-cover" />
@@ -123,7 +95,7 @@ function RoomDetailPage() {
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Amenities</p>
                 <div className="flex flex-wrap gap-2">
-                  {room.amenities.map((a: string) => <Badge key={a} variant="secondary">{a}</Badge>)}
+                  {room.amenities.map((a) => <Badge key={a} variant="secondary">{a}</Badge>)}
                 </div>
               </div>
             )}
@@ -134,7 +106,7 @@ function RoomDetailPage() {
           <Card className="border-border/60">
             <CardContent className="p-5">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Price / night</p>
-              <p className="mt-1 text-3xl font-extrabold">${Number(room.price_per_night).toLocaleString()}</p>
+              <p className="mt-1 text-3xl font-extrabold">${room.price_per_night.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card className="border-border/60">
@@ -158,11 +130,11 @@ function RoomDetailPage() {
               ) : bookings.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell>
-                    <Link to="/admin/bookings/$id" params={{ id: b.id }} className="font-semibold hover:underline">{b.guest_name ?? "—"}</Link>
+                    <Link to="/admin/bookings/$id" params={{ id: b.id }} className="font-semibold hover:underline">{b.guest_name}</Link>
                     <div className="text-xs text-muted-foreground">{b.guest_email}</div>
                   </TableCell>
                   <TableCell className="text-sm">{b.check_in} → {b.check_out}</TableCell>
-                  <TableCell>${Number(b.total_amount).toLocaleString()}</TableCell>
+                  <TableCell>${b.total_amount.toLocaleString()}</TableCell>
                   <TableCell><Badge variant="secondary" className="capitalize">{b.status.replace("_"," ")}</Badge></TableCell>
                 </TableRow>
               ))}
@@ -172,11 +144,9 @@ function RoomDetailPage() {
       </Card>
 
       <RoomFormDialog
-        open={editing}
-        initial={room}
+        open={editing} initial={room}
         onClose={() => setEditing(false)}
-        onSubmit={(v) => update.mutate(v)}
-        submitting={update.isPending}
+        onSubmit={(v) => update.mutate(v)} submitting={update.isPending}
       />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>

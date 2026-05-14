@@ -51,7 +51,6 @@ function SidebarBody({
   onToggleCollapse,
 }: {
   onNavigate?: () => void;
-  /** Icon-only rail; only used on desktop when `onToggleCollapse` is set. */
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
@@ -64,8 +63,7 @@ function SidebarBody({
       <div
         className={cn(
           "flex shrink-0 items-center border-b border-border/60",
-          compact ? "flex-col gap-2 py-3 px-2" : "h-16 gap-2 px-4",
-          !compact && "justify-between",
+          compact ? "flex-col gap-2 px-2 py-3" : "h-16 justify-between gap-2 px-4",
         )}
       >
         <div className={cn("flex items-center gap-2", compact && "flex-col")}>
@@ -225,10 +223,7 @@ export function AdminSidebar() {
       )}
     >
       <TooltipProvider delayDuration={0}>
-        <SidebarBody
-          collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
-        />
+        <SidebarBody collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)} />
       </TooltipProvider>
     </aside>
   );

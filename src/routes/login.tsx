@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth-context";
+import { useLoginMutation } from "@/queries/auth/useLoginMutation";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -23,30 +24,31 @@ export const Route = createFileRoute("/login")({
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(120),
-  password: z.string().min(6, "At least 6 characters").max(72),
+  password: z.string().min(1, "Password is required").max(200),
   remember: z.boolean().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
-function postLoginPath(role: string) {
-  return role === "admin" || role === "super_admin" ? "/admin" : "/dashboard";
+function postLoginPath() {
+  return "/admin";
 }
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
+  const { user } = useAuth();
+  const loginMutation = useLoginMutation();
   const [showPw, setShowPw] = useState(false);
 
   useLayoutEffect(() => {
     if (user) {
-      navigate({ to: postLoginPath(user.role), replace: true });
+      navigate({ to: postLoginPath(), replace: true });
     }
   }, [user, navigate]);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "", remember: true },
@@ -54,9 +56,13 @@ function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const next = await login(values.email, values.password, values.remember);
+      await loginMutation.mutateAsync({
+        email: values.email,
+        password: values.password,
+        remember: values.remember,
+      });
       toast.success("Welcome back!");
-      navigate({ to: postLoginPath(next.role) });
+      navigate({ to: postLoginPath() });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sign in failed");
     }
@@ -105,7 +111,11 @@ function LoginPage() {
         <div className="mx-auto w-full max-w-md space-y-8">
           <div className="space-y-2">
             <h1 className="text-3xl font-extrabold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to open the dashboard.</p>
+            <p className="text-muted-foreground">
+              Sign in with your super administrator account. The API base URL is set with{" "}
+              <code className="rounded bg-muted px-1 text-xs">VITE_API_BASE_URL</code> (defaults to{" "}
+              <code className="rounded bg-muted px-1 text-xs">http://localhost:3000</code>).
+            </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -160,8 +170,8 @@ function LoginPage() {
               <span className="text-muted-foreground">Remember me for 30 days</span>
             </label>
 
-            <Button type="submit" disabled={isSubmitting} size="lg" className="w-full rounded-full font-bold shadow-[var(--shadow-soft)]">
-              {isSubmitting ? (
+            <Button type="submit" disabled={loginMutation.isPending} size="lg" className="w-full rounded-full font-bold shadow-[var(--shadow-soft)]">
+              {loginMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" /> Signing in…
                 </>

@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { toast } from "sonner";
+import { ImagePlus, X } from "lucide-react";
 
 export type RoomDraft = {
   title: string;
-  description: string | null;
+  description: string;
   price_per_night: number;
   status: "available" | "full" | "maintenance" | "draft";
   category: string;
@@ -25,24 +21,12 @@ export type RoomDraft = {
 };
 
 const blank: RoomDraft = {
-  title: "",
-  description: "",
-  price_per_night: 0,
-  status: "available",
-  category: "shared",
-  capacity: 1,
-  beds_total: 1,
-  beds_available: 1,
-  amenities: [],
-  images: [],
+  title: "", description: "", price_per_night: 0, status: "available", category: "shared",
+  capacity: 1, beds_total: 1, beds_available: 1, amenities: [], images: [],
 };
 
 export function RoomFormDialog({
-  open,
-  initial,
-  onClose,
-  onSubmit,
-  submitting,
+  open, initial, onClose, onSubmit, submitting,
 }: {
   open: boolean;
   initial: Partial<RoomDraft> | null;
@@ -51,7 +35,6 @@ export function RoomFormDialog({
   submitting: boolean;
 }) {
   const [draft, setDraft] = useState<RoomDraft>(blank);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -65,28 +48,18 @@ export function RoomFormDialog({
     }
   }, [open, initial]);
 
-  async function handleUpload(files: FileList | null) {
+  function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      const urls: string[] = [];
-      for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop() ?? "jpg";
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("room-images").upload(path, file, {
-          cacheControl: "3600", upsert: false,
-        });
-        if (error) throw error;
-        const { data } = supabase.storage.from("room-images").getPublicUrl(path);
-        urls.push(data.publicUrl);
-      }
+    const readers = Array.from(files).map(
+      (f) => new Promise<string>((res) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result as string);
+        reader.readAsDataURL(f);
+      })
+    );
+    Promise.all(readers).then((urls) => {
       setDraft((d) => ({ ...d, images: [...d.images, ...urls] }));
-      toast.success(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded`);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setUploading(false);
-    }
+    });
   }
 
   return (
@@ -104,39 +77,15 @@ export function RoomFormDialog({
           </div>
           <div className="grid gap-2">
             <Label>Description</Label>
-            <Textarea
-              value={draft.description ?? ""}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              rows={3}
-            />
+            <Textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={3} />
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="grid gap-2">
-              <Label>Price / night</Label>
-              <Input type="number" value={draft.price_per_night}
-                onChange={(e) => setDraft({ ...draft, price_per_night: Number(e.target.value) })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Category</Label>
-              <Input value={draft.category}
-                onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Capacity</Label>
-              <Input type="number" value={draft.capacity}
-                onChange={(e) => setDraft({ ...draft, capacity: Number(e.target.value) })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Beds total</Label>
-              <Input type="number" value={draft.beds_total}
-                onChange={(e) => setDraft({ ...draft, beds_total: Number(e.target.value) })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Beds available</Label>
-              <Input type="number" value={draft.beds_available}
-                onChange={(e) => setDraft({ ...draft, beds_available: Number(e.target.value) })} />
-            </div>
+            <div className="grid gap-2"><Label>Price / night</Label><Input type="number" value={draft.price_per_night} onChange={(e) => setDraft({ ...draft, price_per_night: Number(e.target.value) })} /></div>
+            <div className="grid gap-2"><Label>Category</Label><Input value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} /></div>
+            <div className="grid gap-2"><Label>Capacity</Label><Input type="number" value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: Number(e.target.value) })} /></div>
+            <div className="grid gap-2"><Label>Beds total</Label><Input type="number" value={draft.beds_total} onChange={(e) => setDraft({ ...draft, beds_total: Number(e.target.value) })} /></div>
+            <div className="grid gap-2"><Label>Beds available</Label><Input type="number" value={draft.beds_available} onChange={(e) => setDraft({ ...draft, beds_available: Number(e.target.value) })} /></div>
             <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v as RoomDraft["status"] })}>
@@ -155,12 +104,7 @@ export function RoomFormDialog({
             <Label>Amenities (comma separated)</Label>
             <Input
               value={draft.amenities.join(", ")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  amenities: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
-                })
-              }
+              onChange={(e) => setDraft({ ...draft, amenities: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })}
             />
           </div>
 
@@ -178,10 +122,9 @@ export function RoomFormDialog({
                 </div>
               ))}
               <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-muted">
-                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
-                <span>{uploading ? "Uploading…" : "Upload"}</span>
-                <input type="file" accept="image/*" multiple className="hidden"
-                  onChange={(e) => handleUpload(e.target.files)} disabled={uploading} />
+                <ImagePlus className="h-5 w-5" />
+                <span>Upload</span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
               </label>
             </div>
           </div>
@@ -189,9 +132,7 @@ export function RoomFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSubmit(draft)} disabled={submitting || !draft.title || uploading}>
-            {submitting ? "Saving…" : "Save room"}
-          </Button>
+          <Button onClick={() => onSubmit(draft)} disabled={submitting || !draft.title}>{submitting ? "Saving…" : "Save room"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -16,6 +16,9 @@ dist-ssr
 .nitro
 *.local
 
+# Production API URL — create locally (never commit real hosts).
+.env.production
+
 # Vercel (Nitro Build Output API — local build artifact)
 .vercel/
 
