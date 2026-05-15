@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { postLogoutApi } from "@/api/auth/postLogout.api";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { authKeys } from "@/queries/keys/auth.keys";
 
@@ -23,7 +24,15 @@ export function useAuth() {
   const loading = useAuthStore((s) => s.loading);
   const storeLogout = useAuthStore((s) => s.logout);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const currentToken = useAuthStore.getState().token;
+    try {
+      if (currentToken) {
+        await postLogoutApi(currentToken);
+      }
+    } catch {
+      // Still clear local session if the network fails or the token was already invalid.
+    }
     storeLogout();
     queryClient.removeQueries({ queryKey: authKeys.all });
   }, [queryClient, storeLogout]);
