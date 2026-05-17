@@ -28,13 +28,13 @@ export function useUpdateRoomMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, draft }: { id: string; draft: RoomDraft }) => {
+    mutationFn: ({ id, draft }: { id: string; draft: Partial<RoomDraft> }) => {
       if (!token) throw new Error("You must be signed in to update a room");
       return patchRoomApi(token, id, draft);
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (room, { id }) => {
+      queryClient.setQueryData(roomKeys.detail(id), room);
       void queryClient.invalidateQueries({ queryKey: roomKeys.all });
-      void queryClient.invalidateQueries({ queryKey: roomKeys.detail(id) });
     },
   });
 }

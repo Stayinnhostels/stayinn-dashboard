@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -15,14 +17,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, BedDouble, Loader2, Pencil, Trash2, Wallet, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, Loader2, Pencil, Save, Trash2, Wallet, Users } from "lucide-react";
 import { toast } from "sonner";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
+import { RoomStatusPicker } from "@/components/admin/room-status-picker";
 import { bookings as bookingStore } from "@/lib/mock-store";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
-import type { RoomDraft } from "@/types/domain/room.types";
+import { ROOM_AMENITY_OPTIONS, type RoomDraft, type RoomStatus } from "@/types/domain/room.types";
 
 export const Route = createFileRoute("/admin/rooms/$id")({ component: RoomDetailPage });
+
+function parsePositiveInt(value: string, fallback = 0) {
+  const n = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 function RoomDetailPage() {
   const { id } = Route.useParams();
@@ -31,9 +39,32 @@ function RoomDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
+  const [price, setPrice] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [bedsTotal, setBedsTotal] = useState("");
+  const [bedsAvailable, setBedsAvailable] = useState("");
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+
   const { data: room, isLoading, isError, error } = useRoomQuery(id);
   const updateRoom = useUpdateRoomMutation();
   const deleteRoom = useDeleteRoomMutation();
+
+  useEffect(() => {
+    if (!room) return;
+    setPrice(String(room.price_per_night));
+    setCapacity(String(room.capacity));
+    setBedsTotal(String(room.beds_total));
+    setBedsAvailable(String(room.beds_available));
+    setSelectedAmenities(room.amenities ?? []);
+  }, [room]);
+
+  const amenityOptions = useMemo(() => {
+    const base: string[] = [...ROOM_AMENITY_OPTIONS];
+    for (const a of selectedAmenities) {
+      if (!base.includes(a)) base.push(a);
+    }
+    return base.sort((a, b) => a.localeCompare(b));
+  }, [selectedAmenities]);
 
   const bookings = useMemo(
     () =>
@@ -44,6 +75,73 @@ function RoomDetailPage() {
   );
 
   const revenue = bookings.filter((b) => b.status !== "cancelled").reduce((s, b) => s + b.total_amount, 0);
+
+  const parsed = useMemo(() => {
+    const priceNum = Number(price);
+    const capacityNum = parsePositiveInt(capacity, 0);
+    const bedsTotalNum = parsePositiveInt(bedsTotal, 0);
+    const bedsAvailableNum = parsePositiveInt(bedsAvailable, 0);
+    return { priceNum, capacityNum, bedsTotalNum, bedsAvailableNum };
+  }, [price, capacity, bedsTotal, bedsAvailable]);
+
+  const canSaveDetails =
+    price.trim() !== "" &&
+    Number.isFinite(parsed.priceNum) &&
+    parsed.priceNum >= 0 &&
+    parsed.capacityNum >= 1 &&
+    parsed.bedsTotalNum >= 1 &&
+    parsed.bedsAvailableNum >= 0 &&
+    parsed.bedsAvailableNum <= parsed.bedsTotalNum;
+
+  const detailsDirty =
+    room &&
+    (String(room.price_per_night) !== price ||
+      String(room.capacity) !== capacity ||
+      String(room.beds_total) !== bedsTotal ||
+      String(room.beds_available) !== bedsAvailable ||
+      JSON.stringify([...(room.amenities ?? [])].sort()) !== JSON.stringify([...selectedAmenities].sort()));
+
+  function toggleAmenity(name: string, checked: boolean) {
+    setSelectedAmenities((prev) =>
+      checked ? (prev.includes(name) ? prev : [...prev, name]) : prev.filter((a) => a !== name),
+    );
+  }
+
+  function handleStatusChange(status: RoomStatus) {
+    if (!room || status === room.status) return;
+    updateRoom.mutate(
+      { id, draft: { status } },
+      {
+        onSuccess: () => toast.success("Status updated"),
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Status update failed"),
+      },
+    );
+  }
+
+  function handleSaveDetails() {
+    if (!room || !canSaveDetails) return;
+    const patch: Partial<RoomDraft> = {
+      price_per_night: parsed.priceNum,
+      capacity: parsed.capacityNum,
+      beds_total: parsed.bedsTotalNum,
+      beds_available: parsed.bedsAvailableNum,
+      amenities: selectedAmenities,
+    };
+    updateRoom.mutate(
+      { id, draft: patch },
+      {
+        onSuccess: (updated) => {
+          setPrice(String(updated.price_per_night));
+          setCapacity(String(updated.capacity));
+          setBedsTotal(String(updated.beds_total));
+          setBedsAvailable(String(updated.beds_available));
+          setSelectedAmenities(updated.amenities ?? []);
+          toast.success("Room details saved");
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
+      },
+    );
+  }
 
   function handleUpdate(values: RoomDraft) {
     updateRoom.mutate(
@@ -98,7 +196,7 @@ function RoomDetailPage() {
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" /> Edit
+            <Pencil className="h-4 w-4" /> Edit title & photos
           </Button>
           <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-4 w-4" /> Delete
@@ -135,61 +233,136 @@ function RoomDetailPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-extrabold tracking-tight">{room.title}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {room.category} · capacity {room.capacity}
-                </p>
+                <p className="text-sm text-muted-foreground">{room.category}</p>
               </div>
-              <Badge variant="outline" className="capitalize">
-                {room.status}
-              </Badge>
+              <RoomStatusPicker
+                status={room.status}
+                onChange={handleStatusChange}
+                disabled={updateRoom.isPending}
+              />
             </div>
             {room.badge && <Badge className="w-fit">{room.badge}</Badge>}
             {room.description && <p className="text-sm leading-relaxed text-muted-foreground">{room.description}</p>}
-            {room.amenities?.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Amenities</p>
-                <div className="flex flex-wrap gap-2">
-                  {room.amenities.map((a) => (
-                    <Badge key={a} variant="secondary">
-                      {a}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          <Card className="border-border/60">
-            <CardContent className="p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Price / night</p>
-              <p className="mt-1 text-3xl font-extrabold">${room.price_per_night.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60">
-            <CardContent className="space-y-3 p-5 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Beds available</span>
-                <span className="font-bold">
-                  {room.beds_available} / {room.beds_total}
-                </span>
+        <Card className="border-border/60">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Room details</CardTitle>
+            <p className="text-xs text-muted-foreground">Edit pricing, capacity, beds and amenities.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 border-b border-border/60 pb-4">
+              <Label>Status</Label>
+              <p className="text-xs text-muted-foreground">Click the status to choose another.</p>
+              <RoomStatusPicker
+                status={room.status}
+                onChange={handleStatusChange}
+                disabled={updateRoom.isPending}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-price">Price per night</Label>
+              <Input
+                id="room-price"
+                type="text"
+                inputMode="decimal"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="e.g. 6499"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-capacity">Capacity (guests)</Label>
+              <Input
+                id="room-capacity"
+                type="text"
+                inputMode="numeric"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="e.g. 2"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-beds-total">Total beds</Label>
+              <Input
+                id="room-beds-total"
+                type="text"
+                inputMode="numeric"
+                value={bedsTotal}
+                onChange={(e) => setBedsTotal(e.target.value)}
+                placeholder="e.g. 2"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-beds-available">Beds available</Label>
+              <Input
+                id="room-beds-available"
+                type="text"
+                inputMode="numeric"
+                value={bedsAvailable}
+                onChange={(e) => setBedsAvailable(e.target.value)}
+                placeholder="e.g. 1"
+              />
+            </div>
+            {!canSaveDetails && (
+              <p className="text-xs text-destructive">
+                Check values: price ≥ 0, capacity ≥ 1, total beds ≥ 1, and available beds ≤ total beds.
+              </p>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <Label>Amenities</Label>
+              <p className="text-xs text-muted-foreground">Select amenities to include on this room.</p>
+              <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
+                {amenityOptions.map((a) => (
+                  <label key={a} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selectedAmenities.includes(a)}
+                      onCheckedChange={(c) => toggleAmenity(a, !!c)}
+                    />
+                    <span>{a}</span>
+                  </label>
+                ))}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  <Users className="inline h-3.5 w-3.5" /> Total bookings
-                </span>
-                <span className="font-bold">{bookings.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  <Wallet className="inline h-3.5 w-3.5" /> Revenue
-                </span>
-                <span className="font-bold">${revenue.toLocaleString()}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            <Button
+              className="w-full rounded-full font-semibold"
+              onClick={handleSaveDetails}
+              disabled={!canSaveDetails || !detailsDirty || updateRoom.isPending}
+            >
+              {updateRoom.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" /> Save details
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="border-border/60">
+          <CardContent className="flex items-center justify-between p-5 text-sm">
+            <span className="text-muted-foreground">
+              <Users className="inline h-3.5 w-3.5" /> Total bookings
+            </span>
+            <span className="font-bold">{bookings.length}</span>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="flex items-center justify-between p-5 text-sm">
+            <span className="text-muted-foreground">
+              <Wallet className="inline h-3.5 w-3.5" /> Revenue
+            </span>
+            <span className="font-bold">${revenue.toLocaleString()}</span>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="border-border/60">

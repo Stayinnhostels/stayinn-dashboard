@@ -25,13 +25,43 @@ function toBody(draft: RoomDraft) {
   return body;
 }
 
+function buildPatchPayload(draft: RoomDraft | Partial<RoomDraft>): Record<string, unknown> {
+  if ("title" in draft && draft.title !== undefined) {
+    return toBody(draft as RoomDraft);
+  }
+  const partial: Record<string, unknown> = {};
+  const keys = [
+    "title",
+    "description",
+    "price_per_night",
+    "status",
+    "category",
+    "capacity",
+    "beds_total",
+    "beds_available",
+    "amenities",
+    "images",
+    "badge",
+  ] as const;
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(draft, key)) {
+      const value = draft[key];
+      if (key === "badge" && (value === null || value === "")) {
+        partial.badge = null;
+      } else if (value !== undefined) {
+        partial[key] = value;
+      }
+    }
+  }
+  return partial;
+}
+
 export async function patchRoomApi(
   token: string,
   id: string,
   draft: RoomDraft | Partial<RoomDraft>,
 ): Promise<Room> {
-  const payload =
-    "title" in draft && draft.title !== undefined ? toBody(draft as RoomDraft) : draft;
+  const payload = buildPatchPayload(draft);
 
   const data = await apiFetch<PatchRoomResponse>(`/api/v1/rooms/${encodeURIComponent(id)}`, {
     method: "PATCH",

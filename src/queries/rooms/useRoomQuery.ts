@@ -7,5 +7,6 @@ export function useRoomQuery(id: string) {
     queryKey: roomKeys.detail(id),
     queryFn: () => getRoomApi(id),
     enabled: Boolean(id),
+    staleTime: 0,
   });
 }

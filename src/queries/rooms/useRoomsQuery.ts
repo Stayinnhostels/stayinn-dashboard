@@ -7,5 +7,6 @@ export function useRoomsQuery(params: RoomsListParams) {
   return useQuery({
     queryKey: roomKeys.list(params),
     queryFn: () => getRoomsApi(params),
+    staleTime: 0,
   });
 }

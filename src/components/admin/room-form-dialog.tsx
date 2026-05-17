@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { compressImageFile } from "@/lib/compress-image";
-import { ROOM_CATEGORIES, type Room, type RoomDraft } from "@/types/domain/room.types";
+import { ROOM_AMENITY_OPTIONS, ROOM_CATEGORIES, type Room, type RoomDraft } from "@/types/domain/room.types";
 
 export type { RoomDraft };
 
@@ -37,10 +38,15 @@ function roomToDraft(room: Partial<Room> | null | undefined): RoomDraft {
     capacity: room.capacity ?? 1,
     beds_total: room.beds_total ?? 1,
     beds_available: room.beds_available ?? 1,
-    amenities: room.amenities ?? [],
+    amenities: (room.amenities ?? []).filter((a) => a.trim() && a.trim().toLowerCase() !== "none"),
     images: room.images ?? [],
     badge: room.badge ?? null,
   };
+}
+
+function parsePositiveInt(value: string, fallback = 0) {
+  const n = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 export function RoomFormDialog({
@@ -57,11 +63,70 @@ export function RoomFormDialog({
   submitting: boolean;
 }) {
   const [draft, setDraft] = useState<RoomDraft>(blank);
+  const [priceText, setPriceText] = useState("0");
+  const [capacityText, setCapacityText] = useState("2");
+  const [bedsTotalText, setBedsTotalText] = useState("2");
+  const [bedsAvailableText, setBedsAvailableText] = useState("2");
   const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
-    if (open) setDraft(roomToDraft(initial));
+    if (!open) return;
+    const next = roomToDraft(initial);
+    setDraft(next);
+    setPriceText(String(next.price_per_night));
+    setCapacityText(String(next.capacity));
+    setBedsTotalText(String(next.beds_total));
+    setBedsAvailableText(String(next.beds_available));
   }, [open, initial]);
+
+  const amenityOptions = useMemo(() => {
+    const base: string[] = [...ROOM_AMENITY_OPTIONS];
+    for (const a of draft.amenities) {
+      if (!base.includes(a)) base.push(a);
+    }
+    return base.sort((a, b) => a.localeCompare(b));
+  }, [draft.amenities]);
+
+  const parsed = useMemo(() => {
+    const priceNum = Number(priceText);
+    const capacityNum = parsePositiveInt(capacityText, 0);
+    const bedsTotalNum = parsePositiveInt(bedsTotalText, 0);
+    const bedsAvailableNum = parsePositiveInt(bedsAvailableText, 0);
+    return { priceNum, capacityNum, bedsTotalNum, bedsAvailableNum };
+  }, [priceText, capacityText, bedsTotalText, bedsAvailableText]);
+
+  const canSave =
+    draft.title.trim().length > 0 &&
+    draft.category.trim().length > 0 &&
+    priceText.trim() !== "" &&
+    Number.isFinite(parsed.priceNum) &&
+    parsed.priceNum >= 0 &&
+    parsed.capacityNum >= 1 &&
+    parsed.bedsTotalNum >= 1 &&
+    parsed.bedsAvailableNum >= 0 &&
+    parsed.bedsAvailableNum <= parsed.bedsTotalNum;
+
+  function toggleAmenity(name: string, checked: boolean) {
+    setDraft((d) => ({
+      ...d,
+      amenities: checked
+        ? d.amenities.includes(name)
+          ? d.amenities
+          : [...d.amenities, name]
+        : d.amenities.filter((a) => a !== name),
+    }));
+  }
+
+  function handleSubmit() {
+    if (!canSave) return;
+    onSubmit({
+      ...draft,
+      price_per_night: parsed.priceNum,
+      capacity: parsed.capacityNum,
+      beds_total: parsed.bedsTotalNum,
+      beds_available: parsed.bedsAvailableNum,
+    });
+  }
 
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -72,15 +137,6 @@ export function RoomFormDialog({
       toast.error(e instanceof Error ? e.message : "Could not add image");
     }
   }
-
-  const canSave =
-    draft.title.trim().length > 0 &&
-    draft.category.trim().length > 0 &&
-    draft.price_per_night >= 0 &&
-    draft.capacity >= 1 &&
-    draft.beds_total >= 1 &&
-    draft.beds_available >= 0 &&
-    draft.beds_available <= draft.beds_total;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -95,6 +151,7 @@ export function RoomFormDialog({
             <Label>Title</Label>
             <Input
               name="room-title"
+              type="text"
               autoComplete="off"
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -113,10 +170,11 @@ export function RoomFormDialog({
             <div className="grid gap-2">
               <Label>Price / night</Label>
               <Input
-                type="number"
-                min={0}
-                value={draft.price_per_night}
-                onChange={(e) => setDraft({ ...draft, price_per_night: Number(e.target.value) })}
+                type="text"
+                inputMode="decimal"
+                value={priceText}
+                onChange={(e) => setPriceText(e.target.value)}
+                placeholder="e.g. 6499"
               />
             </div>
             <div className="grid gap-2">
@@ -137,29 +195,31 @@ export function RoomFormDialog({
             <div className="grid gap-2">
               <Label>Capacity</Label>
               <Input
-                type="number"
-                min={1}
-                value={draft.capacity}
-                onChange={(e) => setDraft({ ...draft, capacity: Number(e.target.value) })}
+                type="text"
+                inputMode="numeric"
+                value={capacityText}
+                onChange={(e) => setCapacityText(e.target.value)}
+                placeholder="e.g. 2"
               />
             </div>
             <div className="grid gap-2">
               <Label>Beds total</Label>
               <Input
-                type="number"
-                min={1}
-                value={draft.beds_total}
-                onChange={(e) => setDraft({ ...draft, beds_total: Number(e.target.value) })}
+                type="text"
+                inputMode="numeric"
+                value={bedsTotalText}
+                onChange={(e) => setBedsTotalText(e.target.value)}
+                placeholder="e.g. 2"
               />
             </div>
             <div className="grid gap-2">
               <Label>Beds available</Label>
               <Input
-                type="number"
-                min={0}
-                max={draft.beds_total}
-                value={draft.beds_available}
-                onChange={(e) => setDraft({ ...draft, beds_available: Number(e.target.value) })}
+                type="text"
+                inputMode="numeric"
+                value={bedsAvailableText}
+                onChange={(e) => setBedsAvailableText(e.target.value)}
+                placeholder="e.g. 1"
               />
             </div>
             <div className="grid gap-2">
@@ -178,9 +238,16 @@ export function RoomFormDialog({
             </div>
           </div>
 
+          {!canSave && (
+            <p className="text-xs text-destructive">
+              Check price, capacity, and beds (available cannot exceed total).
+            </p>
+          )}
+
           <div className="grid gap-2">
             <Label>Badge (optional)</Label>
             <Input
+              type="text"
               value={draft.badge ?? ""}
               onChange={(e) => setDraft({ ...draft, badge: e.target.value.trim() || null })}
               placeholder="e.g. Most Popular"
@@ -188,19 +255,16 @@ export function RoomFormDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Amenities (comma separated)</Label>
-            <Input
-              value={draft.amenities.join(", ")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  amenities: e.target.value
-                    .split(",")
-                    .map((x) => x.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
+            <Label>Amenities</Label>
+            <p className="text-xs text-muted-foreground">Select amenities for this room.</p>
+            <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
+              {amenityOptions.map((a) => (
+                <label key={a} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox checked={draft.amenities.includes(a)} onCheckedChange={(c) => toggleAmenity(a, !!c)} />
+                  <span>{a}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -228,6 +292,7 @@ export function RoomFormDialog({
               </label>
             </div>
             <Input
+              type="text"
               placeholder="Paste image URL and press Enter"
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
@@ -245,7 +310,7 @@ export function RoomFormDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(draft)} disabled={submitting || !canSave}>
+          <Button onClick={handleSubmit} disabled={submitting || !canSave}>
             {submitting ? "Saving…" : isEdit ? "Save changes" : "Create room"}
           </Button>
         </DialogFooter>

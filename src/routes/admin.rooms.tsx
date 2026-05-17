@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Plus, Search, Trash2, Eye, BedDouble, LayoutGrid, List as ListIcon, Pen
 import { toast } from "sonner";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import type { Room, RoomDraft, RoomStatus } from "@/types/domain/room.types";
+import { roomStatusStyles } from "@/types/domain/room.types";
 import {
   useRoomsQuery,
   useCreateRoomMutation,
@@ -37,14 +38,17 @@ export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage
 
 const PAGE_SIZE = 12;
 
-const statusVariants: Record<string, string> = {
-  available: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  full: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  maintenance: "bg-rose-500/15 text-rose-600 border-rose-500/30",
-  draft: "bg-muted text-muted-foreground",
-};
+const statusVariants = roomStatusStyles;
 
 function RoomsAdminPage() {
+  const detailMatch = useMatch({ from: "/admin/rooms/$id", shouldThrow: false });
+  if (detailMatch) {
+    return <Outlet />;
+  }
+  return <RoomsListPage />;
+}
+
+function RoomsListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
