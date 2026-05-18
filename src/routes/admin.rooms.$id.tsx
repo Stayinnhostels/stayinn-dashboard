@@ -21,7 +21,7 @@ import { ArrowLeft, BedDouble, Loader2, Pencil, Save, Trash2, Wallet, Users } fr
 import { toast } from "sonner";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
-import { bookings as bookingStore } from "@/lib/mock-store";
+import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
 import { ROOM_AMENITY_OPTIONS, type RoomDraft, type RoomStatus } from "@/types/domain/room.types";
 
@@ -66,13 +66,8 @@ function RoomDetailPage() {
     return base.sort((a, b) => a.localeCompare(b));
   }, [selectedAmenities]);
 
-  const bookings = useMemo(
-    () =>
-      bookingStore
-        .filter((b) => b.room_id === id)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [id],
-  );
+  const { data: bookingsData } = useBookingsQuery({ room_id: id, limit: 100 });
+  const bookings = bookingsData?.bookings ?? [];
 
   const revenue = bookings.filter((b) => b.status !== "cancelled").reduce((s, b) => s + b.total_amount, 0);
 
@@ -360,7 +355,7 @@ function RoomDetailPage() {
             <span className="text-muted-foreground">
               <Wallet className="inline h-3.5 w-3.5" /> Revenue
             </span>
-            <span className="font-bold">${revenue.toLocaleString()}</span>
+            <span className="font-bold">₹{revenue.toLocaleString("en-IN")}</span>
           </CardContent>
         </Card>
       </div>
@@ -375,6 +370,7 @@ function RoomDetailPage() {
               <TableRow>
                 <TableHead>Guest</TableHead>
                 <TableHead>Dates</TableHead>
+                <TableHead>Seats</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -382,7 +378,7 @@ function RoomDetailPage() {
             <TableBody>
               {bookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                     No bookings yet.
                   </TableCell>
                 </TableRow>
@@ -396,9 +392,10 @@ function RoomDetailPage() {
                       <div className="text-xs text-muted-foreground">{b.guest_email}</div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {b.check_in} → {b.check_out}
+                      {b.move_in} → {b.check_out}
                     </TableCell>
-                    <TableCell>${b.total_amount.toLocaleString()}</TableCell>
+                    <TableCell>{b.seats_booked}</TableCell>
+                    <TableCell>₹{b.total_amount.toLocaleString("en-IN")}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="capitalize">
                         {b.status.replace("_", " ")}
