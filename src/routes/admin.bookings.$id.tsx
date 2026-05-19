@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
 import { toast } from "sonner";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import type { BookingStatus } from "@/types/domain/booking.types";
@@ -17,6 +19,15 @@ function BookingDetailPage() {
   const navigate = useNavigate();
   const { data: booking, isLoading, isError, error } = useBookingQuery(id);
   const updateStatus = useUpdateBookingStatusMutation();
+
+  useEffect(() => {
+    if (isLoading || !booking) return;
+    if (typeof window !== "undefined" && window.location.hash === "#booking-invoice") {
+      window.setTimeout(() => {
+        document.getElementById("booking-invoice")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [booking?.id, isLoading]);
 
   function onStatusChange(status: BookingStatus) {
     updateStatus.mutate(
@@ -55,6 +66,12 @@ function BookingDetailPage() {
           <ArrowLeft className="h-4 w-4" /> Back to bookings
         </Button>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="default"
+            onClick={() => document.getElementById("booking-invoice")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <FileText className="h-4 w-4" /> Invoice / Bill
+          </Button>
           <Button variant="outline" onClick={() => onStatusChange("confirmed")}>
             <CheckCircle2 className="h-4 w-4" /> Confirm
           </Button>
@@ -160,17 +177,12 @@ function BookingDetailPage() {
             </Card>
           )}
 
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle className="text-base">Payment</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              No online payment for this booking. Guest was directed to contact the property via WhatsApp or phone after
-              reserving seats.
-            </CardContent>
-          </Card>
         </div>
       </div>
+
+      <section id="booking-invoice" className="scroll-mt-24">
+        <BookingInvoicePanel booking={booking} />
+      </section>
 
       <Card className="border-border/60">
         <CardHeader>

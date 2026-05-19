@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, BedDouble, Loader2, Pencil, Save, Trash2, Wallet, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, FileText, Loader2, Pencil, Save, Trash2, Wallet, Users } from "lucide-react";
 import { toast } from "sonner";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
@@ -363,6 +363,9 @@ function RoomDetailPage() {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Booking history</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Open a booking to generate its invoice (Preview, Download PDF, WhatsApp).
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -373,12 +376,13 @@ function RoomDetailPage() {
                 <TableHead>Seats</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-28 text-right">Invoice</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {bookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                     No bookings yet.
                   </TableCell>
                 </TableRow>
@@ -400,6 +404,14 @@ function RoomDetailPage() {
                       <Badge variant="secondary" className="capitalize">
                         {b.status.replace("_", " ")}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild size="sm" variant="outline">
+                        <Link to="/admin/bookings/$id" params={{ id: b.id }} hash="booking-invoice">
+                          <FileText className="h-3.5 w-3.5" />
+                          Invoice
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Eye, LayoutGrid, List as ListIcon, Loader2, Search } from "lucide-react";
+import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Loader2, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -253,11 +253,18 @@ function BookingsListPage() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="ghost">
-                        <Link to="/admin/bookings/$id" params={{ id: b.id }}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button asChild size="sm" variant="ghost" title="View booking">
+                          <Link to="/admin/bookings/$id" params={{ id: b.id }}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" title="Invoice / Bill">
+                          <Link to="/admin/bookings/$id" params={{ id: b.id }} hash="booking-invoice">
+                            <FileText className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
