@@ -18,7 +18,8 @@ import {
   guestWhatsAppUrl,
 } from "@/lib/invoice/build-invoice";
 import { downloadInvoicePdf } from "@/lib/invoice/download-invoice-pdf";
-import { loadPropertyInvoiceSettings } from "@/lib/invoice/property-settings";
+import { toInvoicePropertySettings } from "@/lib/invoice/property-settings";
+import { usePublicPropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 
 type Props = {
   booking: Booking;
@@ -29,10 +30,12 @@ export function BookingInvoicePanel({ booking }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
+  const { data: propertySettings } = usePublicPropertySettingsQuery();
+
   const invoiceData = useMemo(() => {
-    const property = loadPropertyInvoiceSettings();
+    const property = toInvoicePropertySettings(propertySettings);
     return buildBookingInvoice(booking, property);
-  }, [booking]);
+  }, [booking, propertySettings]);
 
   const whatsappMessage = useMemo(() => buildInvoiceWhatsAppMessage(invoiceData), [invoiceData]);
   const guestWaUrl = useMemo(
@@ -103,11 +106,11 @@ export function BookingInvoicePanel({ booking }: Props) {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Property details on the invoice come from{" "}
+            Property details come from{" "}
             <a href="/admin/settings" className="font-semibold underline">
               Settings → Property
-            </a>
-            . WhatsApp opens with a pre-filled message; attach the PDF after downloading.
+            </a>{" "}
+            (synced to the website and emails). Attach the PDF in WhatsApp after downloading.
           </p>
         </CardContent>
       </Card>

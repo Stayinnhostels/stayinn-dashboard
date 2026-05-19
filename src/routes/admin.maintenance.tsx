@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,31 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatCard } from "@/components/admin/stat-card";
-import { Plus, Wrench, AlertTriangle, CheckCircle2, Clock, Trash2, Pencil } from "lucide-react";
+import {
+  Plus,
+  Wrench,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Trash2,
+  Pencil,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
-import { maintenance as store, rooms as roomStore, getRoom, newId, nowIso, type Maintenance, type MaintenancePriority, type MaintenanceStatus } from "@/lib/mock-store";
+import {
+  useMaintenanceQuery,
+  useCreateMaintenanceMutation,
+  useUpdateMaintenanceMutation,
+  useUpdateMaintenanceStatusMutation,
+  useDeleteMaintenanceMutation,
+} from "@/queries/maintenance";
+import { useRoomsQuery } from "@/queries/rooms";
+import type {
+  MaintenancePriority,
+  MaintenanceStatus,
+  MaintenanceTicket,
+  MaintenanceDraft,
+} from "@/types/domain/maintenance.types";
 
 export const Route = createFileRoute("/admin/maintenance")({ component: MaintenancePage });
 
@@ -26,71 +47,114 @@ const priorityColor: Record<MaintenancePriority, string> = {
   high: "bg-amber-500/15 text-amber-600 border-amber-500/30",
   urgent: "bg-rose-500/15 text-rose-600 border-rose-500/30",
 };
-const statusColor: Record<MaintenanceStatus, string> = {
-  open: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  in_progress: "bg-sky-500/15 text-sky-600 border-sky-500/30",
-  resolved: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  cancelled: "bg-muted text-muted-foreground",
+
+const blank: MaintenanceDraft = {
+  room_id: null,
+  title: "",
+  description: "",
+  priority: "medium",
+  status: "open",
+  assignee: "Unassigned",
 };
 
-type Draft = Omit<Maintenance, "id" | "created_at">;
-const blank: Draft = { room_id: null, title: "", description: "", priority: "medium", status: "open", assignee: "Unassigned" };
-
 function MaintenancePage() {
-  const qc = useQueryClient();
   const [filter, setFilter] = useState<"all" | MaintenanceStatus>("all");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Maintenance | null>(null);
-  const [draft, setDraft] = useState<Draft>(blank);
+  const [editing, setEditing] = useState<MaintenanceTicket | null>(null);
+  const [draft, setDraft] = useState<MaintenanceDraft>(blank);
 
-  const { data: items = [] } = useQuery({
-    queryKey: ["mock", "maintenance"],
-    queryFn: async () => [...store].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-  });
+  const listParams = filter === "all" ? {} : { status: filter };
+  const { data, isLoading, isError } = useMaintenanceQuery(listParams);
+  const { data: roomsData } = useRoomsQuery({ limit: 100 }, { enabled: open });
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (editing) {
-        Object.assign(editing, draft);
-      } else {
-        store.unshift({ ...draft, id: newId("m"), created_at: nowIso() });
-      }
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["mock"] }); toast.success("Ticket saved"); setOpen(false); setEditing(null); setDraft(blank); },
-  });
+  const createTicket = useCreateMaintenanceMutation();
+  const updateTicket = useUpdateMaintenanceMutation();
+  const setStatus = useUpdateMaintenanceStatusMutation();
+  const remove = useDeleteMaintenanceMutation();
 
-  const remove = useMutation({
-    mutationFn: async (id: string) => { const i = store.findIndex((x) => x.id === id); if (i >= 0) store.splice(i, 1); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["mock"] }); toast.success("Ticket deleted"); },
-  });
+  const items = data?.maintenance ?? [];
+  const stats = data?.stats;
+  const rooms = roomsData?.rooms ?? [];
 
-  const setStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: MaintenanceStatus }) => {
-      const m = store.find((x) => x.id === id); if (m) m.status = status;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["mock"] }),
-  });
-
-  function openCreate() { setEditing(null); setDraft(blank); setOpen(true); }
-  function openEdit(m: Maintenance) {
-    setEditing(m);
-    setDraft({ room_id: m.room_id, title: m.title, description: m.description, priority: m.priority, status: m.status, assignee: m.assignee });
+  function openCreate() {
+    setEditing(null);
+    setDraft(blank);
     setOpen(true);
   }
 
-  const filtered = items.filter((m) => filter === "all" || m.status === filter);
-  const openCount = items.filter((m) => m.status === "open").length;
-  const inProgressCount = items.filter((m) => m.status === "in_progress").length;
-  const resolvedCount = items.filter((m) => m.status === "resolved").length;
-  const urgentCount = items.filter((m) => m.priority === "urgent" && m.status !== "resolved" && m.status !== "cancelled").length;
+  function openEdit(m: MaintenanceTicket) {
+    setEditing(m);
+    setDraft({
+      room_id: m.room_id,
+      title: m.title,
+      description: m.description,
+      priority: m.priority,
+      status: m.status,
+      assignee: m.assignee,
+    });
+    setOpen(true);
+  }
+
+  function handleSave() {
+    if (!draft.title.trim()) return;
+
+    const payload: MaintenanceDraft = {
+      ...draft,
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      assignee: draft.assignee.trim() || "Unassigned",
+    };
+
+    if (editing) {
+      updateTicket.mutate(
+        { id: editing.id, input: payload },
+        {
+          onSuccess: () => {
+            toast.success("Ticket updated");
+            setOpen(false);
+            setEditing(null);
+            setDraft(blank);
+          },
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Update failed"),
+        },
+      );
+    } else {
+      createTicket.mutate(payload, {
+        onSuccess: () => {
+          toast.success("Ticket created");
+          setOpen(false);
+          setDraft(blank);
+        },
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Create failed"),
+      });
+    }
+  }
+
+  const saving = createTicket.isPending || updateTicket.isPending;
+
+  function isSyncedRoomPlaceholder(m: MaintenanceTicket) {
+    return m.source === "room_status" || m.id.startsWith("room-status-");
+  }
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Open" value={openCount} icon={Clock} accent="warning" />
-        <StatCard label="In progress" value={inProgressCount} icon={Wrench} accent="info" />
-        <StatCard label="Resolved" value={resolvedCount} icon={CheckCircle2} accent="success" />
-        <StatCard label="Urgent" value={urgentCount} icon={AlertTriangle} accent="warning" />
+      <p className="text-sm text-muted-foreground">
+        Track room issues and common-area repairs. When you set a room to{" "}
+        <span className="font-medium text-foreground">maintenance</span> in Room Management, an open
+        ticket is created here automatically.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Open" value={stats?.open ?? 0} icon={Clock} accent="warning" />
+        <StatCard label="In progress" value={stats?.in_progress ?? 0} icon={Wrench} accent="info" />
+        <StatCard
+          label="Rooms offline"
+          value={stats?.rooms_in_maintenance ?? 0}
+          icon={Wrench}
+          accent="warning"
+        />
+        <StatCard label="Resolved" value={stats?.resolved ?? 0} icon={CheckCircle2} accent="success" />
+        <StatCard label="Urgent" value={stats?.urgent ?? 0} icon={AlertTriangle} accent="warning" />
       </div>
 
       <Card className="border-border/60">
@@ -103,79 +167,199 @@ function MaintenancePage() {
               <TabsTrigger value="resolved">Resolved</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={openCreate} className="rounded-full font-semibold"><Plus className="h-4 w-4" /> New ticket</Button>
+          <Button onClick={openCreate} className="rounded-full font-semibold">
+            <Plus className="h-4 w-4" /> New ticket
+          </Button>
         </CardContent>
       </Card>
 
-      {filtered.length === 0 ? (
-        <Card className="border-border/60"><CardContent className="py-16 text-center text-sm text-muted-foreground">No tickets here.</CardContent></Card>
+      {isLoading ? (
+        <Card className="border-border/60">
+          <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" /> Loading tickets…
+          </CardContent>
+        </Card>
+      ) : isError ? (
+        <Card className="border-border/60">
+          <CardContent className="py-16 text-center text-sm text-destructive">
+            Could not load maintenance tickets.
+          </CardContent>
+        </Card>
+      ) : items.length === 0 ? (
+        <Card className="border-border/60">
+          <CardContent className="py-16 text-center text-sm text-muted-foreground">
+            No tickets here.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((m) => {
-            const room = m.room_id ? getRoom(m.room_id) : null;
-            return (
-              <Card key={m.id} className="border-border/60">
-                <CardContent className="space-y-3 p-5">
-                  <div className="flex items-start justify-between gap-2">
+          {items.map((m) => (
+            <Card key={m.id} className="border-border/60">
+              <CardContent className="space-y-3 p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-1">
                     <p className="font-extrabold tracking-tight">{m.title}</p>
-                    <Badge variant="outline" className={`capitalize ${priorityColor[m.priority]}`}>{m.priority}</Badge>
+                    {m.title.startsWith("Room offline:") || m.source === "room_status" ? (
+                      <Badge variant="secondary" className="text-[10px] font-medium">
+                        From room status
+                      </Badge>
+                    ) : null}
                   </div>
-                  <p className="text-sm text-muted-foreground">{m.description}</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{room?.title ?? "Common area"}</span>
-                    <span className="font-semibold">{m.assignee}</span>
+                  <Badge variant="outline" className={`shrink-0 capitalize ${priorityColor[m.priority]}`}>
+                    {m.priority}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-3">{m.description}</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">{m.room_title ?? "Common area"}</span>
+                  <span className="font-semibold">{m.assignee}</span>
+                </div>
+                <div className="flex items-center justify-between border-t pt-3">
+                  <Select
+                    value={m.status}
+                    onValueChange={(v) =>
+                      setStatus.mutate(
+                        { id: m.id, status: v as MaintenanceStatus },
+                        {
+                          onError: (err) =>
+                            toast.error(err instanceof Error ? err.message : "Status update failed"),
+                        },
+                      )
+                    }
+                    disabled={setStatus.isPending || isSyncedRoomPlaceholder(m)}
+                  >
+                    <SelectTrigger className="h-8 w-36 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((s) => (
+                        <SelectItem key={s} value={s} className="capitalize">
+                          {s.replace("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => openEdit(m)}
+                      disabled={isSyncedRoomPlaceholder(m)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() =>
+                        remove.mutate(m.id, {
+                          onSuccess: () => toast.success("Ticket deleted"),
+                          onError: (err) =>
+                            toast.error(err instanceof Error ? err.message : "Delete failed"),
+                        })
+                      }
+                      disabled={remove.isPending || isSyncedRoomPlaceholder(m)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
-                  <div className="flex items-center justify-between border-t pt-3">
-                    <Select value={m.status} onValueChange={(v) => setStatus.mutate({ id: m.id, status: v as MaintenanceStatus })}>
-                      <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? "Edit ticket" : "New maintenance ticket"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit ticket" : "New maintenance ticket"}</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-3">
-            <div className="grid gap-1.5"><Label>Title</Label><Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Description</Label><Textarea rows={3} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
+            <div className="grid gap-1.5">
+              <Label>Title</Label>
+              <Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Description</Label>
+              <Textarea
+                rows={3}
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5"><Label>Room</Label>
-                <Select value={draft.room_id ?? "none"} onValueChange={(v) => setDraft({ ...draft, room_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+              <div className="grid gap-1.5">
+                <Label>Room</Label>
+                <Select
+                  value={draft.room_id ?? "none"}
+                  onValueChange={(v) => setDraft({ ...draft, room_id: v === "none" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Common area</SelectItem>
-                    {roomStore.map((r) => <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>)}
+                    {rooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5"><Label>Priority</Label>
-                <Select value={draft.priority} onValueChange={(v) => setDraft({ ...draft, priority: v as MaintenancePriority })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{PRIORITIES.map((p) => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent>
+              <div className="grid gap-1.5">
+                <Label>Priority</Label>
+                <Select
+                  value={draft.priority}
+                  onValueChange={(v) => setDraft({ ...draft, priority: v as MaintenancePriority })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => (
+                      <SelectItem key={p} value={p} className="capitalize">
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5"><Label>Status</Label>
-                <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v as MaintenanceStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}</SelectContent>
+              <div className="grid gap-1.5">
+                <Label>Status</Label>
+                <Select
+                  value={draft.status}
+                  onValueChange={(v) => setDraft({ ...draft, status: v as MaintenanceStatus })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {s.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5"><Label>Assignee</Label><Input value={draft.assignee} onChange={(e) => setDraft({ ...draft, assignee: e.target.value })} /></div>
+              <div className="grid gap-1.5">
+                <Label>Assignee</Label>
+                <Input
+                  value={draft.assignee}
+                  onChange={(e) => setDraft({ ...draft, assignee: e.target.value })}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => save.mutate()} disabled={!draft.title}>Save</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={!draft.title.trim() || saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

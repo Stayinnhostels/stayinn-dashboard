@@ -17,8 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, BedDouble, FileText, Loader2, Pencil, Save, Trash2, Wallet, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, FileText, Loader2, Pencil, Save, Trash2, UserPlus, Wallet, Users } from "lucide-react";
 import { toast } from "sonner";
+import { ManualMemberDialog } from "@/components/admin/manual-member-dialog";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
 import { useBookingsQuery } from "@/queries/bookings";
@@ -37,6 +38,7 @@ function RoomDetailPage() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
   const [price, setPrice] = useState("");
@@ -361,11 +363,22 @@ function RoomDetailPage() {
       </div>
 
       <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle className="text-base">Booking history</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Open a booking to generate its invoice (Preview, Download PDF, WhatsApp).
-          </p>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Booking history</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Walk-in guests and online bookings. Add members manually when someone takes a seat at the desk.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setAddMemberOpen(true)}
+            disabled={room.beds_available <= 0}
+            title={room.beds_available <= 0 ? "No seats available" : undefined}
+          >
+            <UserPlus className="h-4 w-4" />
+            Add walk-in member
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -420,6 +433,8 @@ function RoomDetailPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <ManualMemberDialog room={room} open={addMemberOpen} onOpenChange={setAddMemberOpen} />
 
       <RoomFormDialog
         open={editing}

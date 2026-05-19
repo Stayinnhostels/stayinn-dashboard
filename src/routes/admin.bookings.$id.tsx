@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
 import { toast } from "sonner";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
@@ -150,6 +151,8 @@ function BookingDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          <BookingPricingCard booking={booking} />
 
           {booking.user_id && (
             <Card className="border-border/60">

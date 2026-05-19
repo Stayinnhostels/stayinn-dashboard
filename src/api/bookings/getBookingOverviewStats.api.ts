@@ -1,5 +1,6 @@
 import { apiFetch } from "@/api/apiFetch";
 import type { DailyBookingStatPoint } from "@/api/bookings/getBookingDailyStats.api";
+import type { RevenueSummary } from "@/types/domain/payment.types";
 
 export type WeeklyBookingStatPoint = {
   key: number;
@@ -27,6 +28,7 @@ export type BookingOverviewStats = {
   weekly: { weeks: number; series: WeeklyBookingStatPoint[] };
   status: { total: number; breakdown: BookingStatusStatPoint[] };
   monthly: { months: number; series: MonthlyBookingStatPoint[] };
+  revenue: RevenueSummary;
 };
 
 type GetBookingOverviewStatsResponse = {
@@ -49,7 +51,8 @@ export async function getBookingOverviewStatsApi(
     !data.daily?.series ||
     !data.weekly?.series ||
     !data.status?.breakdown ||
-    !data.monthly?.series
+    !data.monthly?.series ||
+    !data.revenue
   ) {
     throw new Error("Invalid booking overview stats response");
   }
@@ -58,5 +61,6 @@ export async function getBookingOverviewStatsApi(
     weekly: data.weekly,
     status: data.status,
     monthly: data.monthly,
+    revenue: data.revenue,
   };
 }

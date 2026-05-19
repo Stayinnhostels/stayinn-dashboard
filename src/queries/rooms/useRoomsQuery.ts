@@ -3,10 +3,15 @@ import { getRoomsApi } from "@/api/rooms";
 import { roomKeys } from "@/queries/keys/room.keys";
 import type { RoomsListParams } from "@/types/domain/room.types";
 
-export function useRoomsQuery(params: RoomsListParams) {
+type UseRoomsQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useRoomsQuery(params: RoomsListParams, options: UseRoomsQueryOptions = {}) {
   return useQuery({
     queryKey: roomKeys.list(params),
     queryFn: () => getRoomsApi(params),
-    staleTime: 0,
+    staleTime: 30_000,
+    enabled: options.enabled ?? true,
   });
 }

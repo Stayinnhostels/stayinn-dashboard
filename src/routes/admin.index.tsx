@@ -13,10 +13,9 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
-import {
-  rooms as roomStore, bookings as bookingStore, profiles as profileStore,
-  payments as paymentStore, reviews as reviewStore, getRoom,
-} from "@/lib/mock-store";
+import { rooms as roomStore, bookings as bookingStore, profiles as profileStore, getRoom } from "@/lib/mock-store";
+import { useReviewStatsQuery } from "@/queries/reviews";
+import { formatPaymentInr } from "@/lib/payments";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
@@ -63,6 +62,7 @@ function OverviewPage() {
     isError: overviewError,
     error: overviewErr,
   } = useBookingOverviewStatsQuery(30, 8, 6);
+  const { data: reviewStats } = useReviewStatsQuery();
 
   const chartErrorMessage =
     overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";
@@ -71,15 +71,13 @@ function OverviewPage() {
     queryKey: ["mock", "overview"],
     queryFn: async () => ({
       rooms: [...roomStore], bookings: [...bookingStore], users: [...profileStore],
-      payments: [...paymentStore], reviews: [...reviewStore],
     }),
   });
 
   const rooms = data?.rooms ?? [];
   const bookings = data?.bookings ?? [];
   const users = data?.users ?? [];
-  const payments = data?.payments ?? [];
-  const reviews = data?.reviews ?? [];
+  const revenue = overviewStats?.revenue;
 
   const totalBeds = rooms.reduce((s, r) => s + r.beds_total, 0);
   const availableBeds = rooms.reduce((s, r) => s + r.beds_available, 0);
@@ -94,21 +92,24 @@ function OverviewPage() {
   const cancelledBookings = bookings.filter((b) => b.status === "cancelled").length;
   const completedBookings = bookings.filter((b) => b.status === "checked_out").length;
 
-  const succeeded = payments.filter((p) => p.status === "succeeded");
-  const totalRevenue = succeeded.reduce((s, p) => s + p.amount, 0);
+  const totalRevenue = revenue?.total ?? 0;
+  const monthlyRevenue = revenue?.month ?? 0;
+  const weeklyRevenue = revenue?.week ?? 0;
+
+  const succeededBookings = bookings.filter(
+    (b) => b.status === "confirmed" || b.status === "checked_in" || b.status === "checked_out",
+  );
+  const avgBookingValue =
+    succeededBookings.length > 0
+      ? succeededBookings.reduce((s, b) => s + b.total_amount, 0) / succeededBookings.length
+      : 0;
 
   const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay());
-  const monthlyRevenue = succeeded.filter((p) => new Date(p.created_at) >= startOfMonth).reduce((s, p) => s + p.amount, 0);
-  const weeklyRevenue = succeeded.filter((p) => new Date(p.created_at) >= startOfWeek).reduce((s, p) => s + p.amount, 0);
-
-  const avgBookingValue = bookings.length > 0 ? bookings.reduce((s, b) => s + b.total_amount, 0) / bookings.length : 0;
   const todayStr = today.toISOString().slice(0, 10);
   const checkInsToday = bookings.filter((b) => b.check_in === todayStr).length;
   const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
-  const totalReviews = reviews.length;
-  const avgRating = totalReviews > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / totalReviews : 0;
+  const totalReviews = reviewStats?.approved_count ?? 0;
+  const avgRating = reviewStats?.average_rating ?? 0;
   const activeUsers = new Set(bookings.map((b) => b.user_id).filter(Boolean)).size;
 
   const dailyBookings =
@@ -144,11 +145,10 @@ function OverviewPage() {
   const sourceData = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
 
   const revByCategory: Record<string, number> = {};
-  succeeded.forEach((p) => {
-    const b = bookings.find((bb) => bb.id === p.booking_id);
-    const room = b ? getRoom(b.room_id ?? "") : null;
+  succeededBookings.forEach((b) => {
+    const room = getRoom(b.room_id ?? "");
     const cat = room?.category ?? "other";
-    revByCategory[cat] = (revByCategory[cat] ?? 0) + p.amount;
+    revByCategory[cat] = (revByCategory[cat] ?? 0) + b.total_amount;
   });
   const revCategoryData = Object.entries(revByCategory).map(([name, value]) => ({ name, value }));
 
@@ -174,10 +174,10 @@ function OverviewPage() {
         <StatCard label="Cancelled" value={cancelledBookings} icon={XCircle} accent="warning" />
         <StatCard label="Completed" value={completedBookings} icon={CheckCircle2} accent="success" />
 
-        <StatCard label="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} icon={Wallet} accent="success" />
-        <StatCard label="Monthly Revenue" value={`$${monthlyRevenue.toLocaleString()}`} icon={TrendingUp} accent="success" />
-        <StatCard label="Weekly Revenue" value={`$${weeklyRevenue.toLocaleString()}`} icon={Activity} accent="info" />
-        <StatCard label="Avg Booking Value" value={`$${avgBookingValue.toFixed(0)}`} icon={Wallet} accent="primary" />
+        <StatCard label="Total Revenue" value={formatPaymentInr(totalRevenue)} icon={Wallet} accent="success" delta="Succeeded only" />
+        <StatCard label="Monthly Revenue" value={formatPaymentInr(monthlyRevenue)} icon={TrendingUp} accent="success" />
+        <StatCard label="Weekly Revenue" value={formatPaymentInr(weeklyRevenue)} icon={Activity} accent="info" />
+        <StatCard label="Avg booking (succeeded)" value={formatPaymentInr(Math.round(avgBookingValue))} icon={Wallet} accent="primary" />
 
         <StatCard label="Total Users" value={users.length} icon={Users} accent="primary" />
         <StatCard label="Active Users" value={activeUsers} icon={UserCheck} accent="info" />

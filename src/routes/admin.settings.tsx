@@ -8,89 +8,81 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Palette, Share2, BedDouble, Image as ImageIcon, X } from "lucide-react";
+import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
+import { usePropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
+import { useUpdatePropertySettingsMutation } from "@/queries/settings/useUpdatePropertySettingsMutation";
+import type { PropertySettings } from "@/types/domain/property-settings.types";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
-type Settings = {
-  // Property
-  hotelName: string;
-  tagline: string;
-  description: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  country: string;
-  // Branding
-  logoUrl: string;
-  coverImageUrl: string;
-  primaryColor: string;
-  accentColor: string;
-  // Social
-  website: string;
-  instagram: string;
-  facebook: string;
-  twitter: string;
-  // Booking rules
-  checkInTime: string;
-  checkOutTime: string;
-  minStay: number;
-  maxStay: number;
-  advanceBookingDays: number;
-  cancellationWindowHours: number;
-  cancellationPolicy: "flexible" | "moderate" | "strict";
-  depositPercent: number;
-  allowChildren: boolean;
-  allowPets: boolean;
-  smokingAllowed: boolean;
-  // House rules
-  houseRules: string;
-  quietHoursStart: string;
-  quietHoursEnd: string;
+type SettingsForm = Omit<PropertySettings, "whatsapp" | "whatsapp_url" | "fullAddress">;
+
+const DEFAULTS: SettingsForm = {
+  hotelName: "Stay Inn Hostels",
+  tagline: "Your home away from home",
+  description:
+    "A modern hostel offering comfortable shared and private rooms in the heart of the city.",
+  email: "hello@stayinn.example",
+  phone: "+1 555 0100",
+  address: "123 Hostel Lane",
+  city: "Mumbai",
+  country: "India",
+  mapUrl: "",
+  logoUrl: "",
+  coverImageUrl: "",
+  primaryColor: "#f97316",
+  accentColor: "#0ea5e9",
+  website: "https://stayinn.example",
+  instagram: "stayinn",
+  facebook: "stayinn",
+  twitter: "stayinn",
+  checkInTime: "14:00",
+  checkOutTime: "11:00",
+  minStay: 1,
+  maxStay: 30,
+  advanceBookingDays: 365,
+  cancellationWindowHours: 48,
+  cancellationPolicy: "moderate",
+  depositPercent: 25,
+  allowChildren: true,
+  allowPets: false,
+  smokingAllowed: false,
+  houseRules:
+    "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in",
+  quietHoursStart: "22:00",
+  quietHoursEnd: "07:00",
 };
 
-const DEFAULTS: Settings = {
-  hotelName: "Stay Inn Hostels", tagline: "Your home away from home",
-  description: "A modern hostel offering comfortable shared and private rooms in the heart of the city.",
-  email: "hello@stayinn.example", phone: "+1 555 0100",
-  address: "123 Hostel Lane", city: "Mumbai", country: "India",
-  logoUrl: "", coverImageUrl: "",
-  primaryColor: "#f97316", accentColor: "#0ea5e9",
-  website: "https://stayinn.example", instagram: "stayinn", facebook: "stayinn", twitter: "stayinn",
-  checkInTime: "14:00", checkOutTime: "11:00",
-  minStay: 1, maxStay: 30, advanceBookingDays: 365, cancellationWindowHours: 48,
-  cancellationPolicy: "moderate", depositPercent: 25,
-  allowChildren: true, allowPets: false, smokingAllowed: false,
-  houseRules: "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in",
-  quietHoursStart: "22:00", quietHoursEnd: "07:00",
-};
-
-const STORAGE_KEY = "stayinn.admin.settings.v2";
+function toFormSettings(data: PropertySettings): SettingsForm {
+  const { whatsapp: _w, whatsapp_url: _u, fullAddress: _f, ...rest } = data;
+  return rest;
+}
 
 function SettingsPage() {
-  const [s, setS] = useState<Settings>(DEFAULTS);
+  const { data, isLoading, isError } = usePropertySettingsQuery();
+  const saveMutation = useUpdatePropertySettingsMutation();
+  const [s, setS] = useState<SettingsForm>(DEFAULTS);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setS({ ...DEFAULTS, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-  }, []);
+    if (data) setS(toFormSettings(data));
+  }, [data]);
 
-  function update<K extends keyof Settings>(key: K, value: Settings[K]) {
+  function update<K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) {
     setS((prev) => ({ ...prev, [key]: value }));
   }
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-    toast.success("Settings saved");
+    saveMutation.mutate(s, {
+      onSuccess: () =>
+        toast.success("Settings saved — website, emails, and invoices will use these details"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save settings"),
+    });
   }
 
   function reset() {
     setS(DEFAULTS);
-    toast.info("Reset to defaults — click Save to apply");
+    toast.info("Reset to defaults — click Save to apply on the server");
   }
 
   function uploadLogo(file: File | null, key: "logoUrl" | "coverImageUrl") {
@@ -98,6 +90,22 @@ function SettingsPage() {
     const r = new FileReader();
     r.onload = () => update(key, r.result as string);
     r.readAsDataURL(file);
+  }
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" /> Loading settings…
+      </div>
+    );
+  }
+
+  if (isError && !data) {
+    return (
+      <p className="text-sm text-destructive py-8">
+        Could not load settings. Check that you are signed in and the API is running.
+      </p>
+    );
   }
 
   return (
@@ -114,10 +122,12 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Property information</CardTitle>
-              <CardDescription>Basic info displayed across your site, invoices and emails.</CardDescription>
+              <CardDescription>
+                Saved to the server and used on the public website hero, contact page, footer, booking emails, and invoices.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5 sm:col-span-2"><Label>Hotel name</Label><Input value={s.hotelName} onChange={(e) => update("hotelName", e.target.value)} /></div>
+              <div className="grid gap-1.5 sm:col-span-2"><Label>Hostel name</Label><Input value={s.hotelName} onChange={(e) => update("hotelName", e.target.value)} /></div>
               <div className="grid gap-1.5 sm:col-span-2"><Label>Tagline</Label><Input value={s.tagline} onChange={(e) => update("tagline", e.target.value)} /></div>
               <div className="grid gap-1.5 sm:col-span-2"><Label>Description</Label><Textarea rows={3} value={s.description} onChange={(e) => update("description", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Contact email</Label><Input type="email" value={s.email} onChange={(e) => update("email", e.target.value)} /></div>
@@ -125,6 +135,18 @@ function SettingsPage() {
               <div className="grid gap-1.5 sm:col-span-2"><Label>Street address</Label><Input value={s.address} onChange={(e) => update("address", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>City</Label><Input value={s.city} onChange={(e) => update("city", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Country</Label><Input value={s.country} onChange={(e) => update("country", e.target.value)} /></div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>Map location link</Label>
+                <Input
+                  type="url"
+                  value={s.mapUrl}
+                  onChange={(e) => update("mapUrl", e.target.value)}
+                  placeholder="https://www.google.com/maps/place/… or embed URL from Share → Embed a map"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste a Google Maps link or embed URL. The Contact page map updates after you save.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -206,10 +228,20 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="booking" className="space-y-4">
+          <Card className="border-border/60 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-base">Public booking rules page</CardTitle>
+              <CardDescription>
+                Everything in this tab is shown on the website at{" "}
+                <span className="font-semibold text-foreground">/booking-rules</span> after you save settings.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Check-in & check-out</CardTitle>
-              <CardDescription>Default times shown on bookings and emails.</CardDescription>
+              <CardDescription>Default times shown on bookings, emails, and the booking rules page.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5"><Label>Check-in time</Label><Input type="time" value={s.checkInTime} onChange={(e) => update("checkInTime", e.target.value)} /></div>
@@ -234,7 +266,7 @@ function SettingsPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label>Policy</Label>
-                <Select value={s.cancellationPolicy} onValueChange={(v) => update("cancellationPolicy", v as Settings["cancellationPolicy"])}>
+                <Select value={s.cancellationPolicy} onValueChange={(v) => update("cancellationPolicy", v as SettingsForm["cancellationPolicy"])}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="flexible">Flexible — full refund 24h before</SelectItem>
@@ -279,7 +311,15 @@ function SettingsPage() {
 
       <div className="sticky bottom-4 flex justify-end gap-2">
         <Button variant="outline" onClick={reset}>Reset</Button>
-        <Button onClick={save} className="rounded-full font-semibold shadow-lg">Save settings</Button>
+        <Button onClick={save} disabled={saveMutation.isPending} className="rounded-full font-semibold shadow-lg">
+          {saveMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+            </>
+          ) : (
+            "Save settings"
+          )}
+        </Button>
       </div>
     </div>
   );

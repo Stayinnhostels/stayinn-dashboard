@@ -1,8 +1,7 @@
 import type { PropertyInvoiceSettings } from "@/lib/invoice/types";
+import type { PublicPropertySettings, PropertySettings } from "@/types/domain/property-settings.types";
 
-const STORAGE_KEY = "stayinn.admin.settings.v2";
-
-const DEFAULTS: PropertyInvoiceSettings = {
+export const PROPERTY_INVOICE_DEFAULTS: PropertyInvoiceSettings = {
   hotelName: "Stay Inn Hostels",
   tagline: "Your home away from home",
   email: "hello@stayinn.example",
@@ -12,22 +11,22 @@ const DEFAULTS: PropertyInvoiceSettings = {
   country: "India",
 };
 
+export function toInvoicePropertySettings(
+  settings?: Partial<PublicPropertySettings | PropertySettings> | null,
+): PropertyInvoiceSettings {
+  if (!settings) return PROPERTY_INVOICE_DEFAULTS;
+  return {
+    hotelName: settings.hotelName ?? PROPERTY_INVOICE_DEFAULTS.hotelName,
+    tagline: settings.tagline ?? PROPERTY_INVOICE_DEFAULTS.tagline,
+    email: settings.email ?? PROPERTY_INVOICE_DEFAULTS.email,
+    phone: settings.phone ?? PROPERTY_INVOICE_DEFAULTS.phone,
+    address: settings.address ?? PROPERTY_INVOICE_DEFAULTS.address,
+    city: settings.city ?? PROPERTY_INVOICE_DEFAULTS.city,
+    country: settings.country ?? PROPERTY_INVOICE_DEFAULTS.country,
+  };
+}
+
+/** @deprecated Use usePublicPropertySettingsQuery + toInvoicePropertySettings */
 export function loadPropertyInvoiceSettings(): PropertyInvoiceSettings {
-  if (typeof window === "undefined") return DEFAULTS;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULTS;
-    const parsed = JSON.parse(raw) as Partial<PropertyInvoiceSettings>;
-    return {
-      hotelName: parsed.hotelName ?? DEFAULTS.hotelName,
-      tagline: parsed.tagline ?? DEFAULTS.tagline,
-      email: parsed.email ?? DEFAULTS.email,
-      phone: parsed.phone ?? DEFAULTS.phone,
-      address: parsed.address ?? DEFAULTS.address,
-      city: parsed.city ?? DEFAULTS.city,
-      country: parsed.country ?? DEFAULTS.country,
-    };
-  } catch {
-    return DEFAULTS;
-  }
+  return PROPERTY_INVOICE_DEFAULTS;
 }

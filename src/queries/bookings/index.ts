@@ -1,3 +1,7 @@
 export { useBookingsQuery } from "./useBookingsQuery";
 export { useBookingQuery } from "./useBookingQuery";
-export { useUpdateBookingStatusMutation } from "./useBookingMutations";
+export {
+  useCreateManualBookingMutation,
+  useUpdateBookingPricingMutation,
+  useUpdateBookingStatusMutation,
+} from "./useBookingMutations";

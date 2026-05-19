@@ -1,85 +1,140 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/admin/stat-card";
-import { Wallet, TrendingUp, CreditCard } from "lucide-react";
+import { Wallet, TrendingUp, CreditCard, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { payments as store, getBooking, getRoom } from "@/lib/mock-store";
+import { usePaymentsQuery } from "@/queries/payments";
+import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
+import { formatPaymentInr, paymentMethodLabel } from "@/lib/payments";
 
 export const Route = createFileRoute("/admin/financials")({ component: FinancialsPage });
 
 function FinancialsPage() {
-  const { data: payments = [] } = useQuery({
-    queryKey: ["mock", "payments-financials"],
-    queryFn: async () => [...store].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-  });
+  const { data: overviewStats, isLoading: statsLoading } = useBookingOverviewStatsQuery(30, 8, 6);
+  const { data: paymentsData, isLoading: paymentsLoading } = usePaymentsQuery({ page: 1, limit: 20 });
 
-  const succeeded = payments.filter((p) => p.status === "succeeded");
-  const totalRevenue = succeeded.reduce((s, p) => s + p.amount, 0);
-  const pending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0);
-  const refunded = payments.filter((p) => p.status === "refunded").reduce((s, p) => s + p.amount, 0);
+  const revenue = overviewStats?.revenue;
+  const payments = paymentsData?.payments ?? [];
 
-  const months = Array.from({ length: 6 }).map((_, i) => {
-    const d = new Date(); d.setMonth(d.getMonth() - (5 - i));
-    return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("en", { month: "short" }), value: 0 };
-  });
-  succeeded.forEach((p) => {
-    const d = new Date(p.created_at);
-    const m = months.find((mm) => mm.key === `${d.getFullYear()}-${d.getMonth()}`);
-    if (m) m.value += p.amount;
-  });
+  const months =
+    overviewStats?.monthly.series.map((m) => ({
+      key: m.key,
+      label: m.label,
+      value: m.revenue,
+    })) ?? [];
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Revenue charts use <span className="font-semibold text-foreground">succeeded</span> bookings only.
+        The table lists all booking payments including pending and cancelled.
+      </p>
+
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total revenue" value={`$${totalRevenue.toLocaleString()}`} icon={Wallet} delta="Successful payments" />
-        <StatCard label="Pending" value={`$${pending.toLocaleString()}`} icon={CreditCard} delta="Awaiting capture" />
-        <StatCard label="Refunded" value={`$${refunded.toLocaleString()}`} icon={TrendingUp} delta="Last period" />
+        <StatCard
+          label="Total revenue"
+          value={statsLoading ? "…" : formatPaymentInr(revenue?.total ?? 0)}
+          icon={Wallet}
+          delta="Succeeded payments"
+        />
+        <StatCard
+          label="Pending"
+          value={statsLoading ? "…" : formatPaymentInr(revenue?.pending_amount ?? 0)}
+          icon={CreditCard}
+          delta="Awaiting confirmation"
+        />
+        <StatCard
+          label="Refunded / cancelled"
+          value={statsLoading ? "…" : formatPaymentInr(revenue?.refunded_amount ?? 0)}
+          icon={TrendingUp}
+          delta="Not counted in revenue"
+        />
       </div>
 
       <Card className="border-border/60">
-        <CardHeader><CardTitle className="text-base">Revenue by month</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Revenue by month (succeeded)</CardTitle>
+        </CardHeader>
         <CardContent className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={months}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
-              <YAxis tickLine={false} axisLine={false} fontSize={12} /><Tooltip />
-              <Bar dataKey="value" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {statsLoading ? (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={months}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                <YAxis tickLine={false} axisLine={false} fontSize={12} />
+                <Tooltip formatter={(v: number) => formatPaymentInr(v)} />
+                <Bar dataKey="value" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
       <Card className="border-border/60">
-        <CardHeader><CardTitle className="text-base">Recent payments</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Recent payments</CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>Date</TableHead><TableHead>Guest</TableHead><TableHead>Room</TableHead>
-              <TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Method</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {payments.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No payments.</TableCell></TableRow>
-              ) : payments.map((p) => {
-                const b = getBooking(p.booking_id);
-                const r = b ? getRoom(b.room_id ?? "") : null;
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{b?.guest_name ?? "—"}</TableCell>
-                    <TableCell>{r?.title ?? "—"}</TableCell>
-                    <TableCell className="font-mono">${p.amount.toLocaleString()} {p.currency}</TableCell>
-                    <TableCell><Badge variant="secondary" className="capitalize">{p.status}</Badge></TableCell>
-                    <TableCell className="capitalize text-xs text-muted-foreground">{p.method}</TableCell>
+          {paymentsLoading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" /> Loading…
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Guest</TableHead>
+                  <TableHead>Room</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Method</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                      No payments yet.
+                    </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                ) : (
+                  payments.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          to="/admin/bookings/$id"
+                          params={{ id: p.booking_id }}
+                          className="font-semibold hover:underline"
+                        >
+                          {p.guest_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{p.room_title ?? "—"}</TableCell>
+                      <TableCell className="font-mono">{formatPaymentInr(p.amount)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {p.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="capitalize text-xs text-muted-foreground">
+                        {paymentMethodLabel(p.method, p.source)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
