@@ -1,72 +1,151 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Check, Trash2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
-import { notifications as store } from "@/lib/mock-store";
+import { NotificationCard } from "@/components/admin/notification-card";
+import {
+  useNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useDeleteNotificationMutation,
+} from "@/queries/notifications";
 
 export const Route = createFileRoute("/admin/notifications")({ component: NotificationsPage });
 
+function NotificationTile({
+  notification,
+  onDelete,
+  onMarkRead,
+}: {
+  notification: Parameters<typeof NotificationCard>[0]["notification"];
+  onDelete: () => void;
+  onMarkRead?: () => void;
+}) {
+  return (
+    <div className="group relative h-[5.75rem]">
+      <NotificationCard
+        notification={notification}
+        variant="tile"
+        onMarkRead={onMarkRead}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-1.5 top-1.5 h-6 w-6 rounded-full text-primary-foreground/0 opacity-0 transition-opacity group-hover:opacity-100 group-hover:text-primary-foreground hover:bg-white/20"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
 function NotificationsPage() {
-  const qc = useQueryClient();
+  const { data, isLoading, isError } = useNotificationsQuery({ limit: 100 });
+  const markRead = useMarkNotificationReadMutation();
+  const markAll = useMarkAllNotificationsReadMutation();
+  const remove = useDeleteNotificationMutation();
 
-  const { data: items = [] } = useQuery({
-    queryKey: ["mock", "notifications"],
-    queryFn: async () => [...store].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-  });
-
-  const markRead = useMutation({
-    mutationFn: async (id: string) => { const n = store.find((x) => x.id === id); if (n) n.read = true; },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["mock"] }),
-  });
-  const remove = useMutation({
-    mutationFn: async (id: string) => { const i = store.findIndex((x) => x.id === id); if (i >= 0) store.splice(i, 1); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["mock"] }); toast.success("Deleted"); },
-  });
-  const markAll = useMutation({
-    mutationFn: async () => { store.forEach((n) => { n.read = true; }); },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["mock"] }),
-  });
+  const items = data?.notifications ?? [];
+  const unread = data?.unread_count ?? 0;
+  const unreadItems = items.filter((n) => !n.read);
+  const readItems = items.filter((n) => n.read);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{items.filter((i) => !i.read).length} unread</p>
-        <Button variant="outline" size="sm" onClick={() => markAll.mutate()}>Mark all read</Button>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card px-4 py-3 shadow-[var(--shadow-soft)]">
+        <p className="text-sm font-bold text-primary">Live alerts</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          New alerts drop from the top, to the left of the bell. Booking, review, and contact each
+          have their own card style.
+        </p>
       </div>
 
-      {items.length === 0 ? (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-bold text-foreground">{unread}</span> unread ·{" "}
+          <span className="font-bold text-foreground">{items.length}</span> total
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            markAll.mutate(undefined, {
+              onSuccess: () => toast.success("All marked as read"),
+            })
+          }
+          disabled={unread === 0 || markAll.isPending}
+        >
+          Mark all read
+        </Button>
+      </div>
+
+      {isLoading ? (
         <Card className="border-border/60">
-          <CardContent className="py-20 text-center">
-            <Bell className="mx-auto h-12 w-12 text-muted-foreground/40" />
-            <p className="mt-3 font-bold">No notifications</p>
+          <CardContent className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </CardContent>
+        </Card>
+      ) : isError ? (
+        <Card className="border-border/60">
+          <CardContent className="py-16 text-center text-sm text-destructive">
+            Could not load notifications.
+          </CardContent>
+        </Card>
+      ) : items.length === 0 ? (
+        <Card className="border-border/60">
+          <CardContent className="py-16 text-center">
+            <Bell className="mx-auto h-10 w-10 text-muted-foreground/40" />
+            <p className="mt-2 font-bold">No notifications</p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-border/60">
-          <CardContent className="p-0">
-            {items.map((n) => (
-              <div key={n.id} className={`flex items-start justify-between gap-3 border-b p-4 last:border-b-0 ${!n.read ? "bg-primary/5" : ""}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize text-[10px]">{n.type}</Badge>
-                    <p className="font-semibold">{n.title}</p>
-                    {!n.read && <span className="h-2 w-2 rounded-full bg-primary" />}
-                  </div>
-                  {n.body && <p className="mt-1 text-sm text-muted-foreground">{n.body}</p>}
-                  <p className="mt-1 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</p>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  {!n.read && <Button size="icon" variant="ghost" onClick={() => markRead.mutate(n.id)}><Check className="h-4 w-4" /></Button>}
-                  <Button size="icon" variant="ghost" onClick={() => remove.mutate(n.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
+        <div className="space-y-6">
+          {unreadItems.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Unread
+              </h2>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {unreadItems.map((n) => (
+                  <NotificationTile
+                    key={n.id}
+                    notification={n}
+                    onMarkRead={() => markRead.mutate(n.id)}
+                    onDelete={() =>
+                      remove.mutate(n.id, { onSuccess: () => toast.success("Deleted") })
+                    }
+                  />
+                ))}
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </section>
+          )}
+
+          {readItems.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Earlier
+              </h2>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {readItems.map((n) => (
+                  <NotificationTile
+                    key={n.id}
+                    notification={n}
+                    onDelete={() =>
+                      remove.mutate(n.id, { onSuccess: () => toast.success("Deleted") })
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );

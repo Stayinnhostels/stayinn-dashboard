@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Menu, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { LiveNotificationAlerts } from "./live-notification-alerts";
 import { NotificationsBell } from "./notifications-bell";
 
 export function AdminHeader({
@@ -23,9 +25,10 @@ export function AdminHeader({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const bellAnchorRef = useRef<HTMLDivElement>(null);
 
   return (
-    <header className="z-30 flex h-16 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-4 md:px-8 backdrop-blur-xl">
+    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-4 md:px-8 backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -42,7 +45,10 @@ export function AdminHeader({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <NotificationsBell />
+        <div ref={bellAnchorRef} className="relative flex items-center">
+          <LiveNotificationAlerts anchorRef={bellAnchorRef} />
+          <NotificationsBell />
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-full font-semibold">

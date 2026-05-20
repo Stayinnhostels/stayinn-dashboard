@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -59,19 +60,21 @@ function AdminLayout() {
   const meta = resolveMeta(pathname);
 
   return (
-    <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
-      <AdminSidebar />
-      <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <AdminHeader
-          title={meta.title}
-          subtitle={meta.subtitle}
-          onOpenMobileNav={() => setMobileNav(true)}
-        />
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8">
-          <Outlet />
-        </main>
+    <NotificationSocketProvider>
+      <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
+        <AdminSidebar />
+        <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <AdminHeader
+            title={meta.title}
+            subtitle={meta.subtitle}
+            onOpenMobileNav={() => setMobileNav(true)}
+          />
+          <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationSocketProvider>
   );
 }
