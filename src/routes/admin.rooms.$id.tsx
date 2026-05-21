@@ -24,6 +24,7 @@ import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
 import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import { ROOM_AMENITY_OPTIONS, type RoomDraft, type RoomStatus } from "@/types/domain/room.types";
 
 export const Route = createFileRoute("/admin/rooms/$id")({ component: RoomDetailPage });
@@ -41,7 +42,8 @@ function RoomDetailPage() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
-  const [price, setPrice] = useState("");
+  const [priceUsd, setPriceUsd] = useState("");
+  const [pricePkr, setPricePkr] = useState("");
   const [capacity, setCapacity] = useState("");
   const [bedsTotal, setBedsTotal] = useState("");
   const [bedsAvailable, setBedsAvailable] = useState("");
@@ -53,7 +55,8 @@ function RoomDetailPage() {
 
   useEffect(() => {
     if (!room) return;
-    setPrice(String(room.price_per_night));
+    setPriceUsd(String(room.price_per_night_usd ?? room.price_per_night));
+    setPricePkr(String(room.price_per_night_pkr ?? room.price_per_night));
     setCapacity(String(room.capacity));
     setBedsTotal(String(room.beds_total));
     setBedsAvailable(String(room.beds_available));
@@ -71,20 +74,29 @@ function RoomDetailPage() {
   const { data: bookingsData } = useBookingsQuery({ room_id: id, limit: 100 });
   const bookings = bookingsData?.bookings ?? [];
 
-  const revenue = bookings.filter((b) => b.status !== "cancelled").reduce((s, b) => s + b.total_amount, 0);
+  const revenuePkr = bookings
+    .filter((b) => b.status !== "cancelled" && normalizeMoneyCurrency(b.currency) === "pkr")
+    .reduce((s, b) => s + b.total_amount, 0);
+  const revenueUsd = bookings
+    .filter((b) => b.status !== "cancelled" && normalizeMoneyCurrency(b.currency) === "usd")
+    .reduce((s, b) => s + b.total_amount, 0);
 
   const parsed = useMemo(() => {
-    const priceNum = Number(price);
+    const priceUsdNum = Number(priceUsd);
+    const pricePkrNum = Number(pricePkr);
     const capacityNum = parsePositiveInt(capacity, 0);
     const bedsTotalNum = parsePositiveInt(bedsTotal, 0);
     const bedsAvailableNum = parsePositiveInt(bedsAvailable, 0);
-    return { priceNum, capacityNum, bedsTotalNum, bedsAvailableNum };
-  }, [price, capacity, bedsTotal, bedsAvailable]);
+    return { priceUsdNum, pricePkrNum, capacityNum, bedsTotalNum, bedsAvailableNum };
+  }, [priceUsd, pricePkr, capacity, bedsTotal, bedsAvailable]);
 
   const canSaveDetails =
-    price.trim() !== "" &&
-    Number.isFinite(parsed.priceNum) &&
-    parsed.priceNum >= 0 &&
+    priceUsd.trim() !== "" &&
+    pricePkr.trim() !== "" &&
+    Number.isFinite(parsed.priceUsdNum) &&
+    parsed.priceUsdNum >= 0 &&
+    Number.isFinite(parsed.pricePkrNum) &&
+    parsed.pricePkrNum >= 0 &&
     parsed.capacityNum >= 1 &&
     parsed.bedsTotalNum >= 1 &&
     parsed.bedsAvailableNum >= 0 &&
@@ -92,7 +104,8 @@ function RoomDetailPage() {
 
   const detailsDirty =
     room &&
-    (String(room.price_per_night) !== price ||
+    (String(room.price_per_night_usd ?? room.price_per_night) !== priceUsd ||
+      String(room.price_per_night_pkr ?? room.price_per_night) !== pricePkr ||
       String(room.capacity) !== capacity ||
       String(room.beds_total) !== bedsTotal ||
       String(room.beds_available) !== bedsAvailable ||
@@ -118,7 +131,9 @@ function RoomDetailPage() {
   function handleSaveDetails() {
     if (!room || !canSaveDetails) return;
     const patch: Partial<RoomDraft> = {
-      price_per_night: parsed.priceNum,
+      price_per_night_usd: parsed.priceUsdNum,
+      price_per_night_pkr: parsed.pricePkrNum,
+      price_per_night: parsed.priceUsdNum,
       capacity: parsed.capacityNum,
       beds_total: parsed.bedsTotalNum,
       beds_available: parsed.bedsAvailableNum,
@@ -128,7 +143,8 @@ function RoomDetailPage() {
       { id, draft: patch },
       {
         onSuccess: (updated) => {
-          setPrice(String(updated.price_per_night));
+          setPriceUsd(String(updated.price_per_night_usd ?? updated.price_per_night));
+          setPricePkr(String(updated.price_per_night_pkr ?? updated.price_per_night));
           setCapacity(String(updated.capacity));
           setBedsTotal(String(updated.beds_total));
           setBedsAvailable(String(updated.beds_available));
@@ -259,14 +275,25 @@ function RoomDetailPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-price">Price per night</Label>
+              <Label htmlFor="room-price-usd">Price / seat / month (USD)</Label>
               <Input
-                id="room-price"
+                id="room-price-usd"
                 type="text"
                 inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="e.g. 6499"
+                value={priceUsd}
+                onChange={(e) => setPriceUsd(e.target.value)}
+                placeholder="e.g. 120"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-price-pkr">Price / seat / month (PKR)</Label>
+              <Input
+                id="room-price-pkr"
+                type="text"
+                inputMode="decimal"
+                value={pricePkr}
+                onChange={(e) => setPricePkr(e.target.value)}
+                placeholder="e.g. 35000"
               />
             </div>
             <div className="grid gap-2">
@@ -357,7 +384,9 @@ function RoomDetailPage() {
             <span className="text-muted-foreground">
               <Wallet className="inline h-3.5 w-3.5" /> Revenue
             </span>
-            <span className="font-bold">₹{revenue.toLocaleString("en-IN")}</span>
+            <span className="font-bold">
+              {formatMoney(revenuePkr, "pkr")} · {formatMoney(revenueUsd, "usd")}
+            </span>
           </CardContent>
         </Card>
       </div>
@@ -412,7 +441,7 @@ function RoomDetailPage() {
                       {b.move_in} → {b.check_out}
                     </TableCell>
                     <TableCell>{b.seats_booked}</TableCell>
-                    <TableCell>₹{b.total_amount.toLocaleString("en-IN")}</TableCell>
+                    <TableCell>{formatMoney(b.total_amount, normalizeMoneyCurrency(b.currency))}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="capitalize">
                         {b.status.replace("_", " ")}

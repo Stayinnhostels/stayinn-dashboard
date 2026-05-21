@@ -3,9 +3,10 @@ import { patchBookingPricingApi, patchBookingStatusApi, postManualBookingApi } f
 import type { CreateManualBookingInput } from "@/api/bookings/postManualBooking.api";
 import type { UpdateBookingPricingInput } from "@/api/bookings/patchBookingPricing.api";
 import { bookingKeys } from "@/queries/keys/booking.keys";
+import { paymentKeys } from "@/queries/payments";
 import { roomKeys } from "@/queries/keys/room.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
-import type { BookingStatus } from "@/types/domain/booking.types";
+import type { UpdateBookingStatusInput } from "@/api/bookings/patchBookingStatus.api";
 
 export function useCreateManualBookingMutation() {
   const token = useAuthStore((s) => s.token);
@@ -18,6 +19,7 @@ export function useCreateManualBookingMutation() {
     },
     onSuccess: (booking) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() });
       if (booking.room_id) {
         void queryClient.invalidateQueries({ queryKey: roomKeys.detail(booking.room_id) });
       }
@@ -37,6 +39,7 @@ export function useUpdateBookingPricingMutation() {
     },
     onSuccess: (booking) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(booking.id) });
       if (booking.room_id) {
         void queryClient.invalidateQueries({ queryKey: roomKeys.detail(booking.room_id) });
@@ -50,13 +53,17 @@ export function useUpdateBookingStatusMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: BookingStatus }) => {
+    mutationFn: (input: { id: string } & UpdateBookingStatusInput) => {
       if (!token) throw new Error("You must be signed in");
-      return patchBookingStatusApi(token, id, status);
+      const { id, status, amount_refunded } = input;
+      return patchBookingStatusApi(token, id, { status, amount_refunded });
     },
     onSuccess: (_, { id }) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() });
+      void queryClient.invalidateQueries({ queryKey: [...bookingKeys.all, "overview"] });
       void queryClient.invalidateQueries({ queryKey: roomKeys.all });
     },
   });

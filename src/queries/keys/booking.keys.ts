@@ -9,4 +9,5 @@ export const bookingKeys = {
   dailyStats: (days: number) => [...bookingKeys.all, "daily-stats", days] as const,
   overview: (days: number, weeks: number, months: number) =>
     [...bookingKeys.all, "overview", days, weeks, months] as const,
+  revenue: () => [...bookingKeys.all, "revenue"] as const,
 };

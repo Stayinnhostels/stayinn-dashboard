@@ -188,7 +188,7 @@ function CouponsPage() {
                       <p className="font-extrabold text-base">
                         {c.discount_type === "percent"
                           ? `${c.discount_value}%`
-                          : `₹${c.discount_value.toLocaleString("en-IN")}`}
+                          : `Rs ${c.discount_value.toLocaleString("en-PK")}`}
                       </p>
                       <p className="text-muted-foreground">Discount</p>
                     </div>
@@ -268,7 +268,7 @@ function CouponsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percent">Percent (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed (₹)</SelectItem>
+                    <SelectItem value="fixed">Fixed (Rs PKR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

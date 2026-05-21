@@ -6,11 +6,16 @@ type PatchResponse = {
   booking: Booking;
 };
 
-export async function patchBookingStatusApi(token: string, id: string, status: BookingStatus) {
+export type UpdateBookingStatusInput = {
+  status: BookingStatus;
+  amount_refunded?: number;
+};
+
+export async function patchBookingStatusApi(token: string, id: string, input: UpdateBookingStatusInput) {
   const data = await apiFetch<PatchResponse>(`/api/v1/bookings/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
     token,
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(input),
   });
   if (!data.success || !data.booking) {
     throw new Error("Failed to update booking");

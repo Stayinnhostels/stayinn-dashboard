@@ -14,6 +14,9 @@ export type Booking = {
   check_out: string | null;
   price_per_seat: number;
   total_amount: number;
+  currency?: "pkr" | "usd" | null;
+  amount_refunded?: number | null;
+  amount_retained?: number | null;
   status: BookingStatus;
   source: string;
   notes: string | null;

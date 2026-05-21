@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { IndianRupee, Loader2, Percent } from "lucide-react";
+import { Banknote, Loader2, Percent } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,29 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdateBookingPricingMutation } from "@/queries/bookings";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking } from "@/types/domain/booking.types";
 
 type Props = {
   booking: Booking;
 };
 
-function formatInr(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
-}
-
 export function BookingPricingCard({ booking }: Props) {
   const updatePricing = useUpdateBookingPricingMutation();
+  const cur = normalizeMoneyCurrency(booking.currency);
+  const money = (n: number) => formatMoney(n, cur);
 
   const quotedTotal = booking.total_amount;
   const seatMonths = booking.seats_booked * booking.months;
 
   const [totalInput, setTotalInput] = useState(String(quotedTotal));
   const [pricePerSeatInput, setPricePerSeatInput] = useState(String(booking.price_per_seat));
+  const [customPercentInput, setCustomPercentInput] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
     setTotalInput(String(booking.total_amount));
     setPricePerSeatInput(String(booking.price_per_seat));
+    setCustomPercentInput("");
     setNote("");
   }, [booking.id, booking.total_amount, booking.price_per_seat]);
 
@@ -73,12 +74,30 @@ export function BookingPricingCard({ booking }: Props) {
   }
 
   function applyDiscountPercent(percent: number) {
-    const next = Math.max(0, Math.round(quotedTotal * (1 - percent / 100)));
+    const safe = Math.min(100, Math.max(0, percent));
+    const next = Math.max(0, Math.round(quotedTotal * (1 - safe / 100)));
     setTotalInput(String(next));
     if (seatMonths > 0) {
       setPricePerSeatInput(String(Math.round((next / seatMonths) * 100) / 100));
     }
   }
+
+  function applyCustomPercent() {
+    const pct = Number(customPercentInput);
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      toast.error("Enter a discount between 0 and 100");
+      return;
+    }
+    applyDiscountPercent(pct);
+    toast.success(`Applied ${pct}% discount to quoted price`);
+  }
+
+  const customPercentNum = Number(customPercentInput);
+  const customPercentValid =
+    customPercentInput.trim() !== "" &&
+    Number.isFinite(customPercentNum) &&
+    customPercentNum >= 0 &&
+    customPercentNum <= 100;
 
   if (booking.status === "cancelled") {
     return (
@@ -95,7 +114,7 @@ export function BookingPricingCard({ booking }: Props) {
     <Card className="border-border/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <IndianRupee className="h-4 w-4" />
+          <Banknote className="h-4 w-4" />
           Adjust price (discount)
         </CardTitle>
         <CardDescription>
@@ -108,16 +127,16 @@ export function BookingPricingCard({ booking }: Props) {
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
             <p>
               <span className="text-muted-foreground">Quoted online: </span>
-              <span className="font-semibold">{formatInr(quotedTotal)}</span>
+              <span className="font-semibold">{money(quotedTotal)}</span>
             </p>
             <p className="mt-1 text-muted-foreground">
-              {booking.seats_booked} seat(s) × {booking.months} month(s) @ {formatInr(booking.price_per_seat)}/seat/mo
+              {booking.seats_booked} seat(s) × {booking.months} month(s) @ {money(booking.price_per_seat)}/seat/mo
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="booking-total">Final total (₹) *</Label>
+              <Label htmlFor="booking-total">Final total *</Label>
               <Input
                 id="booking-total"
                 type="number"
@@ -135,7 +154,7 @@ export function BookingPricingCard({ booking }: Props) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="booking-pps">Price per seat / month (₹)</Label>
+              <Label htmlFor="booking-pps">Price per seat / month</Label>
               <Input
                 id="booking-pps"
                 type="number"
@@ -156,22 +175,59 @@ export function BookingPricingCard({ booking }: Props) {
           {discount && parsedTotal !== quotedTotal ? (
             <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
               <Percent className="h-4 w-4" />
-              Discount: {formatInr(Math.max(0, discount.saved))} ({discount.pct.toFixed(1)}% off quoted price)
+              Discount: {money(Math.max(0, discount.saved))} ({discount.pct.toFixed(1)}% off quoted price)
             </p>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(5)}>
-              −5%
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(10)}>
-              −10%
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(15)}>
-              −15%
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setTotalInput(String(quotedTotal))}>
-              Reset to quoted
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Quick discount</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(5)}>
+                −5%
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(10)}>
+                −10%
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => applyDiscountPercent(15)}>
+                −15%
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setTotalInput(String(quotedTotal))}>
+                Reset to quoted
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div className="grid gap-1.5">
+              <Label htmlFor="custom-discount-pct">Custom discount (%)</Label>
+              <Input
+                id="custom-discount-pct"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                placeholder="e.g. 12"
+                value={customPercentInput}
+                onChange={(e) => setCustomPercentInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyCustomPercent();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Percent off the quoted total ({money(quotedTotal)}). 100% = free.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="sm:mb-6"
+              disabled={!customPercentValid}
+              onClick={applyCustomPercent}
+            >
+              Apply %
             </Button>
           </div>
 

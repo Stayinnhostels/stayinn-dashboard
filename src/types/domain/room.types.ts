@@ -39,7 +39,9 @@ export function roomToDraft(room: Room): RoomDraft {
   return {
     title: room.title,
     description: room.description ?? "",
-    price_per_night: room.price_per_night,
+    price_per_night: room.price_per_night_usd ?? room.price_per_night,
+    price_per_night_usd: room.price_per_night_usd ?? room.price_per_night,
+    price_per_night_pkr: room.price_per_night_pkr ?? room.price_per_night,
     status: room.status,
     category: room.category,
     capacity: room.capacity,
@@ -56,6 +58,8 @@ export type Room = {
   title: string;
   description: string;
   price_per_night: number;
+  price_per_night_usd: number;
+  price_per_night_pkr: number;
   status: RoomStatus;
   category: string;
   capacity: number;
@@ -72,6 +76,8 @@ export type RoomDraft = {
   title: string;
   description: string;
   price_per_night: number;
+  price_per_night_usd: number;
+  price_per_night_pkr: number;
   status: RoomStatus;
   category: string;
   capacity: number;

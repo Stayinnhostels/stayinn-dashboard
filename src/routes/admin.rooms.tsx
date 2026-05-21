@@ -292,9 +292,13 @@ function RoomsListPage() {
                   {r.category} · {r.capacity} guests
                 </p>
                 <div className="mt-2 flex items-center justify-between">
-                  <p className="text-lg font-extrabold">
-                    ${Number(r.price_per_night).toLocaleString()}
-                    <span className="text-xs font-normal text-muted-foreground">/night</span>
+                  <p className="text-sm font-extrabold">
+                    ${Number(r.price_per_night_usd ?? r.price_per_night).toLocaleString()}{" "}
+                    <span className="text-xs font-normal text-muted-foreground">USD</span>
+                  </p>
+                  <p className="text-sm font-bold text-muted-foreground">
+                    Rs {Number(r.price_per_night_pkr ?? r.price_per_night).toLocaleString()}{" "}
+                    <span className="text-xs font-normal">PKR</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {r.beds_available}/{r.beds_total} beds
@@ -331,7 +335,7 @@ function RoomsListPage() {
                   </TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>USD / PKR</TableHead>
                   <TableHead>Beds</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -345,7 +349,12 @@ function RoomsListPage() {
                     </TableCell>
                     <TableCell className="font-semibold">{r.title}</TableCell>
                     <TableCell>{r.category}</TableCell>
-                    <TableCell>${Number(r.price_per_night).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs">
+                      <div>${Number(r.price_per_night_usd ?? r.price_per_night).toLocaleString()}</div>
+                      <div className="text-muted-foreground">
+                        Rs {Number(r.price_per_night_pkr ?? r.price_per_night).toLocaleString()}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {r.beds_available}/{r.beds_total}
                     </TableCell>

@@ -1,9 +1,15 @@
 import { apiFetch } from "@/api/apiFetch";
-import type { Payment, PaymentsListParams, PaymentsPagination } from "@/types/domain/payment.types";
+import type {
+  Payment,
+  PaymentsListParams,
+  PaymentsPagination,
+  RevenueSummary,
+} from "@/types/domain/payment.types";
 
 type GetPaymentsResponse = {
   success: boolean;
   payments: Payment[];
+  revenue?: RevenueSummary;
   pagination: PaymentsPagination;
 };
 
@@ -22,5 +28,9 @@ export async function getPaymentsApi(token: string, params: PaymentsListParams =
   if (!data.success || !Array.isArray(data.payments)) {
     throw new Error("Invalid payments list response");
   }
-  return { payments: data.payments, pagination: data.pagination };
+  return {
+    payments: data.payments,
+    revenue: data.revenue,
+    pagination: data.pagination,
+  };
 }

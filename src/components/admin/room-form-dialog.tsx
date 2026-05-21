@@ -17,6 +17,8 @@ const blank: RoomDraft = {
   title: "",
   description: "",
   price_per_night: 0,
+  price_per_night_usd: 0,
+  price_per_night_pkr: 0,
   status: "draft",
   category: "2 Seater",
   capacity: 2,
@@ -32,7 +34,9 @@ function roomToDraft(room: Partial<Room> | null | undefined): RoomDraft {
   return {
     title: room.title ?? "",
     description: room.description ?? "",
-    price_per_night: room.price_per_night ?? 0,
+    price_per_night: room.price_per_night_usd ?? room.price_per_night ?? 0,
+    price_per_night_usd: room.price_per_night_usd ?? room.price_per_night ?? 0,
+    price_per_night_pkr: room.price_per_night_pkr ?? room.price_per_night ?? 0,
     status: room.status ?? "draft",
     category: room.category ?? "2 Seater",
     capacity: room.capacity ?? 1,
@@ -63,7 +67,8 @@ export function RoomFormDialog({
   submitting: boolean;
 }) {
   const [draft, setDraft] = useState<RoomDraft>(blank);
-  const [priceText, setPriceText] = useState("0");
+  const [priceUsdText, setPriceUsdText] = useState("0");
+  const [pricePkrText, setPricePkrText] = useState("0");
   const [capacityText, setCapacityText] = useState("2");
   const [bedsTotalText, setBedsTotalText] = useState("2");
   const [bedsAvailableText, setBedsAvailableText] = useState("2");
@@ -73,7 +78,8 @@ export function RoomFormDialog({
     if (!open) return;
     const next = roomToDraft(initial);
     setDraft(next);
-    setPriceText(String(next.price_per_night));
+    setPriceUsdText(String(next.price_per_night_usd));
+    setPricePkrText(String(next.price_per_night_pkr));
     setCapacityText(String(next.capacity));
     setBedsTotalText(String(next.beds_total));
     setBedsAvailableText(String(next.beds_available));
@@ -88,19 +94,23 @@ export function RoomFormDialog({
   }, [draft.amenities]);
 
   const parsed = useMemo(() => {
-    const priceNum = Number(priceText);
+    const priceUsdNum = Number(priceUsdText);
+    const pricePkrNum = Number(pricePkrText);
     const capacityNum = parsePositiveInt(capacityText, 0);
     const bedsTotalNum = parsePositiveInt(bedsTotalText, 0);
     const bedsAvailableNum = parsePositiveInt(bedsAvailableText, 0);
-    return { priceNum, capacityNum, bedsTotalNum, bedsAvailableNum };
-  }, [priceText, capacityText, bedsTotalText, bedsAvailableText]);
+    return { priceUsdNum, pricePkrNum, capacityNum, bedsTotalNum, bedsAvailableNum };
+  }, [priceUsdText, pricePkrText, capacityText, bedsTotalText, bedsAvailableText]);
 
   const canSave =
     draft.title.trim().length > 0 &&
     draft.category.trim().length > 0 &&
-    priceText.trim() !== "" &&
-    Number.isFinite(parsed.priceNum) &&
-    parsed.priceNum >= 0 &&
+    priceUsdText.trim() !== "" &&
+    pricePkrText.trim() !== "" &&
+    Number.isFinite(parsed.priceUsdNum) &&
+    parsed.priceUsdNum >= 0 &&
+    Number.isFinite(parsed.pricePkrNum) &&
+    parsed.pricePkrNum >= 0 &&
     parsed.capacityNum >= 1 &&
     parsed.bedsTotalNum >= 1 &&
     parsed.bedsAvailableNum >= 0 &&
@@ -121,7 +131,9 @@ export function RoomFormDialog({
     if (!canSave) return;
     onSubmit({
       ...draft,
-      price_per_night: parsed.priceNum,
+      price_per_night_usd: parsed.priceUsdNum,
+      price_per_night_pkr: parsed.pricePkrNum,
+      price_per_night: parsed.priceUsdNum,
       capacity: parsed.capacityNum,
       beds_total: parsed.bedsTotalNum,
       beds_available: parsed.bedsAvailableNum,
@@ -168,14 +180,26 @@ export function RoomFormDialog({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="grid gap-2">
-              <Label>Price / night</Label>
+              <Label>Price / seat / month (USD)</Label>
               <Input
                 type="text"
                 inputMode="decimal"
-                value={priceText}
-                onChange={(e) => setPriceText(e.target.value)}
-                placeholder="e.g. 6499"
+                value={priceUsdText}
+                onChange={(e) => setPriceUsdText(e.target.value)}
+                placeholder="e.g. 120"
               />
+              <p className="text-[10px] text-muted-foreground">Shown to international guests</p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Price / seat / month (PKR)</Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={pricePkrText}
+                onChange={(e) => setPricePkrText(e.target.value)}
+                placeholder="e.g. 35000"
+              />
+              <p className="text-[10px] text-muted-foreground">Shown to Pakistan region</p>
             </div>
             <div className="grid gap-2">
               <Label>Category</Label>
@@ -240,7 +264,7 @@ export function RoomFormDialog({
 
           {!canSave && (
             <p className="text-xs text-destructive">
-              Check price, capacity, and beds (available cannot exceed total).
+              Check USD & PKR prices, capacity, and beds (available cannot exceed total).
             </p>
           )}
 

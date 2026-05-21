@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
+import { CancelBookingDialog } from "@/components/admin/cancel-booking-dialog";
 import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
 import { toast } from "sonner";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { BookingStatus } from "@/types/domain/booking.types";
 
 export const Route = createFileRoute("/admin/bookings/$id")({ component: BookingDetailPage });
@@ -20,6 +23,7 @@ function BookingDetailPage() {
   const navigate = useNavigate();
   const { data: booking, isLoading, isError, error } = useBookingQuery(id);
   const updateStatus = useUpdateBookingStatusMutation();
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading || !booking) return;
@@ -30,14 +34,30 @@ function BookingDetailPage() {
     }
   }, [booking?.id, isLoading]);
 
-  function onStatusChange(status: BookingStatus) {
+  function applyStatus(status: BookingStatus, amountRefunded?: number) {
     updateStatus.mutate(
-      { id, status },
+      { id, status, amount_refunded: amountRefunded },
       {
-        onSuccess: () => toast.success("Booking updated"),
+        onSuccess: () => {
+          toast.success(status === "cancelled" ? "Booking cancelled" : "Booking updated");
+          setCancelOpen(false);
+        },
         onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
       },
     );
+  }
+
+  function onStatusChange(status: BookingStatus) {
+    if (!booking || status === booking.status) return;
+    if (status === "cancelled") {
+      setCancelOpen(true);
+      return;
+    }
+    applyStatus(status);
+  }
+
+  function onCancelConfirm(amountRefunded: number) {
+    applyStatus("cancelled", amountRefunded);
   }
 
   if (isLoading) {
@@ -85,6 +105,16 @@ function BookingDetailPage() {
         </div>
       </div>
 
+      <CancelBookingDialog
+        open={cancelOpen}
+        booking={booking ?? null}
+        submitting={updateStatus.isPending}
+        onClose={() => {
+          setCancelOpen(false);
+        }}
+        onConfirm={onCancelConfirm}
+      />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/60 lg:col-span-2">
           <CardHeader>
@@ -108,9 +138,27 @@ function BookingDetailPage() {
             <Field label="Check-out" value={booking.check_out ?? "—"} />
             <Field label="Seats booked" value={String(booking.seats_booked)} />
             <Field label="Months" value={String(booking.months)} />
-            <Field label="Price per seat / month" value={`₹${booking.price_per_seat.toLocaleString("en-IN")}`} />
+            <Field
+              label="Price per seat / month"
+              value={formatMoney(booking.price_per_seat, normalizeMoneyCurrency(booking.currency))}
+            />
             <Field label="Source" value={booking.source} />
-            <Field label="Total amount" value={`₹${booking.total_amount.toLocaleString("en-IN")}`} />
+            <Field
+              label="Total amount"
+              value={formatMoney(booking.total_amount, normalizeMoneyCurrency(booking.currency))}
+            />
+            {booking.status === "cancelled" && (
+              <>
+                <Field
+                  label="Refunded to guest"
+                  value={formatMoney(booking.amount_refunded ?? 0, normalizeMoneyCurrency(booking.currency))}
+                />
+                <Field
+                  label="Retained (revenue)"
+                  value={formatMoney(booking.amount_retained ?? 0, normalizeMoneyCurrency(booking.currency))}
+                />
+              </>
+            )}
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Change status</p>
               <Select value={booking.status} onValueChange={(v) => onStatusChange(v as BookingStatus)}>
@@ -126,12 +174,7 @@ function BookingDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            {booking.notes && (
-              <div className="sm:col-span-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Notes</p>
-                <p className="mt-1 rounded-lg bg-muted p-3 text-sm">{booking.notes}</p>
-              </div>
-            )}
+            <BookingNotesDisplay booking={booking} />
           </CardContent>
         </Card>
 

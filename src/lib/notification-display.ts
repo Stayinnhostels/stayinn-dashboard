@@ -1,4 +1,5 @@
 import { CalendarCheck, MessageSquare, Star, type LucideIcon } from "lucide-react";
+import { formatMoney } from "@/lib/payments";
 import type { Notification, NotificationType } from "@/types/domain/notification.types";
 
 export type NotificationTheme = {
@@ -112,7 +113,7 @@ function buildSummaryLine(n: Notification): string {
       if (m.room_title) parts.push(m.room_title);
       if (m.seats_booked != null) parts.push(`${m.seats_booked} seat(s)`);
       if (m.total_amount != null) {
-        parts.push(`₹${Number(m.total_amount).toLocaleString("en-IN")}`);
+        parts.push(formatMoney(Number(m.total_amount), "pkr"));
       }
       if (m.source) parts.push(m.source);
       const line = parts.join(" · ") || n.body;

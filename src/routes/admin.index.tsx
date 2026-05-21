@@ -5,17 +5,15 @@ import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
-import {
-  BedDouble, CalendarCheck, Users, Wallet, CheckCircle2, XCircle, Clock, Star,
-  LogIn, LogOut, TrendingUp, Activity, UserCheck, DoorOpen,
-} from "lucide-react";
+import { BedDouble, CalendarCheck, LogOut, DoorOpen } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import { rooms as roomStore, bookings as bookingStore, profiles as profileStore, getRoom } from "@/lib/mock-store";
-import { useReviewStatsQuery } from "@/queries/reviews";
-import { formatPaymentInr } from "@/lib/payments";
+import { useBookingsQuery } from "@/queries/bookings";
+import { useRoomsQuery } from "@/queries/rooms";
+import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
@@ -62,7 +60,8 @@ function OverviewPage() {
     isError: overviewError,
     error: overviewErr,
   } = useBookingOverviewStatsQuery(30, 8, 6);
-  const { data: reviewStats } = useReviewStatsQuery();
+  const { data: roomsApi } = useRoomsQuery({ limit: 200 });
+  const { data: bookingsApi } = useBookingsQuery({ limit: 500 });
 
   const chartErrorMessage =
     overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";
@@ -74,43 +73,24 @@ function OverviewPage() {
     }),
   });
 
-  const rooms = data?.rooms ?? [];
-  const bookings = data?.bookings ?? [];
-  const users = data?.users ?? [];
-  const revenue = overviewStats?.revenue;
+  const rooms = roomsApi?.rooms?.length ? roomsApi.rooms : (data?.rooms ?? []);
+  const bookings = bookingsApi?.bookings?.length ? bookingsApi.bookings : (data?.bookings ?? []);
 
   const totalBeds = rooms.reduce((s, r) => s + r.beds_total, 0);
   const availableBeds = rooms.reduce((s, r) => s + r.beds_available, 0);
   const occupiedBeds = totalBeds - availableBeds;
   const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
-  const totalRooms = rooms.length;
+  const totalRooms = roomsApi?.pagination?.total ?? rooms.length;
   const availableRooms = rooms.filter((r) => r.status === "available").length;
-  const occupiedRooms = rooms.filter((r) => r.status === "full").length;
 
-  const pendingBookings = bookings.filter((b) => b.status === "pending").length;
-  const cancelledBookings = bookings.filter((b) => b.status === "cancelled").length;
-  const completedBookings = bookings.filter((b) => b.status === "checked_out").length;
-
-  const totalRevenue = revenue?.total ?? 0;
-  const monthlyRevenue = revenue?.month ?? 0;
-  const weeklyRevenue = revenue?.week ?? 0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const totalBookings = overviewStats?.status?.total ?? bookingsApi?.pagination?.total ?? bookings.length;
+  const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
 
   const succeededBookings = bookings.filter(
     (b) => b.status === "confirmed" || b.status === "checked_in" || b.status === "checked_out",
   );
-  const avgBookingValue =
-    succeededBookings.length > 0
-      ? succeededBookings.reduce((s, b) => s + b.total_amount, 0) / succeededBookings.length
-      : 0;
-
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const checkInsToday = bookings.filter((b) => b.check_in === todayStr).length;
-  const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
-  const totalReviews = reviewStats?.approved_count ?? 0;
-  const avgRating = reviewStats?.average_rating ?? 0;
-  const activeUsers = new Set(bookings.map((b) => b.user_id).filter(Boolean)).size;
 
   const dailyBookings =
     overviewStats?.daily.series.map((p) => ({ key: p.date, label: p.label, bookings: p.bookings })) ?? [];
@@ -137,7 +117,8 @@ function OverviewPage() {
     overviewStats?.monthly.series.map((m) => ({
       key: m.key,
       label: m.label,
-      revenue: m.revenue,
+      revenue_pkr: m.revenue_pkr ?? m.revenue,
+      revenue_usd: m.revenue_usd ?? 0,
     })) ?? [];
 
   const sourceMap: Record<string, number> = {};
@@ -159,33 +140,36 @@ function OverviewPage() {
     .sort((a, b) => b.bookings - a.bookings).slice(0, 6);
 
   const dayOfWeek = Array.from({ length: 7 }).map((_, i) => ({ label: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i], bookings: 0 }));
-  bookings.forEach((b) => { const d = new Date(b.check_in); dayOfWeek[d.getDay()].bookings += 1; });
+  bookings.forEach((b) => {
+    const dateStr = "move_in" in b && b.move_in ? b.move_in : "check_in" in b ? (b as { check_in?: string }).check_in : "";
+    const d = new Date(dateStr ?? "");
+    if (!Number.isNaN(d.getTime())) dayOfWeek[d.getDay()].bookings += 1;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        <StatCard label="Occupancy" value={`${occupancyRate}%`} delta={`${occupiedBeds} / ${totalBeds} beds`} icon={BedDouble} accent="primary" />
-        <StatCard label="Total Rooms" value={totalRooms} delta={`${availableRooms} available`} icon={DoorOpen} accent="info" />
-        <StatCard label="Occupied Rooms" value={occupiedRooms} icon={BedDouble} accent="warning" />
-        <StatCard label="Available Rooms" value={availableRooms} icon={CheckCircle2} accent="success" />
-
-        <StatCard label="Total Bookings" value={bookings.length} icon={CalendarCheck} accent="primary" />
-        <StatCard label="Pending" value={pendingBookings} icon={Clock} accent="warning" />
-        <StatCard label="Cancelled" value={cancelledBookings} icon={XCircle} accent="warning" />
-        <StatCard label="Completed" value={completedBookings} icon={CheckCircle2} accent="success" />
-
-        <StatCard label="Total Revenue" value={formatPaymentInr(totalRevenue)} icon={Wallet} accent="success" delta="Succeeded only" />
-        <StatCard label="Monthly Revenue" value={formatPaymentInr(monthlyRevenue)} icon={TrendingUp} accent="success" />
-        <StatCard label="Weekly Revenue" value={formatPaymentInr(weeklyRevenue)} icon={Activity} accent="info" />
-        <StatCard label="Avg booking (succeeded)" value={formatPaymentInr(Math.round(avgBookingValue))} icon={Wallet} accent="primary" />
-
-        <StatCard label="Total Users" value={users.length} icon={Users} accent="primary" />
-        <StatCard label="Active Users" value={activeUsers} icon={UserCheck} accent="info" />
-        <StatCard label="Check-ins Today" value={checkInsToday} icon={LogIn} accent="success" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Total Bookings"
+          value={totalBookings}
+          icon={CalendarCheck}
+          accent="primary"
+        />
         <StatCard label="Check-outs Today" value={checkOutsToday} icon={LogOut} accent="warning" />
-
-        <StatCard label="Total Reviews" value={totalReviews} icon={Star} accent="primary" />
-        <StatCard label="Average Rating" value={avgRating.toFixed(1)} delta="out of 5" icon={Star} accent="warning" />
+        <StatCard
+          label="Total Rooms"
+          value={totalRooms}
+          delta={`${availableRooms} available`}
+          icon={DoorOpen}
+          accent="info"
+        />
+        <StatCard
+          label="Occupancy"
+          value={`${occupancyRate}%`}
+          delta={`${occupiedBeds} / ${totalBeds} beds`}
+          icon={BedDouble}
+          accent="primary"
+        />
       </div>
 
       <div>
@@ -339,10 +323,11 @@ function OverviewPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className={`lg:col-span-2 ${chartCard}`}>
             <CardHeader>
-              <CardTitle className="text-base">Monthly revenue</CardTitle>
+              <CardTitle className="text-base">Monthly revenue (PKR & USD)</CardTitle>
               {!overviewLoading && !overviewError && overviewStats ? (
                 <p className="text-xs text-muted-foreground">
-                  ${monthlyRevenueSeries.reduce((s, m) => s + m.revenue, 0).toLocaleString()} total (excl. cancelled)
+                  {formatMoney(monthlyRevenueSeries.reduce((s, m) => s + m.revenue_pkr, 0), "pkr")} ·{" "}
+                  {formatMoney(monthlyRevenueSeries.reduce((s, m) => s + m.revenue_usd, 0), "usd")} (excl. cancelled)
                 </p>
               ) : null}
             </CardHeader>
@@ -351,15 +336,21 @@ function OverviewPage() {
                 loading={overviewLoading}
                 error={overviewError}
                 errorMessage={chartErrorMessage}
-                empty={!overviewLoading && !overviewError && monthlyRevenueSeries.every((m) => m.revenue === 0)}
+                empty={
+                  !overviewLoading &&
+                  !overviewError &&
+                  monthlyRevenueSeries.every((m) => m.revenue_pkr === 0 && m.revenue_usd === 0)
+                }
                 emptyMessage="No revenue in this period"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyRevenueSeries}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
                     <YAxis tickLine={false} axisLine={false} fontSize={11} />
-                    <Tooltip formatter={(v) => [`$${Number(v).toLocaleString()}`, "Revenue"]} />
-                    <Bar dataKey="revenue" fill="oklch(0.55 0.13 200)" radius={[8, 8, 0, 0]} />
+                    <Tooltip formatter={(v, name) => chartTooltipMoney(v, name)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="revenue_pkr" name="PKR" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="revenue_usd" name="USD" fill="oklch(0.55 0.13 200)" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartState>
@@ -374,7 +365,8 @@ function OverviewPage() {
                   <Pie data={revCategoryData} dataKey="value" nameKey="name" outerRadius={95}>
                     {revCategoryData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} /><Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v) => formatMoney(Number(v), "pkr")} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>

@@ -18,6 +18,7 @@ import {
   guestWhatsAppUrl,
 } from "@/lib/invoice/build-invoice";
 import { downloadInvoicePdf } from "@/lib/invoice/download-invoice-pdf";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import { toInvoicePropertySettings } from "@/lib/invoice/property-settings";
 import { usePublicPropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 
@@ -86,7 +87,8 @@ export function BookingInvoicePanel({ booking }: Props) {
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
             <p className="font-semibold">{invoiceData.invoiceNumber}</p>
             <p className="text-muted-foreground">
-              {invoiceData.bookingReference} · Total {formatInr(invoiceData.total)}
+              {invoiceData.bookingReference} · Total{" "}
+              {formatMoney(invoiceData.total, normalizeMoneyCurrency(booking.currency))}
             </p>
           </div>
 
@@ -154,6 +156,3 @@ export function BookingInvoicePanel({ booking }: Props) {
   );
 }
 
-function formatInr(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
-}

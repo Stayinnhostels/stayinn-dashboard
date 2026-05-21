@@ -12,6 +12,7 @@ export type CreateManualBookingInput = {
   notes?: string;
   total_amount?: number;
   price_per_seat?: number;
+  currency?: "pkr" | "usd";
 };
 
 type PostManualBookingResponse = {

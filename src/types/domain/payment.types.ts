@@ -1,11 +1,20 @@
 import type { BookingStatus } from "@/types/domain/booking.types";
 
-export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
+export type PaymentStatus =
+  | "pending"
+  | "succeeded"
+  | "failed"
+  | "refunded"
+  | "partial_refund"
+  | "cancelled";
 
 export type Payment = {
   id: string;
   booking_id: string;
   amount: number;
+  total_amount?: number;
+  amount_refunded?: number;
+  amount_retained?: number;
   currency: string;
   status: PaymentStatus;
   method: string;
@@ -33,8 +42,7 @@ export type PaymentsPagination = {
   pages: number;
 };
 
-export type RevenueSummary = {
-  currency: string;
+export type CurrencyRevenueBucket = {
   total: number;
   month: number;
   week: number;
@@ -43,4 +51,9 @@ export type RevenueSummary = {
   refunded_count: number;
   pending_amount: number;
   refunded_amount: number;
+};
+
+export type RevenueSummary = {
+  pkr: CurrencyRevenueBucket;
+  usd: CurrencyRevenueBucket;
 };

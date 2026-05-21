@@ -21,6 +21,8 @@ export type MonthlyBookingStatPoint = {
   label: string;
   bookings: number;
   revenue: number;
+  revenue_pkr: number;
+  revenue_usd: number;
 };
 
 export type BookingOverviewStats = {

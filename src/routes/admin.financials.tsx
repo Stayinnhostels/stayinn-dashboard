@@ -4,10 +4,24 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/admin/stat-card";
 import { Wallet, TrendingUp, CreditCard, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { usePaymentsQuery } from "@/queries/payments";
 import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
-import { formatPaymentInr, paymentMethodLabel } from "@/lib/payments";
+import {
+  chartTooltipMoney,
+  formatMoney,
+  normalizeMoneyCurrency,
+  paymentMethodLabel,
+} from "@/lib/payments";
 
 export const Route = createFileRoute("/admin/financials")({ component: FinancialsPage });
 
@@ -22,40 +36,50 @@ function FinancialsPage() {
     overviewStats?.monthly.series.map((m) => ({
       key: m.key,
       label: m.label,
-      value: m.revenue,
+      revenue_pkr: m.revenue_pkr ?? m.revenue,
+      revenue_usd: m.revenue_usd ?? 0,
     })) ?? [];
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Revenue charts use <span className="font-semibold text-foreground">succeeded</span> bookings only.
-        The table lists all booking payments including pending and cancelled.
+        Revenue is tracked separately in <span className="font-semibold text-foreground">PKR</span> (Pakistan) and{" "}
+        <span className="font-semibold text-foreground">USD</span> (international). Charts count succeeded bookings
+        only; the table lists all payment records.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Total revenue"
-          value={statsLoading ? "…" : formatPaymentInr(revenue?.total ?? 0)}
+          label="Total revenue (PKR)"
+          value={statsLoading ? "…" : formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
           icon={Wallet}
-          delta="Succeeded payments"
+          delta="Succeeded · Pakistan"
         />
         <StatCard
-          label="Pending"
-          value={statsLoading ? "…" : formatPaymentInr(revenue?.pending_amount ?? 0)}
+          label="Total revenue (USD)"
+          value={statsLoading ? "…" : formatMoney(revenue?.usd?.total ?? 0, "usd")}
+          icon={Wallet}
+          accent="info"
+          delta="Succeeded · International"
+        />
+        <StatCard
+          label="Pending (PKR)"
+          value={statsLoading ? "…" : formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
           icon={CreditCard}
           delta="Awaiting confirmation"
         />
         <StatCard
-          label="Refunded / cancelled"
-          value={statsLoading ? "…" : formatPaymentInr(revenue?.refunded_amount ?? 0)}
-          icon={TrendingUp}
-          delta="Not counted in revenue"
+          label="Pending (USD)"
+          value={statsLoading ? "…" : formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
+          icon={CreditCard}
+          accent="info"
+          delta="Awaiting confirmation"
         />
       </div>
 
       <Card className="border-border/60">
         <CardHeader>
-          <CardTitle className="text-base">Revenue by month (succeeded)</CardTitle>
+          <CardTitle className="text-base">Revenue by month (PKR & USD)</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px]">
           {statsLoading ? (
@@ -68,8 +92,10 @@ function FinancialsPage() {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                <Tooltip formatter={(v: number) => formatPaymentInr(v)} />
-                <Bar dataKey="value" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
+                <Tooltip formatter={(v, name) => chartTooltipMoney(v, name)} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="revenue_pkr" name="PKR" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="revenue_usd" name="USD" fill="oklch(0.55 0.13 200)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -120,7 +146,9 @@ function FinancialsPage() {
                         </Link>
                       </TableCell>
                       <TableCell>{p.room_title ?? "—"}</TableCell>
-                      <TableCell className="font-mono">{formatPaymentInr(p.amount)}</TableCell>
+                      <TableCell className="font-mono">
+                        {formatMoney(p.amount, normalizeMoneyCurrency(p.currency))}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="capitalize">
                           {p.status}

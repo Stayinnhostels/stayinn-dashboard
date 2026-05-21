@@ -9,7 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { CancelBookingDialog } from "@/components/admin/cancel-booking-dialog";
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
 
 export const Route = createFileRoute("/admin/bookings")({ component: BookingsAdminPage });
@@ -53,15 +55,34 @@ function BookingsListPage() {
   const totalPages = pagination?.pages ?? 1;
 
   const updateStatus = useUpdateBookingStatusMutation();
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const cancelBooking = bookings.find((b) => b.id === cancelBookingId) ?? null;
 
-  function onStatusChange(id: string, status: BookingStatus) {
+  function applyStatus(id: string, status: BookingStatus, amountRefunded?: number) {
     updateStatus.mutate(
-      { id, status },
+      { id, status, amount_refunded: amountRefunded },
       {
-        onSuccess: () => toast.success("Booking updated"),
+        onSuccess: () => {
+          toast.success(status === "cancelled" ? "Booking cancelled" : "Booking updated");
+          setCancelBookingId(null);
+        },
         onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
       },
     );
+  }
+
+  function onStatusChange(id: string, status: BookingStatus, currentStatus: BookingStatus) {
+    if (status === currentStatus) return;
+    if (status === "cancelled") {
+      setCancelBookingId(id);
+      return;
+    }
+    applyStatus(id, status);
+  }
+
+  function onCancelConfirm(amountRefunded: number) {
+    if (!cancelBookingId) return;
+    applyStatus(cancelBookingId, "cancelled", amountRefunded);
   }
 
   function exportCsv() {
@@ -91,6 +112,14 @@ function BookingsListPage() {
 
   return (
     <div className="space-y-4">
+      <CancelBookingDialog
+        open={cancelBookingId != null}
+        booking={cancelBooking}
+        submitting={updateStatus.isPending}
+        onClose={() => setCancelBookingId(null)}
+        onConfirm={onCancelConfirm}
+      />
+
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
           <div className="relative min-w-[220px] flex-1">
@@ -178,14 +207,19 @@ function BookingsListPage() {
                 <p className="text-xs text-muted-foreground">
                   {b.move_in} → {b.check_out} · {b.seats_booked} seat(s)
                 </p>
-                <p className="text-lg font-extrabold">₹{b.total_amount.toLocaleString("en-IN")}</p>
+                <p className="text-lg font-extrabold">
+                  {formatMoney(b.total_amount, normalizeMoneyCurrency(b.currency))}
+                </p>
                 <div className="flex gap-2 pt-1">
                   <Button asChild size="sm" variant="outline" className="flex-1">
                     <Link to="/admin/bookings/$id" params={{ id: b.id }}>
                       <Eye className="h-3.5 w-3.5" /> View
                     </Link>
                   </Button>
-                  <Select value={b.status} onValueChange={(v) => onStatusChange(b.id, v as BookingStatus)}>
+                  <Select
+                    value={b.status}
+                    onValueChange={(v) => onStatusChange(b.id, v as BookingStatus, b.status)}
+                  >
                     <SelectTrigger className="h-8 w-32 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -232,14 +266,17 @@ function BookingsListPage() {
                       {b.move_in} → {b.check_out}
                     </TableCell>
                     <TableCell>{b.seats_booked}</TableCell>
-                    <TableCell>₹{b.total_amount.toLocaleString("en-IN")}</TableCell>
+                    <TableCell>{formatMoney(b.total_amount, normalizeMoneyCurrency(b.currency))}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`capitalize ${statusColor[b.status]}`}>
                         {b.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Select value={b.status} onValueChange={(v) => onStatusChange(b.id, v as BookingStatus)}>
+                      <Select
+                    value={b.status}
+                    onValueChange={(v) => onStatusChange(b.id, v as BookingStatus, b.status)}
+                  >
                         <SelectTrigger className="h-8">
                           <SelectValue />
                         </SelectTrigger>

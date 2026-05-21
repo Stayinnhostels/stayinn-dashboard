@@ -1,9 +1,7 @@
 import { forwardRef, type CSSProperties } from "react";
+import { parseBookingNotes } from "@/lib/booking-notes";
+import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { BookingInvoiceData } from "@/lib/invoice/types";
-
-function inr(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
-}
 
 type Props = {
   data: BookingInvoiceData;
@@ -18,6 +16,8 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
   ref,
 ) {
   const { property, booking } = data;
+  const money = (n: number) => formatMoney(n, normalizeMoneyCurrency(booking.currency));
+  const { guestNote, events } = parseBookingNotes(data.notes, booking.currency);
   const addressLine = [property.address, property.city, property.country].filter(Boolean).join(", ");
 
   return (
@@ -161,7 +161,7 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
               </td>
               <td style={{ ...tdStyle, textAlign: "center" }}>{line.quantity}</td>
               <td style={{ ...tdStyle, textAlign: "right" }}>{line.unitPrice}</td>
-              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{inr(line.amount)}</td>
+              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{money(line.amount)}</td>
             </tr>
           ))}
         </tbody>
@@ -173,13 +173,13 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
             <tr>
               <td style={{ padding: "6px 0", borderBottom: "1px solid #000000" }}>Subtotal</td>
               <td style={{ padding: "6px 0", borderBottom: "1px solid #000000", textAlign: "right" }}>
-                {inr(data.subtotal)}
+                {money(data.subtotal)}
               </td>
             </tr>
             <tr>
               <td style={{ padding: "10px 0", fontWeight: 700, fontSize: "12pt" }}>Total due</td>
               <td style={{ padding: "10px 0", fontWeight: 700, fontSize: "12pt", textAlign: "right" }}>
-                {inr(data.total)}
+                {money(data.total)}
               </td>
             </tr>
           </tbody>
@@ -204,13 +204,20 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
           reservation at {property.hotelName}. Please quote booking reference {data.bookingReference} in all
           correspondence.
         </p>
-        {data.notes ? (
-          <p style={{ margin: "8px 0 0" }}>
-            <strong>Notes:</strong> {data.notes}
-          </p>
+        {guestNote || events.length > 0 ? (
+          <div style={{ margin: "8px 0 0" }}>
+            <strong>Notes:</strong>
+            {guestNote ? <p style={{ margin: "4px 0 0" }}>{guestNote}</p> : null}
+            {events.map((ev, i) => (
+              <p key={i} style={{ margin: "4px 0 0", fontSize: "8.5pt" }}>
+                {ev.kind === "cancelled" ? "Cancelled" : ev.kind === "price_adjusted" ? "Price adjusted" : "Note"}
+                {ev.date ? ` (${ev.date})` : ""}: {ev.text}
+              </p>
+            ))}
+          </div>
         ) : null}
         <p style={{ margin: "20px 0 0", fontSize: "8.5pt", color: "#000000" }}>
-          Booking ID: {booking.id} · Generated {new Date().toLocaleString("en-IN")}
+          Booking ID: {booking.id} · Generated {new Date().toLocaleString("en-US")}
         </p>
       </section>
 

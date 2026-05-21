@@ -8,9 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Loader2, Search, Wallet, CheckCircle2, Clock, X } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
+import { useRevenueSummaryQuery } from "@/queries/bookings/useRevenueSummaryQuery";
 import { usePaymentsQuery } from "@/queries/payments";
-import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
-import { formatPaymentInr } from "@/lib/payments";
+import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/payments";
 import type { Payment, PaymentStatus } from "@/types/domain/payment.types";
 
 export const Route = createFileRoute("/admin/payments")({ component: PaymentsPage });
@@ -30,8 +30,7 @@ function PaymentsPage() {
     search: query.trim() || undefined,
   });
 
-  const { data: overviewStats } = useBookingOverviewStatsQuery(30, 8, 6);
-  const revenue = overviewStats?.revenue;
+  const { data: revenue, isLoading: revenueLoading } = useRevenueSummaryQuery();
 
   const payments = data?.payments ?? [];
   const pagination = data?.pagination;
@@ -41,7 +40,9 @@ function PaymentsPage() {
       ({
         succeeded: "border-emerald-500/40 text-emerald-700 bg-emerald-500/10",
         pending: "border-amber-500/40 text-amber-700 bg-amber-500/10",
-        refunded: "border-muted-foreground/40 text-muted-foreground",
+        refunded: "border-rose-500/40 text-rose-700 bg-rose-500/10",
+        partial_refund: "border-orange-500/40 text-orange-700 bg-orange-500/10",
+        cancelled: "border-muted-foreground/40 text-muted-foreground",
         failed: "border-destructive/40 text-destructive",
       }) as Record<PaymentStatus, string>,
     [],
@@ -50,38 +51,61 @@ function PaymentsPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Every booking (website or walk-in) appears here as a payment record. Revenue stats count only{" "}
-        <span className="font-semibold text-foreground">succeeded</span> bookings — confirmed, checked in, or
-        checked out.
+        When you cancel a paid booking, enter how much was refunded vs kept. Only the{" "}
+        <span className="font-semibold text-foreground">retained</span> amount counts as revenue; the refunded
+        portion appears under refunds.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
-          label="Total revenue"
-          value={formatPaymentInr(revenue?.total ?? 0)}
+          label="Revenue (PKR)"
+          value={revenueLoading ? "…" : formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
           icon={Wallet}
           accent="success"
-          delta="Succeeded payments only"
+          delta="Succeeded & retained · Pakistan"
         />
         <StatCard
-          label="Successful"
-          value={revenue?.succeeded_count ?? 0}
+          label="Pending (PKR)"
+          value={formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
+          icon={Clock}
+          accent="warning"
+          delta={`${revenue?.pkr?.pending_count ?? 0} booking(s)`}
+        />
+        <StatCard
+          label="Revenue (USD)"
+          value={revenueLoading ? "…" : formatMoney(revenue?.usd?.total ?? 0, "usd")}
+          icon={Wallet}
+          accent="info"
+          delta="Succeeded & retained · International"
+        />
+        <StatCard
+          label="Pending (USD)"
+          value={formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
+          icon={Clock}
+          accent="warning"
+          delta={`${revenue?.usd?.pending_count ?? 0} booking(s)`}
+        />
+        <StatCard
+          label="Succeeded bookings"
+          value={(revenue?.pkr?.succeeded_count ?? 0) + (revenue?.usd?.succeeded_count ?? 0)}
           icon={CheckCircle2}
           accent="success"
         />
         <StatCard
-          label="Pending"
-          value={formatPaymentInr(revenue?.pending_amount ?? 0)}
-          icon={Clock}
-          accent="warning"
-          delta={`${revenue?.pending_count ?? 0} booking(s)`}
-        />
-        <StatCard
-          label="Refunded / cancelled"
-          value={formatPaymentInr(revenue?.refunded_amount ?? 0)}
+          label="Refunded"
+          value={formatMoney(revenue?.pkr?.refunded_amount ?? 0, "pkr")}
           icon={X}
           accent="info"
-          delta={`${revenue?.refunded_count ?? 0} booking(s)`}
+          delta={[
+            (revenue?.pkr?.refunded_count ?? 0) > 0
+              ? `PKR ${(revenue?.pkr?.refunded_count ?? 0)} refund(s)`
+              : null,
+            (revenue?.usd?.refunded_amount ?? 0) > 0
+              ? `${formatMoney(revenue?.usd?.refunded_amount ?? 0, "usd")} (${revenue?.usd?.refunded_count ?? 0})`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || "No refunds yet"}
         />
       </div>
 
@@ -114,6 +138,7 @@ function PaymentsPage() {
               <SelectItem value="succeeded">Succeeded</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="refunded">Refunded</SelectItem>
+              <SelectItem value="partial_refund">Partial refund</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -212,10 +237,20 @@ function PaymentRow({
       <TableCell className="capitalize text-xs text-muted-foreground">
         {p.source === "walk_in" ? "Walk-in" : p.source}
       </TableCell>
-      <TableCell className="font-bold">{formatPaymentInr(p.amount)}</TableCell>
+      <TableCell className="font-bold">
+        <div>{formatMoney(p.amount, normalizeMoneyCurrency(p.currency))}</div>
+        {p.booking_status === "cancelled" &&
+          (p.amount_refunded != null || p.amount_retained != null) && (
+            <div className="text-[10px] font-normal text-muted-foreground">
+              Refunded {formatMoney(p.amount_refunded ?? 0, normalizeMoneyCurrency(p.currency))}
+              {(p.amount_retained ?? 0) > 0 &&
+                ` · Kept ${formatMoney(p.amount_retained ?? 0, normalizeMoneyCurrency(p.currency))}`}
+            </div>
+          )}
+      </TableCell>
       <TableCell>
-        <Badge variant="outline" className={`capitalize ${statusBadgeClass[p.status]}`}>
-          {p.status}
+        <Badge variant="outline" className={statusBadgeClass[p.status] ?? ""}>
+          {paymentStatusLabel(p.status)}
         </Badge>
       </TableCell>
       <TableCell>{p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}</TableCell>

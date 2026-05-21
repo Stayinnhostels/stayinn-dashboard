@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { IndianRupee, Loader2, UserPlus } from "lucide-react";
+import { Banknote, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateManualBookingMutation } from "@/queries/bookings";
 import type { Room } from "@/types/domain/room.types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatMoney } from "@/lib/payments";
 
 type Props = {
   room: Room;
@@ -39,13 +41,16 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [notes, setNotes] = useState("");
   const [useCustomPrice, setUseCustomPrice] = useState(false);
   const [totalInput, setTotalInput] = useState("");
+  const [currency, setCurrency] = useState<"pkr" | "usd">("pkr");
 
   const seatsNum = Number.parseInt(seats, 10);
   const monthsNum = Number.parseInt(months, 10);
+  const unitPrice =
+    currency === "usd"
+      ? (room.price_per_night_usd ?? room.price_per_night)
+      : (room.price_per_night_pkr ?? room.price_per_night);
   const listTotal =
-    Number.isFinite(seatsNum) && Number.isFinite(monthsNum)
-      ? room.price_per_night * seatsNum * monthsNum
-      : 0;
+    Number.isFinite(seatsNum) && Number.isFinite(monthsNum) ? unitPrice * seatsNum * monthsNum : 0;
 
   useEffect(() => {
     if (!useCustomPrice) {
@@ -76,6 +81,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     setNotes("");
     setUseCustomPrice(false);
     setTotalInput("");
+    setCurrency("pkr");
   };
 
   const seatsHint = useMemo(() => {
@@ -97,6 +103,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         months: monthsNum,
         move_in: moveIn,
         notes: notes.trim() || undefined,
+        currency,
         ...(useCustomPrice && Number.isFinite(parsedTotal)
           ? { total_amount: parsedTotal }
           : {}),
@@ -217,12 +224,25 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
           </div>
 
           <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-3 space-y-3 text-sm">
+            <div className="grid gap-2">
+              <Label>Charge currency</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as "pkr" | "usd")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pkr">PKR (Rs)</SelectItem>
+                  <SelectItem value="usd">USD ($)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <span className="text-muted-foreground">List total: </span>
-              <span className="font-bold">₹{listTotal.toLocaleString("en-IN")}</span>
+              <span className="font-bold">{formatMoney(listTotal, currency)}</span>
               <span className="text-muted-foreground">
                 {" "}
-                (₹{room.price_per_night.toLocaleString("en-IN")} × seats × months)
+                ({formatMoney(unitPrice, currency)} × seats × months)
               </span>
             </div>
 
@@ -244,7 +264,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
             {useCustomPrice ? (
               <div className="grid gap-1.5">
                 <Label htmlFor="manual-total" className="flex items-center gap-1.5">
-                  <IndianRupee className="h-3.5 w-3.5" />
+                  <Banknote className="h-3.5 w-3.5" />
                   Amount to charge *
                 </Label>
                 <Input
@@ -259,8 +279,8 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 {Number.isFinite(parsedTotal) && listTotal > 0 && parsedTotal !== listTotal ? (
                   <p className="text-xs text-muted-foreground">
                     {parsedTotal < listTotal
-                      ? `Discount: ₹${(listTotal - parsedTotal).toLocaleString("en-IN")} (${(((listTotal - parsedTotal) / listTotal) * 100).toFixed(0)}% off list)`
-                      : `Above list by ₹${(parsedTotal - listTotal).toLocaleString("en-IN")}`}
+                      ? `Discount: ${formatMoney(listTotal - parsedTotal, currency)} (${(((listTotal - parsedTotal) / listTotal) * 100).toFixed(0)}% off list)`
+                      : `Above list by ${formatMoney(parsedTotal - listTotal, currency)}`}
                   </p>
                 ) : null}
               </div>
