@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CancelBookingDialog } from "@/components/admin/cancel-booking-dialog";
+import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
@@ -56,15 +56,24 @@ function BookingsListPage() {
 
   const updateStatus = useUpdateBookingStatusMutation();
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const [checkoutBookingId, setCheckoutBookingId] = useState<string | null>(null);
   const cancelBooking = bookings.find((b) => b.id === cancelBookingId) ?? null;
+  const checkoutBooking = bookings.find((b) => b.id === checkoutBookingId) ?? null;
 
   function applyStatus(id: string, status: BookingStatus, amountRefunded?: number) {
     updateStatus.mutate(
       { id, status, amount_refunded: amountRefunded },
       {
         onSuccess: () => {
-          toast.success(status === "cancelled" ? "Booking cancelled" : "Booking updated");
+          toast.success(
+            status === "cancelled"
+              ? "Booking cancelled"
+              : status === "checked_out"
+                ? "Guest checked out"
+                : "Booking updated",
+          );
           setCancelBookingId(null);
+          setCheckoutBookingId(null);
         },
         onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
       },
@@ -77,12 +86,21 @@ function BookingsListPage() {
       setCancelBookingId(id);
       return;
     }
+    if (status === "checked_out") {
+      setCheckoutBookingId(id);
+      return;
+    }
     applyStatus(id, status);
   }
 
   function onCancelConfirm(amountRefunded: number) {
     if (!cancelBookingId) return;
     applyStatus(cancelBookingId, "cancelled", amountRefunded);
+  }
+
+  function onCheckoutConfirm(amountRefunded: number) {
+    if (!checkoutBookingId) return;
+    applyStatus(checkoutBookingId, "checked_out", amountRefunded);
   }
 
   function exportCsv() {
@@ -112,12 +130,22 @@ function BookingsListPage() {
 
   return (
     <div className="space-y-4">
-      <CancelBookingDialog
+      <BookingRefundDialog
         open={cancelBookingId != null}
         booking={cancelBooking}
+        mode="cancel"
         submitting={updateStatus.isPending}
         onClose={() => setCancelBookingId(null)}
         onConfirm={onCancelConfirm}
+      />
+
+      <BookingRefundDialog
+        open={checkoutBookingId != null}
+        booking={checkoutBooking}
+        mode="checkout"
+        submitting={updateStatus.isPending}
+        onClose={() => setCheckoutBookingId(null)}
+        onConfirm={onCheckoutConfirm}
       />
 
       <Card className="border-border/60">

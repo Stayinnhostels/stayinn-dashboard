@@ -51,18 +51,18 @@ function PaymentsPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        When you cancel a paid booking, enter how much was refunded vs kept. Only the{" "}
-        <span className="font-semibold text-foreground">retained</span> amount counts as revenue; the refunded
-        portion appears under refunds.
+        Revenue is based on monthly rent collected per stay month (from Monthly Rent register). When you
+        cancel or check out a paid guest early, enter how much was refunded vs kept. Refunds appear under the refunds
+        total.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
-          label="Revenue (PKR)"
-          value={revenueLoading ? "…" : formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
+          label="Revenue this month (PKR)"
+          value={revenueLoading ? "…" : formatMoney(revenue?.pkr?.month ?? 0, "pkr")}
           icon={Wallet}
           accent="success"
-          delta="Succeeded & retained · Pakistan"
+          delta={`All-time collected ${formatMoney(revenue?.pkr?.total ?? 0, "pkr")}`}
         />
         <StatCard
           label="Pending (PKR)"
@@ -72,11 +72,11 @@ function PaymentsPage() {
           delta={`${revenue?.pkr?.pending_count ?? 0} booking(s)`}
         />
         <StatCard
-          label="Revenue (USD)"
-          value={revenueLoading ? "…" : formatMoney(revenue?.usd?.total ?? 0, "usd")}
+          label="Revenue this month (USD)"
+          value={revenueLoading ? "…" : formatMoney(revenue?.usd?.month ?? 0, "usd")}
           icon={Wallet}
           accent="info"
-          delta="Succeeded & retained · International"
+          delta={`All-time collected ${formatMoney(revenue?.usd?.total ?? 0, "usd")}`}
         />
         <StatCard
           label="Pending (USD)"
@@ -239,6 +239,14 @@ function PaymentRow({
       </TableCell>
       <TableCell className="font-bold">
         <div>{formatMoney(p.amount, normalizeMoneyCurrency(p.currency))}</div>
+        {p.collected_rent != null &&
+          p.total_amount != null &&
+          p.collected_rent !== p.total_amount &&
+          p.booking_status !== "cancelled" && (
+            <div className="text-[10px] font-normal text-muted-foreground">
+              of {formatMoney(p.total_amount, normalizeMoneyCurrency(p.currency))} contract
+            </div>
+          )}
         {p.booking_status === "cancelled" &&
           (p.amount_refunded != null || p.amount_retained != null) && (
             <div className="text-[10px] font-normal text-muted-foreground">

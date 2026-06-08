@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
 import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
-import { CancelBookingDialog } from "@/components/admin/cancel-booking-dialog";
+import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ function BookingDetailPage() {
   const { data: booking, isLoading, isError, error } = useBookingQuery(id);
   const updateStatus = useUpdateBookingStatusMutation();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading || !booking) return;
@@ -39,8 +40,15 @@ function BookingDetailPage() {
       { id, status, amount_refunded: amountRefunded },
       {
         onSuccess: () => {
-          toast.success(status === "cancelled" ? "Booking cancelled" : "Booking updated");
+          toast.success(
+            status === "cancelled"
+              ? "Booking cancelled"
+              : status === "checked_out"
+                ? "Guest checked out"
+                : "Booking updated",
+          );
           setCancelOpen(false);
+          setCheckoutOpen(false);
         },
         onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
       },
@@ -53,11 +61,19 @@ function BookingDetailPage() {
       setCancelOpen(true);
       return;
     }
+    if (status === "checked_out") {
+      setCheckoutOpen(true);
+      return;
+    }
     applyStatus(status);
   }
 
   function onCancelConfirm(amountRefunded: number) {
     applyStatus("cancelled", amountRefunded);
+  }
+
+  function onCheckoutConfirm(amountRefunded: number) {
+    applyStatus("checked_out", amountRefunded);
   }
 
   if (isLoading) {
@@ -96,7 +112,7 @@ function BookingDetailPage() {
           <Button variant="outline" onClick={() => onStatusChange("confirmed")}>
             <CheckCircle2 className="h-4 w-4" /> Confirm
           </Button>
-          <Button variant="outline" onClick={() => onStatusChange("checked_out")}>
+          <Button variant="outline" onClick={() => setCheckoutOpen(true)}>
             Mark completed
           </Button>
           <Button variant="destructive" onClick={() => onStatusChange("cancelled")}>
@@ -105,14 +121,22 @@ function BookingDetailPage() {
         </div>
       </div>
 
-      <CancelBookingDialog
+      <BookingRefundDialog
         open={cancelOpen}
         booking={booking ?? null}
+        mode="cancel"
         submitting={updateStatus.isPending}
-        onClose={() => {
-          setCancelOpen(false);
-        }}
+        onClose={() => setCancelOpen(false)}
         onConfirm={onCancelConfirm}
+      />
+
+      <BookingRefundDialog
+        open={checkoutOpen}
+        booking={booking ?? null}
+        mode="checkout"
+        submitting={updateStatus.isPending}
+        onClose={() => setCheckoutOpen(false)}
+        onConfirm={onCheckoutConfirm}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -147,7 +171,8 @@ function BookingDetailPage() {
               label="Total amount"
               value={formatMoney(booking.total_amount, normalizeMoneyCurrency(booking.currency))}
             />
-            {booking.status === "cancelled" && (
+            {(booking.status === "cancelled" || booking.status === "checked_out") &&
+              (booking.amount_refunded != null || booking.amount_retained != null) && (
               <>
                 <Field
                   label="Refunded to guest"

@@ -17,6 +17,8 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/users": { title: "User Management", subtitle: "Registered guests and staff" },
   "/admin/payments": { title: "Payments", subtitle: "Transactions, refunds and invoices" },
   "/admin/financials": { title: "Revenue & Analytics", subtitle: "Deep financial insights" },
+  "/admin/profit-loss": { title: "Profit & Loss", subtitle: "Hostel expenses vs booking revenue" },
+  "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
   "/admin/reviews": { title: "Reviews", subtitle: "Moderate guest feedback" },
   "/admin/staff": { title: "Staff Management", subtitle: "Roles and permissions" },
   "/admin/maintenance": { title: "Maintenance", subtitle: "Tickets and room issues" },

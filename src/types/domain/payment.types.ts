@@ -13,6 +13,7 @@ export type Payment = {
   booking_id: string;
   amount: number;
   total_amount?: number;
+  collected_rent?: number;
   amount_refunded?: number;
   amount_retained?: number;
   currency: string;

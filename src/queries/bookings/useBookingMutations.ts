@@ -3,6 +3,8 @@ import { patchBookingPricingApi, patchBookingStatusApi, postManualBookingApi } f
 import type { CreateManualBookingInput } from "@/api/bookings/postManualBooking.api";
 import type { UpdateBookingPricingInput } from "@/api/bookings/patchBookingPricing.api";
 import { bookingKeys } from "@/queries/keys/booking.keys";
+import { expenseKeys } from "@/queries/keys/expense.keys";
+import { residentKeys } from "@/queries/keys/resident.keys";
 import { paymentKeys } from "@/queries/payments";
 import { roomKeys } from "@/queries/keys/room.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -64,6 +66,8 @@ export function useUpdateBookingStatusMutation() {
       void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() });
       void queryClient.invalidateQueries({ queryKey: [...bookingKeys.all, "overview"] });
+      void queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+      void queryClient.invalidateQueries({ queryKey: residentKeys.all });
       void queryClient.invalidateQueries({ queryKey: roomKeys.all });
     },
   });

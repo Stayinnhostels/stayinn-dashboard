@@ -44,8 +44,8 @@ function FinancialsPage() {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         Revenue is tracked separately in <span className="font-semibold text-foreground">PKR</span> (Pakistan) and{" "}
-        <span className="font-semibold text-foreground">USD</span> (international). Charts count succeeded bookings
-        only; the table lists all payment records.
+        <span className="font-semibold text-foreground">USD</span> (international). Monthly charts use rent
+        collected per stay month (from Monthly Rent). Payment rows show collected rent vs contract total.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -53,14 +53,14 @@ function FinancialsPage() {
           label="Total revenue (PKR)"
           value={statsLoading ? "…" : formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
           icon={Wallet}
-          delta="Succeeded · Pakistan"
+          delta="All-time collected · Pakistan"
         />
         <StatCard
           label="Total revenue (USD)"
           value={statsLoading ? "…" : formatMoney(revenue?.usd?.total ?? 0, "usd")}
           icon={Wallet}
           accent="info"
-          delta="Succeeded · International"
+          delta="All-time collected · International"
         />
         <StatCard
           label="Pending (PKR)"

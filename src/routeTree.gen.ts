@@ -19,8 +19,10 @@ import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminRoomsRouteImport } from './routes/admin.rooms'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminProfitLossRouteImport } from './routes/admin.profit-loss'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
+import { Route as AdminMonthlyRentRouteImport } from './routes/admin.monthly-rent'
 import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
@@ -79,6 +81,11 @@ const AdminReviewsRoute = AdminReviewsRouteImport.update({
   path: '/reviews',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProfitLossRoute = AdminProfitLossRouteImport.update({
+  id: '/profit-loss',
+  path: '/profit-loss',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -87,6 +94,11 @@ const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMonthlyRentRoute = AdminMonthlyRentRouteImport.update({
+  id: '/monthly-rent',
+  path: '/monthly-rent',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMaintenanceRoute = AdminMaintenanceRouteImport.update({
@@ -139,8 +151,10 @@ export interface FileRoutesByFullPath {
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
@@ -159,8 +173,10 @@ export interface FileRoutesByTo {
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
@@ -182,8 +198,10 @@ export interface FileRoutesById {
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
@@ -205,8 +223,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/settings'
@@ -225,8 +245,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/settings'
@@ -247,8 +269,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
+    | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/settings'
@@ -339,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReviewsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/profit-loss': {
+      id: '/admin/profit-loss'
+      path: '/profit-loss'
+      fullPath: '/admin/profit-loss'
+      preLoaderRoute: typeof AdminProfitLossRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/payments': {
       id: '/admin/payments'
       path: '/payments'
@@ -351,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/admin/notifications'
       preLoaderRoute: typeof AdminNotificationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/monthly-rent': {
+      id: '/admin/monthly-rent'
+      path: '/monthly-rent'
+      fullPath: '/admin/monthly-rent'
+      preLoaderRoute: typeof AdminMonthlyRentRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/maintenance': {
@@ -465,8 +503,10 @@ interface AdminRouteChildren {
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
   AdminMaintenanceRoute: typeof AdminMaintenanceRoute
+  AdminMonthlyRentRoute: typeof AdminMonthlyRentRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminProfitLossRoute: typeof AdminProfitLossRoute
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminRoomsRoute: typeof AdminRoomsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -480,8 +520,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCouponsRoute: AdminCouponsRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
   AdminMaintenanceRoute: AdminMaintenanceRoute,
+  AdminMonthlyRentRoute: AdminMonthlyRentRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminProfitLossRoute: AdminProfitLossRoute,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminRoomsRoute: AdminRoomsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
