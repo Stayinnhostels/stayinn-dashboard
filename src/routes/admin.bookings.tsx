@@ -4,12 +4,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Loader2, Search } from "lucide-react";
+import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Search } from "lucide-react";
+import { BookingsListSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
+import {
+  BookingRefundDialog,
+  type CheckoutConfirmExtras,
+} from "@/components/admin/booking-refund-dialog";
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
@@ -60,9 +64,24 @@ function BookingsListPage() {
   const cancelBooking = bookings.find((b) => b.id === cancelBookingId) ?? null;
   const checkoutBooking = bookings.find((b) => b.id === checkoutBookingId) ?? null;
 
-  function applyStatus(id: string, status: BookingStatus, amountRefunded?: number) {
+  function applyStatus(
+    id: string,
+    status: BookingStatus,
+    amountRefunded?: number,
+    checkoutExtras?: CheckoutConfirmExtras,
+  ) {
+    const bookingRow = bookings.find((b) => b.id === id) ?? null;
     updateStatus.mutate(
-      { id, status, amount_refunded: amountRefunded },
+      {
+        id,
+        status,
+        amount_refunded: amountRefunded,
+        ...(status === "checked_out" &&
+        checkoutExtras &&
+        bookingRow?.security_status === "paid"
+          ? { security_returned: checkoutExtras.securityReturned }
+          : {}),
+      },
       {
         onSuccess: () => {
           toast.success(
@@ -98,9 +117,9 @@ function BookingsListPage() {
     applyStatus(cancelBookingId, "cancelled", amountRefunded);
   }
 
-  function onCheckoutConfirm(amountRefunded: number) {
+  function onCheckoutConfirm(amountRefunded: number, checkoutExtras?: CheckoutConfirmExtras) {
     if (!checkoutBookingId) return;
-    applyStatus(checkoutBookingId, "checked_out", amountRefunded);
+    applyStatus(checkoutBookingId, "checked_out", amountRefunded, checkoutExtras);
   }
 
   function exportCsv() {
@@ -201,11 +220,7 @@ function BookingsListPage() {
       </Card>
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" /> Loading bookings…
-          </CardContent>
-        </Card>
+        <BookingsListSkeleton view={view} />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">

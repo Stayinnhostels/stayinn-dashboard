@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "@/components/admin/stat-card";
-import { CheckCircle2, Star, Sparkles, X, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle2, Star, Sparkles, X, Trash2 } from "lucide-react";
+import { ReviewsGridSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import {
   useReviewsQuery,
@@ -45,22 +46,22 @@ function ReviewsPage() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Approve guest reviews before they appear on the public website. Featured reviews are shown
-        first on the homepage.
-      </p>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Pending" value={stats?.pending ?? 0} icon={Star} accent="warning" />
-        <StatCard label="Approved" value={stats?.approved ?? 0} icon={CheckCircle2} accent="success" />
-        <StatCard
-          label="Avg rating"
-          value={stats?.average_rating ? `${stats.average_rating}★` : "—"}
-          icon={Star}
-          accent="primary"
-        />
-        <StatCard label="Featured" value={stats?.featured ?? 0} icon={Sparkles} accent="info" />
-      </div>
+     
+      {isLoading ? (
+        <StatCardsRowSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Pending" value={stats?.pending ?? 0} icon={Star} accent="warning" />
+          <StatCard label="Approved" value={stats?.approved ?? 0} icon={CheckCircle2} accent="success" />
+          <StatCard
+            label="Avg rating"
+            value={stats?.average_rating ? `${stats.average_rating}★` : "—"}
+            icon={Star}
+            accent="primary"
+          />
+          <StatCard label="Featured" value={stats?.featured ?? 0} icon={Sparkles} accent="info" />
+        </div>
+      )}
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
         <TabsList>
@@ -72,11 +73,7 @@ function ReviewsPage() {
       </Tabs>
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" /> Loading reviews…
-          </CardContent>
-        </Card>
+        <ReviewsGridSkeleton />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">

@@ -15,6 +15,8 @@ export type PropertySettings = {
   coverImageUrl: string;
   primaryColor: string;
   accentColor: string;
+  dashboardPrimaryColor: string;
+  dashboardAccentColor: string;
   website: string;
   instagram: string;
   facebook: string;
@@ -49,4 +51,6 @@ export type PublicPropertySettings = Pick<
   | "whatsapp"
   | "whatsapp_url"
   | "fullAddress"
+  | "primaryColor"
+  | "accentColor"
 >;

@@ -8,10 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X } from "lucide-react";
+import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X, LayoutDashboard } from "lucide-react";
+import { SettingsPageSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import { usePropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 import { useUpdatePropertySettingsMutation } from "@/queries/settings/useUpdatePropertySettingsMutation";
+import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from "@/lib/brand-colors";
+import {
+  DEFAULT_DASHBOARD_ACCENT_COLOR,
+  DEFAULT_DASHBOARD_PRIMARY_COLOR,
+} from "@/lib/dashboard-theme";
 import type { PropertySettings } from "@/types/domain/property-settings.types";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
@@ -23,17 +29,19 @@ const DEFAULTS: SettingsForm = {
   tagline: "Your home away from home",
   description:
     "A modern hostel offering comfortable shared and private rooms in the heart of the city.",
-  email: "hello@stayinn.example",
-  phone: "+1 555 0100",
-  address: "123 Hostel Lane",
-  city: "Mumbai",
-  country: "India",
+  email: "info@stayinnhostels.com",
+  phone: "+92 331 0008196",
+  address: "Lahore",
+  city: "Punjab",
+  country: "Pakistan",
   mapUrl: "",
   logoUrl: "",
   coverImageUrl: "",
-  primaryColor: "#f97316",
-  accentColor: "#0ea5e9",
-  website: "https://stayinn.example",
+  primaryColor: DEFAULT_PRIMARY_COLOR,
+  accentColor: DEFAULT_ACCENT_COLOR,
+  dashboardPrimaryColor: DEFAULT_DASHBOARD_PRIMARY_COLOR,
+  dashboardAccentColor: DEFAULT_DASHBOARD_ACCENT_COLOR,
+  website: "https://stayinnhostels.com",
   instagram: "stayinn",
   facebook: "stayinn",
   twitter: "stayinn",
@@ -75,7 +83,7 @@ function SettingsPage() {
   function save() {
     saveMutation.mutate(s, {
       onSuccess: () =>
-        toast.success("Settings saved — website, emails, and invoices will use these details"),
+        toast.success("Settings saved — website, dashboard theme, emails, and invoices updated"),
       onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save settings"),
     });
   }
@@ -93,11 +101,7 @@ function SettingsPage() {
   }
 
   if (isLoading && !data) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" /> Loading settings…
-      </div>
-    );
+    return <SettingsPageSkeleton />;
   }
 
   if (isError && !data) {
@@ -114,6 +118,7 @@ function SettingsPage() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="property"><Building2 className="h-3.5 w-3.5" /> Property</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-3.5 w-3.5" /> Branding</TabsTrigger>
+          <TabsTrigger value="dashboard"><LayoutDashboard className="h-3.5 w-3.5" /> Dashboard</TabsTrigger>
           <TabsTrigger value="social"><Share2 className="h-3.5 w-3.5" /> Social</TabsTrigger>
           <TabsTrigger value="booking"><BedDouble className="h-3.5 w-3.5" /> Booking rules</TabsTrigger>
         </TabsList>
@@ -192,7 +197,12 @@ function SettingsPage() {
           </Card>
 
           <Card className="border-border/60">
-            <CardHeader><CardTitle className="text-base">Brand colors</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base">Website brand colors</CardTitle>
+              <CardDescription>
+                Updates buttons, links, and gradients on the public website after you save. Dashboard colors are configured separately.
+              </CardDescription>
+            </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label>Primary color</Label>
@@ -200,6 +210,15 @@ function SettingsPage() {
                   <input type="color" value={s.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} className="h-10 w-14 cursor-pointer rounded-md border bg-background" />
                   <Input value={s.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} className="font-mono" />
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-fit px-2 text-xs text-muted-foreground"
+                  onClick={() => update("primaryColor", DEFAULT_PRIMARY_COLOR)}
+                >
+                  Reset to default ({DEFAULT_PRIMARY_COLOR})
+                </Button>
               </div>
               <div className="grid gap-1.5">
                 <Label>Accent color</Label>
@@ -207,7 +226,108 @@ function SettingsPage() {
                   <input type="color" value={s.accentColor} onChange={(e) => update("accentColor", e.target.value)} className="h-10 w-14 cursor-pointer rounded-md border bg-background" />
                   <Input value={s.accentColor} onChange={(e) => update("accentColor", e.target.value)} className="font-mono" />
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-fit px-2 text-xs text-muted-foreground"
+                  onClick={() => update("accentColor", DEFAULT_ACCENT_COLOR)}
+                >
+                  Reset to default ({DEFAULT_ACCENT_COLOR})
+                </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Dashboard theme</CardTitle>
+              <CardDescription>
+                Primary and accent colors for this admin panel — buttons, sidebar highlights, focus rings, and charts. Save to apply across the dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Primary color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={s.dashboardPrimaryColor}
+                    onChange={(e) => update("dashboardPrimaryColor", e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-md border bg-background"
+                  />
+                  <Input
+                    value={s.dashboardPrimaryColor}
+                    onChange={(e) => update("dashboardPrimaryColor", e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-fit px-2 text-xs text-muted-foreground"
+                  onClick={() => update("dashboardPrimaryColor", DEFAULT_DASHBOARD_PRIMARY_COLOR)}
+                >
+                  Reset to default ({DEFAULT_DASHBOARD_PRIMARY_COLOR})
+                </Button>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Accent color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={s.dashboardAccentColor}
+                    onChange={(e) => update("dashboardAccentColor", e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-md border bg-background"
+                  />
+                  <Input
+                    value={s.dashboardAccentColor}
+                    onChange={(e) => update("dashboardAccentColor", e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-fit px-2 text-xs text-muted-foreground"
+                  onClick={() => update("dashboardAccentColor", DEFAULT_DASHBOARD_ACCENT_COLOR)}
+                >
+                  Reset to default ({DEFAULT_DASHBOARD_ACCENT_COLOR})
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Preview</CardTitle>
+              <CardDescription>How your chosen colors will look on key dashboard elements.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-md"
+                style={{ backgroundColor: s.dashboardPrimaryColor }}
+              >
+                Primary button
+              </button>
+              <button
+                type="button"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-md"
+                style={{ backgroundColor: s.dashboardAccentColor }}
+              >
+                Accent / secondary
+              </button>
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
+                style={{ backgroundColor: s.dashboardPrimaryColor }}
+              >
+                3
+              </span>
             </CardContent>
           </Card>
         </TabsContent>

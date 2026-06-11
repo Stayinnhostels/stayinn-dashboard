@@ -16,11 +16,12 @@ export function useUpdateResidentMutation() {
       if (!token) throw new Error("You must be signed in");
       return patchResidentApi(token, bookingId, input);
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, { bookingId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: residentKeys.all }),
         queryClient.invalidateQueries({ queryKey: expenseKeys.all }),
         queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() }),
+        queryClient.invalidateQueries({ queryKey: bookingKeys.detail(bookingId) }),
         queryClient.invalidateQueries({ queryKey: [...bookingKeys.all, "overview"] }),
         queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
       ]);

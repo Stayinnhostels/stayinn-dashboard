@@ -1,0 +1,23 @@
+/** PascalCase Lucide icon names allowed by the API. */
+export const FACILITY_ICON_OPTIONS = [
+  "Wifi",
+  "UtensilsCrossed",
+  "Lock",
+  "WashingMachine",
+  "Coffee",
+  "Sofa",
+  "Dumbbell",
+  "ShieldCheck",
+  "Sparkles",
+  "Tv",
+  "BookOpen",
+  "Bike",
+  "Bath",
+  "Zap",
+  "Droplet",
+  "Shirt",
+  "Archive",
+  "MapPin",
+  "Users",
+  "Heart",
+] as const;

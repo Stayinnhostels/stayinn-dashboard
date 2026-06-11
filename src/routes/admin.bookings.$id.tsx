@@ -5,9 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { BookingDetailSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
 import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
+import { SECURITY_STATUS_LABELS } from "@/types/domain/resident.types";
+import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
+import type { CheckoutConfirmExtras } from "@/components/admin/booking-refund-dialog";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
 import { toast } from "sonner";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
@@ -35,9 +39,22 @@ function BookingDetailPage() {
     }
   }, [booking?.id, isLoading]);
 
-  function applyStatus(status: BookingStatus, amountRefunded?: number) {
+  function applyStatus(
+    status: BookingStatus,
+    amountRefunded?: number,
+    checkoutExtras?: CheckoutConfirmExtras,
+  ) {
     updateStatus.mutate(
-      { id, status, amount_refunded: amountRefunded },
+      {
+        id,
+        status,
+        amount_refunded: amountRefunded,
+        ...(status === "checked_out" &&
+        checkoutExtras &&
+        booking?.security_status === "paid"
+          ? { security_returned: checkoutExtras.securityReturned }
+          : {}),
+      },
       {
         onSuccess: () => {
           toast.success(
@@ -72,19 +89,17 @@ function BookingDetailPage() {
     applyStatus("cancelled", amountRefunded);
   }
 
-  function onCheckoutConfirm(amountRefunded: number) {
-    applyStatus("checked_out", amountRefunded);
+  function onCheckoutConfirm(amountRefunded: number, checkoutExtras?: CheckoutConfirmExtras) {
+    applyStatus("checked_out", amountRefunded, checkoutExtras);
   }
 
   if (isLoading) {
-    return (
-      <Card className="border-border/60">
-        <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" /> Loading booking…
-        </CardContent>
-      </Card>
-    );
+    return <BookingDetailSkeleton />;
   }
+
+  const cur = booking ? normalizeMoneyCurrency(booking.currency) : "pkr";
+  const isMonthlyStay = booking ? isMonthlyBooking(booking) : false;
+  const securityAmount = booking ? bookingSecurityAmount(booking, cur) : null;
 
   if (isError || !booking) {
     return (
@@ -168,19 +183,77 @@ function BookingDetailPage() {
             />
             <Field label="Source" value={booking.source} />
             <Field
-              label="Total amount"
+              label="Rent total"
               value={formatMoney(booking.total_amount, normalizeMoneyCurrency(booking.currency))}
             />
+            {isMonthlyStay && securityAmount != null && (
+              <>
+                <Field
+                  label="Security deposit"
+                  value={formatMoney(securityAmount, normalizeMoneyCurrency(booking.currency))}
+                />
+                <Field
+                  label="Security status"
+                  value={SECURITY_STATUS_LABELS[booking.security_status ?? "not_paid"]}
+                />
+              </>
+            )}
+            {isMonthlyStay && booking.months_paid_upfront != null && booking.months > 1 && (
+              <Field
+                label="Rent months committed upfront"
+                value={`${booking.months_paid_upfront} of ${booking.months}`}
+              />
+            )}
+            {booking.amount_paid_upfront != null && (
+              <Field
+                label="Rent collected so far"
+                value={formatMoney(booking.amount_paid_upfront, normalizeMoneyCurrency(booking.currency))}
+              />
+            )}
+            {booking.amount_outstanding != null && booking.amount_outstanding > 0 && (
+              <Field
+                label="Rent still due"
+                value={formatMoney(booking.amount_outstanding, normalizeMoneyCurrency(booking.currency))}
+              />
+            )}
+            {isMonthlyStay && securityAmount != null && (
+              <Field
+                label="Est. due at check-in"
+                value={formatMoney(
+                  (booking.months > 0
+                    ? Math.round(
+                        (booking.total_amount / booking.months) *
+                          (booking.months_paid_upfront ?? 1) *
+                          100,
+                      ) / 100
+                    : 0) + (booking.security_status === "paid" ? 0 : securityAmount),
+                  normalizeMoneyCurrency(booking.currency),
+                )}
+              />
+            )}
             {(booking.status === "cancelled" || booking.status === "checked_out") &&
               (booking.amount_refunded != null || booking.amount_retained != null) && (
               <>
                 <Field
-                  label="Refunded to guest"
+                  label="Rent refunded to guest"
                   value={formatMoney(booking.amount_refunded ?? 0, normalizeMoneyCurrency(booking.currency))}
                 />
                 <Field
-                  label="Retained (revenue)"
+                  label="Rent kept (revenue)"
                   value={formatMoney(booking.amount_retained ?? 0, normalizeMoneyCurrency(booking.currency))}
+                />
+              </>
+            )}
+            {booking.status === "checked_out" &&
+              (booking.security_returned != null || booking.security_retained != null) && (
+              <>
+                <Field
+                  label="Security returned to guest"
+                  value={formatMoney(booking.security_returned ?? 0, normalizeMoneyCurrency(booking.currency))}
+                />
+                <Field
+                  label="Security kept (revenue)"
+                  value={formatMoney(booking.security_retained ?? 0, normalizeMoneyCurrency(booking.currency))}
                 />
               </>
             )}
@@ -203,7 +276,7 @@ function BookingDetailPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
           {booking.room_id && (
             <Card className="border-border/60">
               <CardHeader>

@@ -49,8 +49,10 @@ export type CurrencyRevenueBucket = {
   week: number;
   succeeded_count: number;
   pending_count: number;
+  outstanding_count?: number;
   refunded_count: number;
   pending_amount: number;
+  outstanding_rent?: number;
   refunded_amount: number;
 };
 

@@ -5,6 +5,7 @@ import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sideb
 import { AdminHeader } from "@/components/admin/admin-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
+import { DashboardThemeProvider } from "@/providers/dashboard-theme-provider";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -19,6 +20,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/financials": { title: "Revenue & Analytics", subtitle: "Deep financial insights" },
   "/admin/profit-loss": { title: "Profit & Loss", subtitle: "Hostel expenses vs booking revenue" },
   "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
+  "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
   "/admin/reviews": { title: "Reviews", subtitle: "Moderate guest feedback" },
   "/admin/staff": { title: "Staff Management", subtitle: "Roles and permissions" },
   "/admin/maintenance": { title: "Maintenance", subtitle: "Tickets and room issues" },
@@ -62,7 +64,8 @@ function AdminLayout() {
   const meta = resolveMeta(pathname);
 
   return (
-    <NotificationSocketProvider>
+    <DashboardThemeProvider>
+      <NotificationSocketProvider>
       <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
         <AdminSidebar />
         <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
@@ -78,5 +81,6 @@ function AdminLayout() {
         </div>
       </div>
     </NotificationSocketProvider>
+    </DashboardThemeProvider>
   );
 }

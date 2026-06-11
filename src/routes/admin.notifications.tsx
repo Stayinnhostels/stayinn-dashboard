@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, Loader2, Trash2 } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
+import { NotificationsGridSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,10 +62,7 @@ function NotificationsPage() {
     <div className="space-y-5">
       <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card px-4 py-3 shadow-[var(--shadow-soft)]">
         <p className="text-sm font-bold text-primary">Live alerts</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          New alerts drop from the top, to the left of the bell. Booking, review, and contact each
-          have their own card style.
-        </p>
+      
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -87,11 +85,7 @@ function NotificationsPage() {
       </div>
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex justify-center py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </CardContent>
-        </Card>
+        <NotificationsGridSkeleton />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">

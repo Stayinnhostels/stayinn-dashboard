@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield } from "lucide-react";
+import { StaffTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { profiles as store, type UserRole } from "@/lib/mock-store";
@@ -19,7 +20,7 @@ function StaffPage() {
   const { user } = useAuth();
   const isSuper = user?.role === "super_admin";
 
-  const { data: profiles = [] } = useQuery({
+  const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["mock", "profiles-staff"],
     queryFn: async () => [...store],
   });
@@ -41,12 +42,14 @@ function StaffPage() {
             <Shield className="h-5 w-5 text-primary" />
             <div>
               <p className="font-bold">Role-based access control</p>
-              <p className="text-xs text-muted-foreground">Only super admins can change roles. Promote a user to admin from this list.</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {isLoading ? (
+        <StaffTableSkeleton />
+      ) : (
       <Card className="border-border/60">
         <CardContent className="p-0">
           <Table>
@@ -78,6 +81,7 @@ function StaffPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

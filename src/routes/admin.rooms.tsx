@@ -19,8 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Trash2, Eye, BedDouble, LayoutGrid, List as ListIcon, Pencil, Loader2 } from "lucide-react";
+import { Plus, Search, Trash2, Eye, BedDouble, LayoutGrid, List as ListIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { RoomsListSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import type { Room, RoomDraft, RoomStatus } from "@/types/domain/room.types";
 import { roomStatusStyles } from "@/types/domain/room.types";
@@ -241,11 +242,7 @@ function RoomsListPage() {
       )}
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" /> Loading rooms…
-          </CardContent>
-        </Card>
+        <RoomsListSkeleton view={view} />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">
@@ -287,7 +284,9 @@ function RoomsListPage() {
                 </Badge>
               </div>
               <CardContent className="p-4">
-                <p className="font-bold tracking-tight">{r.title}</p>
+                <p className="truncate font-bold tracking-tight" title={r.title}>
+                  {r.title}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {r.category} · {r.capacity} guests
                 </p>
@@ -347,7 +346,11 @@ function RoomsListPage() {
                     <TableCell>
                       <Checkbox checked={selected.has(r.id)} onCheckedChange={(c) => toggleOne(r.id, !!c)} />
                     </TableCell>
-                    <TableCell className="font-semibold">{r.title}</TableCell>
+                    <TableCell className="max-w-[220px] font-semibold">
+                      <span className="block truncate" title={r.title}>
+                        {r.title}
+                      </span>
+                    </TableCell>
                     <TableCell>{r.category}</TableCell>
                     <TableCell className="text-xs">
                       <div>${Number(r.price_per_night_usd ?? r.price_per_night).toLocaleString()}</div>

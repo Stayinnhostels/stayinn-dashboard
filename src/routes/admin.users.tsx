@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Eye, Search, LayoutGrid, List as ListIcon, Mail, Loader2 } from "lucide-react";
+import { Eye, Search, LayoutGrid, List as ListIcon, Mail } from "lucide-react";
+import { UsersListSkeleton } from "@/components/admin/users-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,11 +116,7 @@ function UsersListPage() {
       </Card>
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" /> Loading users…
-          </CardContent>
-        </Card>
+        <UsersListSkeleton view={view} />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">

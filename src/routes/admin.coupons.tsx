@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatCard } from "@/components/admin/stat-card";
-import { Plus, TicketPercent, Trash2, Pencil, Copy, Check, Loader2 } from "lucide-react";
+import { Plus, TicketPercent, Trash2, Pencil, Copy, Check } from "lucide-react";
+import { AdminCardGridSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import {
   useCouponsQuery,
@@ -115,6 +116,21 @@ function CouponsPage() {
 
   return (
     <div className="space-y-4">
+      {isLoading ? (
+        <>
+          <StatCardsRowSkeleton count={4} />
+          <Card className="border-border/60">
+            <CardContent className="flex items-center justify-between p-4">
+              <p className="text-sm font-semibold">All coupons</p>
+              <Button disabled className="rounded-full font-semibold">
+                <Plus className="h-4 w-4" /> New coupon
+              </Button>
+            </CardContent>
+          </Card>
+          <AdminCardGridSkeleton count={6} />
+        </>
+      ) : (
+        <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Active coupons" value={active} icon={TicketPercent} accent="success" />
         <StatCard label="Expired" value={expired} icon={TicketPercent} accent="warning" />
@@ -131,11 +147,7 @@ function CouponsPage() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
-        <div className="flex justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      ) : isError ? (
+      {isError ? (
         <Card className="border-border/60">
           <CardContent className="py-12 text-center text-sm text-destructive">
             Could not load coupons. Is the API running?
@@ -233,6 +245,8 @@ function CouponsPage() {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

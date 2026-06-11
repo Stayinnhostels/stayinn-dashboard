@@ -79,8 +79,7 @@ export function BookingInvoicePanel({ booking }: Props) {
             Invoice / Bill
           </CardTitle>
           <CardDescription>
-            Generate a black &amp; white invoice for this booking. Download the PDF, then send it to your guest on
-            WhatsApp yourself.
+            Generate a black &amp; white invoice for this booking.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,13 +106,7 @@ export function BookingInvoicePanel({ booking }: Props) {
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Property details come from{" "}
-            <a href="/admin/settings" className="font-semibold underline">
-              Settings → Property
-            </a>{" "}
-            (synced to the website and emails). Attach the PDF in WhatsApp after downloading.
-          </p>
+         
         </CardContent>
       </Card>
 

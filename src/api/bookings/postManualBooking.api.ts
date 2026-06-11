@@ -7,10 +7,15 @@ export type CreateManualBookingInput = {
   guest_email?: string;
   guest_phone: string;
   seats_booked: number;
-  months: number;
+  stay_unit?: "month" | "night";
+  months?: number;
+  nights?: number;
+  months_to_pay?: number;
+  nightly_rate?: number;
   move_in: string;
   notes?: string;
   total_amount?: number;
+  security_amount?: number;
   price_per_seat?: number;
   currency?: "pkr" | "usd";
 };

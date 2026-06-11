@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,11 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/admin/stat-card";
 import {
+  ChartCardSkeleton,
+  ProfitLossExpenseBlockSkeleton,
+  StatCardsRowSkeleton,
+} from "@/components/admin/admin-page-skeletons";
+import {
   Plus,
   Pencil,
   Trash2,
@@ -59,7 +64,11 @@ import {
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,
 } from "@/queries/expenses";
-import { useResidentMonthsQuery } from "@/queries/residents";
+import {
+  MonthFilterSelect,
+  currentMonthKey,
+  useSyncedMonthFilter,
+} from "@/components/admin/month-filter-select";
 import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 import { downloadMonthProfitLossExcelApi, downloadMonthProfitLossPdfApi } from "@/api/expenses";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -77,11 +86,6 @@ export const Route = createFileRoute("/admin/profit-loss")({ component: ProfitLo
 
 const CATEGORIES = Object.keys(EXPENSE_CATEGORY_LABELS) as ExpenseCategory[];
 const HISTORY_LIMIT = 4;
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 const blank: ExpenseDraft = {
   title: "",
@@ -106,6 +110,11 @@ function MonthSummaryStrip({ detail }: { detail: ProfitLossMonthDetail }) {
         <p className="mt-1 text-lg font-bold tabular-nums">
           {formatMoney(detail.revenue_pkr, "pkr")}
         </p>
+        {(detail.security_retained_pkr ?? 0) > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            incl. {formatMoney(detail.security_retained_pkr ?? 0, "pkr")} security kept at checkout
+          </p>
+        ) : null}
       </div>
       <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -133,6 +142,11 @@ function MonthSummaryStrip({ detail }: { detail: ProfitLossMonthDetail }) {
         <p className="mt-1 text-lg font-bold tabular-nums">
           {formatMoney(detail.revenue_usd, "usd")}
         </p>
+        {(detail.security_retained_usd ?? 0) > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            incl. {formatMoney(detail.security_retained_usd ?? 0, "usd")} security kept at checkout
+          </p>
+        ) : null}
       </div>
       <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -313,23 +327,13 @@ function MonthExpenseBlock({
 
 function ProfitLossPage() {
   const token = useAuthStore((s) => s.token);
-  const [month, setMonth] = useState(currentMonthKey());
+  const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [historyPage, setHistoryPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [draft, setDraft] = useState<ExpenseDraft>(blank);
   const [downloadingPdfMonth, setDownloadingPdfMonth] = useState<string | null>(null);
   const [downloadingExcelMonth, setDownloadingExcelMonth] = useState<string | null>(null);
-
-  const { data: monthOptions = [], isLoading: monthsLoading } = useResidentMonthsQuery();
-
-  useEffect(() => {
-    if (monthOptions.length === 0) return;
-    if (!monthOptions.some((m) => m.key === month)) {
-      setMonth(monthOptions[0].key);
-      setHistoryPage(1);
-    }
-  }, [monthOptions, month]);
 
   const { data, isLoading, isError, isFetching } = useProfitLossQuery({
     month,
@@ -345,7 +349,6 @@ function ProfitLossPage() {
   const detail = current?.detail;
   const historyMonths = data?.history.months ?? [];
   const historyPagination = data?.history.pagination;
-  const monthLabel = monthOptions.find((m) => m.key === month)?.label ?? month;
   const isCurrentCalendarMonth = month === currentMonthKey();
   const focusBadgeLabel = isCurrentCalendarMonth ? "This month" : "Selected month";
 
@@ -470,40 +473,24 @@ function ProfitLossPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-3">
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Pick any month to view revenue, expenses, and profit. Older months with expenses appear
-            below. Use <span className="font-medium text-foreground">PDF</span> or{" "}
-            <span className="font-medium text-foreground">Excel</span> on each month to download
-            that month&apos;s report.
-          </p>
-          <div className="space-y-1">
-            <Label htmlFor="reports-month" className="text-xs text-muted-foreground">
-              Filter by month
-            </Label>
-            <Select
-              value={month}
-              onValueChange={(v) => {
-                setMonth(v);
-                setHistoryPage(1);
-              }}
-              disabled={monthsLoading}
-            >
-              <SelectTrigger id="reports-month" className="h-9 w-[12rem]">
-                <SelectValue placeholder={monthsLoading ? "Loading…" : "Select month"} />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m.key} value={m.key}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+     
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-wrap items-end gap-3">
+          <MonthFilterSelect
+            id="reports-month"
+            value={month}
+            onChange={(v) => {
+              setMonth(v);
+              setHistoryPage(1);
+            }}
+          />
+          <Badge variant="secondary" className="gap-1 self-end">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {monthLabel}
+          </Badge>
         </div>
-        <Button onClick={openCreate} className="gap-2 shrink-0 self-start sm:self-auto">
+        <Button onClick={openCreate} className="gap-2 shrink-0 self-start lg:self-auto">
           <Plus className="h-4 w-4" /> Add expense
         </Button>
       </div>
@@ -516,60 +503,62 @@ function ProfitLossPage() {
         </Card>
       ) : (
         <>
+          {isLoading ? (
+            <StatCardsRowSkeleton count={6} />
+          ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <StatCard
               label="Revenue (PKR)"
-              value={isLoading ? "…" : formatMoney(detail?.revenue_pkr ?? 0, "pkr")}
+              value={formatMoney(detail?.revenue_pkr ?? 0, "pkr")}
               icon={TrendingUp}
               delta={current ? `${monthLabel} · bookings` : "Selected month"}
             />
             <StatCard
               label="Expenses (PKR)"
-              value={isLoading ? "…" : formatMoney(detail?.expense_pkr ?? 0, "pkr")}
+              value={formatMoney(detail?.expense_pkr ?? 0, "pkr")}
               icon={Receipt}
               accent="warning"
               delta={`${detail?.expense_count_pkr ?? 0} items · ${monthLabel}`}
             />
             <StatCard
               label="Net profit (PKR)"
-              value={isLoading ? "…" : formatMoney(detail?.profit_pkr ?? 0, "pkr")}
+              value={formatMoney(detail?.profit_pkr ?? 0, "pkr")}
               icon={Calculator}
               accent={profitPkrPositive ? "success" : "warning"}
               delta={profitPkrPositive ? "Revenue − expenses" : "Loss this month"}
             />
             <StatCard
               label="Revenue (USD)"
-              value={isLoading ? "…" : formatMoney(detail?.revenue_usd ?? 0, "usd")}
+              value={formatMoney(detail?.revenue_usd ?? 0, "usd")}
               icon={TrendingUp}
               accent="info"
               delta={current ? `${monthLabel} · international` : "Selected month"}
             />
             <StatCard
               label="Expenses (USD)"
-              value={isLoading ? "…" : formatMoney(detail?.expense_usd ?? 0, "usd")}
+              value={formatMoney(detail?.expense_usd ?? 0, "usd")}
               icon={Receipt}
               accent="info"
               delta={`${detail?.expense_count_usd ?? 0} items · ${monthLabel}`}
             />
             <StatCard
               label="Net profit (USD)"
-              value={isLoading ? "…" : formatMoney(detail?.profit_usd ?? 0, "usd")}
+              value={formatMoney(detail?.profit_usd ?? 0, "usd")}
               icon={profitUsdPositive ? TrendingUp : TrendingDown}
               accent={profitUsdPositive ? "info" : "warning"}
               delta={profitUsdPositive ? "Revenue − expenses" : "Loss this month"}
             />
           </div>
+          )}
 
+          {isLoading ? (
+            <ChartCardSkeleton titleWidth="w-44" heightClass="h-72" />
+          ) : (
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Monthly trend (PKR)</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
-              {isLoading ? (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading chart…
-                </div>
-              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
@@ -597,13 +586,14 @@ function ProfitLossPage() {
                     />
                   </BarChart>
                 </ResponsiveContainer>
-              )}
             </CardContent>
           </Card>
+          )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading monthly records…
+            <div className="space-y-4">
+              <ProfitLossExpenseBlockSkeleton />
+              <ProfitLossExpenseBlockSkeleton />
             </div>
           ) : current ? (
             <MonthExpenseBlock

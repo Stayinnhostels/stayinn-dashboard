@@ -60,8 +60,8 @@ function OverviewPage() {
     isError: overviewError,
     error: overviewErr,
   } = useBookingOverviewStatsQuery(30, 8, 6);
-  const { data: roomsApi } = useRoomsQuery({ limit: 200 });
-  const { data: bookingsApi } = useBookingsQuery({ limit: 500 });
+  const { data: roomsApi } = useRoomsQuery({ limit: 100 });
+  const { data: bookingsApi } = useBookingsQuery({ limit: 100 });
 
   const chartErrorMessage =
     overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";

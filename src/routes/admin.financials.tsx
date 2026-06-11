@@ -2,7 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/admin/stat-card";
-import { Wallet, TrendingUp, CreditCard, Loader2 } from "lucide-react";
+import { Wallet, TrendingUp, CreditCard } from "lucide-react";
+import {
+  AdminTableSkeleton,
+  ChartCardSkeleton,
+  StatCardsRowSkeleton,
+} from "@/components/admin/admin-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Bar,
@@ -42,51 +47,49 @@ function FinancialsPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Revenue is tracked separately in <span className="font-semibold text-foreground">PKR</span> (Pakistan) and{" "}
-        <span className="font-semibold text-foreground">USD</span> (international). Monthly charts use rent
-        collected per stay month (from Monthly Rent). Payment rows show collected rent vs contract total.
-      </p>
+     
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total revenue (PKR)"
-          value={statsLoading ? "…" : formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
-          icon={Wallet}
-          delta="All-time collected · Pakistan"
-        />
-        <StatCard
-          label="Total revenue (USD)"
-          value={statsLoading ? "…" : formatMoney(revenue?.usd?.total ?? 0, "usd")}
-          icon={Wallet}
-          accent="info"
-          delta="All-time collected · International"
-        />
-        <StatCard
-          label="Pending (PKR)"
-          value={statsLoading ? "…" : formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
-          icon={CreditCard}
-          delta="Awaiting confirmation"
-        />
-        <StatCard
-          label="Pending (USD)"
-          value={statsLoading ? "…" : formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
-          icon={CreditCard}
-          accent="info"
-          delta="Awaiting confirmation"
-        />
-      </div>
+      {statsLoading ? (
+        <StatCardsRowSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Total revenue (PKR)"
+            value={formatMoney(revenue?.pkr?.total ?? 0, "pkr")}
+            icon={Wallet}
+            delta="All-time collected · Pakistan"
+          />
+          <StatCard
+            label="Total revenue (USD)"
+            value={formatMoney(revenue?.usd?.total ?? 0, "usd")}
+            icon={Wallet}
+            accent="info"
+            delta="All-time collected · International"
+          />
+          <StatCard
+            label="Pending (PKR)"
+            value={formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
+            icon={CreditCard}
+            delta="Awaiting confirmation"
+          />
+          <StatCard
+            label="Pending (USD)"
+            value={formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
+            icon={CreditCard}
+            accent="info"
+            delta="Awaiting confirmation"
+          />
+        </div>
+      )}
 
-      <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle className="text-base">Revenue by month (PKR & USD)</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px]">
-          {statsLoading ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          ) : (
+      {statsLoading ? (
+        <ChartCardSkeleton titleWidth="w-56" />
+      ) : (
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle className="text-base">Revenue by month (PKR & USD)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={months}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -98,9 +101,9 @@ function FinancialsPage() {
                 <Bar dataKey="revenue_usd" name="USD" fill="oklch(0.55 0.13 200)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-border/60">
         <CardHeader>
@@ -108,9 +111,7 @@ function FinancialsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {paymentsLoading ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" /> Loading…
-            </div>
+            <AdminTableSkeleton rows={8} columns={6} bare />
           ) : (
             <Table>
               <TableHeader>

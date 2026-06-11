@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { putPropertySettingsApi } from "@/api/settings/putPropertySettings.api";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { settingsKeys } from "@/queries/keys/settings.keys";
+import { syncDashboardThemeFromSettings } from "@/lib/dashboard-theme-storage";
 import type { PropertySettings } from "@/types/domain/property-settings.types";
 
 export function useUpdatePropertySettingsMutation() {
@@ -16,6 +17,10 @@ export function useUpdatePropertySettingsMutation() {
     onSuccess: (settings) => {
       queryClient.setQueryData(settingsKeys.property(), settings);
       queryClient.setQueryData(settingsKeys.propertyPublic(), settings);
+      syncDashboardThemeFromSettings(
+        settings.dashboardPrimaryColor,
+        settings.dashboardAccentColor
+      );
     },
   });
 }

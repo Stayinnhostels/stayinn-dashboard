@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { postLogoutApi } from "@/api/auth/postLogout.api";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { authKeys } from "@/queries/keys/auth.keys";
+import { clearDashboardThemeCache } from "@/lib/dashboard-theme-storage";
 
 export type { AuthUser, UserRole } from "@/types/domain/auth.types";
 
@@ -34,6 +35,7 @@ export function useAuth() {
       // Still clear local session if the network fails or the token was already invalid.
     }
     storeLogout();
+    clearDashboardThemeCache();
     queryClient.removeQueries({ queryKey: authKeys.all });
   }, [queryClient, storeLogout]);
 

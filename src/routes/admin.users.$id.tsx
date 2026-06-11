@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import { UserDetailSkeleton } from "@/components/admin/users-page-skeletons";
 import { useUserQuery } from "@/queries/users";
 
 export const Route = createFileRoute("/admin/users/$id")({ component: UserDetailPage });
@@ -13,13 +14,7 @@ function UserDetailPage() {
   const { data: profile, isLoading, isError, error } = useUserQuery(id);
 
   if (isLoading) {
-    return (
-      <Card className="border-border/60">
-        <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" /> Loading user…
-        </CardContent>
-      </Card>
-    );
+    return <UserDetailSkeleton />;
   }
 
   if (isError || !profile) {

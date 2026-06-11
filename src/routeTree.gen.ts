@@ -25,6 +25,7 @@ import { Route as AdminNotificationsRouteImport } from './routes/admin.notificat
 import { Route as AdminMonthlyRentRouteImport } from './routes/admin.monthly-rent'
 import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
+import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -111,6 +112,11 @@ const AdminFinancialsRoute = AdminFinancialsRouteImport.update({
   path: '/financials',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFacilitiesRoute = AdminFacilitiesRouteImport.update({
+  id: '/facilities',
+  path: '/facilities',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCouponsRoute = AdminCouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
     | '/admin/monthly-rent'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
     | '/admin/monthly-rent'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
     | '/admin/monthly-rent'
@@ -405,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinancialsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/facilities': {
+      id: '/admin/facilities'
+      path: '/facilities'
+      fullPath: '/admin/facilities'
+      preLoaderRoute: typeof AdminFacilitiesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/coupons': {
       id: '/admin/coupons'
       path: '/coupons'
@@ -501,6 +520,7 @@ const AdminUsersRouteWithChildren = AdminUsersRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRouteWithChildren
   AdminCouponsRoute: typeof AdminCouponsRoute
+  AdminFacilitiesRoute: typeof AdminFacilitiesRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
   AdminMaintenanceRoute: typeof AdminMaintenanceRoute
   AdminMonthlyRentRoute: typeof AdminMonthlyRentRoute
@@ -518,6 +538,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRouteWithChildren,
   AdminCouponsRoute: AdminCouponsRoute,
+  AdminFacilitiesRoute: AdminFacilitiesRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
   AdminMaintenanceRoute: AdminMaintenanceRoute,
   AdminMonthlyRentRoute: AdminMonthlyRentRoute,

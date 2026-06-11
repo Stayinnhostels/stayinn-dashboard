@@ -20,6 +20,7 @@ import {
 import { ArrowLeft, BedDouble, FileText, Loader2, Pencil, Save, Trash2, UserPlus, Wallet, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ManualMemberDialog } from "@/components/admin/manual-member-dialog";
+import { RoomDetailSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
 import { useBookingsQuery } from "@/queries/bookings";
@@ -180,13 +181,7 @@ function RoomDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <Card className="border-border/60">
-        <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" /> Loading room…
-        </CardContent>
-      </Card>
-    );
+    return <RoomDetailSkeleton />;
   }
 
   if (isError || !room) {

@@ -64,6 +64,8 @@ export type ResidentRentSummary = {
   total_rent_collected?: number;
   amount_refunded?: number;
   amount_retained?: number;
+  security_returned?: number;
+  security_retained?: number;
   net_collected?: number;
   currency: "pkr" | "usd";
 };
@@ -105,6 +107,8 @@ export type UpdateResidentInput = {
   month?: string;
   monthly_rent?: number;
   payment_status?: RentPaymentStatus;
+  /** Mark the first N stay months as paid (e.g. guest pays 2 months at check-in). */
+  collect_rent_months?: number;
 };
 
 export const GENDER_LABELS: Record<ResidentGender, string> = {

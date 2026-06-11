@@ -9,6 +9,7 @@ type PatchResponse = {
 export type UpdateBookingStatusInput = {
   status: BookingStatus;
   amount_refunded?: number;
+  security_returned?: number;
 };
 
 export async function patchBookingStatusApi(token: string, id: string, input: UpdateBookingStatusInput) {

@@ -11,6 +11,12 @@ import {
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
+import { TAB_LOGO_SRC } from "@/lib/brand-assets";
+import { hydrateDashboardThemeFromStorage } from "@/lib/dashboard-theme-storage";
+
+if (typeof window !== "undefined") {
+  hydrateDashboardThemeFromStorage();
+}
 
 function NotFoundComponent() {
   return (
@@ -87,6 +93,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        href: TAB_LOGO_SRC,
+        type: "image/png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: TAB_LOGO_SRC,
       },
     ],
   }),

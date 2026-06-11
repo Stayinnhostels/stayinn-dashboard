@@ -36,15 +36,16 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, FileSpreadsheet, FileText, Loader2, LogOut, Pencil, Search, Users } from "lucide-react";
+import { MonthlyRentTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
+import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/month-filter-select";
 import {
   downloadMonthRentRegisterExcelApi,
   downloadMonthRentRegisterPdfApi,
 } from "@/api/residents";
 import {
   useResidentsRegisterQuery,
-  useResidentMonthsQuery,
   useUpdateResidentMutation,
 } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -69,11 +70,6 @@ import {
 export const Route = createFileRoute("/admin/monthly-rent")({ component: MonthlyRentPage });
 
 const PAGE_SIZE_OPTIONS = [10, 15, 25, 50] as const;
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 function statusBadgeClass(status: string) {
   switch (status) {
@@ -450,7 +446,7 @@ function EditResidentDialog({
 
 function MonthlyRentPage() {
   const token = useAuthStore((s) => s.token);
-  const [month, setMonth] = useState(currentMonthKey());
+  const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [cohort, setCohort] = useState<ResidentRegisterCohort>("active");
@@ -460,16 +456,6 @@ function MonthlyRentPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
-
-  const { data: monthOptions = [], isLoading: monthsLoading } = useResidentMonthsQuery();
-
-  useEffect(() => {
-    if (monthOptions.length === 0) return;
-    if (!monthOptions.some((m) => m.key === month)) {
-      setMonth(monthOptions[0].key);
-      setPage(1);
-    }
-  }, [monthOptions, month]);
 
   const params = useMemo(
     () => ({ month, cohort, page, limit: pageSize, ...(search ? { search } : {}) }),
@@ -485,8 +471,6 @@ function MonthlyRentPage() {
     pagination && pagination.total > 0
       ? Math.min(pagination.page * pagination.limit, pagination.total)
       : 0;
-
-  const monthLabel = monthOptions.find((m) => m.key === month)?.label ?? month;
 
   const exportLabel = cohort === "checkouts" ? "checkouts" : "active residents";
 
@@ -524,39 +508,17 @@ function MonthlyRentPage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        <strong>Active residents</strong> are still living through the selected month.{" "}
-        <strong>Checkouts</strong> are people who left during that month — they are kept here, not
-        deleted. Click any row to open full details and download an official resident record (PDF/Excel)
-        for government or verification.
-      </p>
-
+      
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="rent-month" className="text-xs text-muted-foreground">
-              Filter by month
-            </Label>
-            <Select
-              value={month}
-              onValueChange={(v) => {
-                setMonth(v);
-                setPage(1);
-              }}
-              disabled={monthsLoading}
-            >
-              <SelectTrigger id="rent-month" className="h-9 w-[12rem]">
-                <SelectValue placeholder={monthsLoading ? "Loading…" : "Select month"} />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m.key} value={m.key}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <MonthFilterSelect
+            id="rent-month"
+            value={month}
+            onChange={(v) => {
+              setMonth(v);
+              setPage(1);
+            }}
+          />
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -663,10 +625,7 @@ function MonthlyRentPage() {
             </Tabs>
           </div>
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>
-              PDF & Excel download the list shown for the selected tab — {monthLabel}
-              {search ? " (filtered)" : ""}
-            </p>
+           
             {pagination && pagination.total > 0 ? (
               <p>
                 Showing {showingFrom}–{showingTo} of {pagination.total}{" "}
@@ -681,9 +640,7 @@ function MonthlyRentPage() {
               Could not load resident register.
             </div>
           ) : isLoading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
-            </div>
+            <MonthlyRentTableSkeleton />
           ) : residents.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               {cohort === "checkouts"

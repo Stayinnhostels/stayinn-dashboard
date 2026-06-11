@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Loader2, Search, Wallet, CheckCircle2, Clock, X } from "lucide-react";
+import { FileText, Search, Wallet, CheckCircle2, Clock, X } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
+import { PaymentsTableSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { useRevenueSummaryQuery } from "@/queries/bookings/useRevenueSummaryQuery";
 import { usePaymentsQuery } from "@/queries/payments";
 import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/payments";
@@ -50,12 +51,11 @@ function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Revenue is based on monthly rent collected per stay month (from Monthly Rent register). When you
-        cancel or check out a paid guest early, enter how much was refunded vs kept. Refunds appear under the refunds
-        total.
-      </p>
+     
 
+      {revenueLoading ? (
+        <StatCardsRowSkeleton count={8} />
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           label="Revenue this month (PKR)"
@@ -65,11 +65,18 @@ function PaymentsPage() {
           delta={`All-time collected ${formatMoney(revenue?.pkr?.total ?? 0, "pkr")}`}
         />
         <StatCard
-          label="Pending (PKR)"
+          label="Outstanding rent (PKR)"
+          value={formatMoney(revenue?.pkr?.outstanding_rent ?? 0, "pkr")}
+          icon={Clock}
+          accent="warning"
+          delta={`${revenue?.pkr?.outstanding_count ?? 0} active stay(s) with unpaid months`}
+        />
+        <StatCard
+          label="Pending requests (PKR)"
           value={formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
           icon={Clock}
           accent="warning"
-          delta={`${revenue?.pkr?.pending_count ?? 0} booking(s)`}
+          delta={`${revenue?.pkr?.pending_count ?? 0} unconfirmed booking(s)`}
         />
         <StatCard
           label="Revenue this month (USD)"
@@ -79,11 +86,18 @@ function PaymentsPage() {
           delta={`All-time collected ${formatMoney(revenue?.usd?.total ?? 0, "usd")}`}
         />
         <StatCard
-          label="Pending (USD)"
+          label="Outstanding rent (USD)"
+          value={formatMoney(revenue?.usd?.outstanding_rent ?? 0, "usd")}
+          icon={Clock}
+          accent="warning"
+          delta={`${revenue?.usd?.outstanding_count ?? 0} active stay(s) with unpaid months`}
+        />
+        <StatCard
+          label="Pending requests (USD)"
           value={formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
           icon={Clock}
           accent="warning"
-          delta={`${revenue?.usd?.pending_count ?? 0} booking(s)`}
+          delta={`${revenue?.usd?.pending_count ?? 0} unconfirmed booking(s)`}
         />
         <StatCard
           label="Succeeded bookings"
@@ -108,6 +122,7 @@ function PaymentsPage() {
             .join(" · ") || "No refunds yet"}
         />
       </div>
+      )}
 
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
@@ -147,9 +162,7 @@ function PaymentsPage() {
       <Card className="border-border/60">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" /> Loading payments…
-            </div>
+            <PaymentsTableSkeleton />
           ) : isError ? (
             <p className="py-16 text-center text-sm text-destructive">Could not load payments.</p>
           ) : (

@@ -22,6 +22,9 @@ export function useCreateManualBookingMutation() {
     onSuccess: (booking) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.revenue() });
+      void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: residentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: expenseKeys.all });
       if (booking.room_id) {
         void queryClient.invalidateQueries({ queryKey: roomKeys.detail(booking.room_id) });
       }
@@ -57,8 +60,8 @@ export function useUpdateBookingStatusMutation() {
   return useMutation({
     mutationFn: (input: { id: string } & UpdateBookingStatusInput) => {
       if (!token) throw new Error("You must be signed in");
-      const { id, status, amount_refunded } = input;
-      return patchBookingStatusApi(token, id, { status, amount_refunded });
+      const { id, status, amount_refunded, security_returned } = input;
+      return patchBookingStatusApi(token, id, { status, amount_refunded, security_returned });
     },
     onSuccess: (_, { id }) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });

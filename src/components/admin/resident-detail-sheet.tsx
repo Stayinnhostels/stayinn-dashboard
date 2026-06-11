@@ -215,7 +215,17 @@ export function ResidentDetailSheet({
                   </Badge>
                   {(summary.amount_refunded ?? 0) > 0 ? (
                     <Badge variant="outline" className="text-rose-700 border-rose-500/30">
-                      Refunded: {formatMoney(summary.amount_refunded ?? 0, summary.currency)}
+                      Rent refunded: {formatMoney(summary.amount_refunded ?? 0, summary.currency)}
+                    </Badge>
+                  ) : null}
+                  {(summary.security_returned ?? 0) > 0 ? (
+                    <Badge variant="outline" className="text-rose-700 border-rose-500/30">
+                      Security returned: {formatMoney(summary.security_returned ?? 0, summary.currency)}
+                    </Badge>
+                  ) : null}
+                  {(summary.security_retained ?? 0) > 0 ? (
+                    <Badge variant="secondary">
+                      Security kept: {formatMoney(summary.security_retained ?? 0, summary.currency)}
                     </Badge>
                   ) : null}
                   {(summary.net_collected ?? totalCollected) !== totalCollected ||

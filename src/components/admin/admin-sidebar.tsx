@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -16,14 +16,14 @@ import {
   TrendingUp,
   Calculator,
   ClipboardList,
-  ChevronsLeft,
-  ChevronsRight,
   Globe,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ADMIN_NAV_LOGO_CLASS, ADMIN_NAV_LOGO_COMPACT_CLASS, TAB_LOGO_SRC } from "@/lib/brand-assets";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSED_KEY = "stay-inn-admin-sidebar-collapsed";
@@ -41,6 +41,7 @@ const items: Item[] = [
   { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
   { to: "/admin/profit-loss", label: "Monthly Reports", icon: Calculator },
   { to: "/admin/monthly-rent", label: "Monthly Rent", icon: ClipboardList },
+  { to: "/admin/facilities", label: "Facilities", icon: Sparkles },
   { to: "/admin/reviews", label: "Reviews", icon: Star },
   { to: "/admin/staff", label: "Staff", icon: Shield },
   { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
@@ -52,49 +53,39 @@ const items: Item[] = [
 function SidebarBody({
   onNavigate,
   collapsed = false,
-  onToggleCollapse,
+  showCollapseToggle = false,
 }: {
   onNavigate?: () => void;
   collapsed?: boolean;
-  onToggleCollapse?: () => void;
+  showCollapseToggle?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isRail = Boolean(onToggleCollapse);
-  const compact = isRail && collapsed;
+  const compact = showCollapseToggle && collapsed;
 
   return (
     <>
       <div
         className={cn(
           "flex shrink-0 items-center border-b border-border/60",
-          compact ? "flex-col gap-2 px-2 py-3" : "h-16 justify-between gap-2 px-4",
+          compact ? "flex-col gap-2 px-2 py-3" : "min-h-20 justify-between gap-3 px-4 py-3",
         )}
       >
-        <div className={cn("flex items-center gap-2", compact && "flex-col")}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[image:var(--gradient-hero)] font-black text-primary-foreground">
-            S
-          </div>
+        <div className={cn("flex items-center gap-3", compact && "flex-col")}>
+          <img
+            src={TAB_LOGO_SRC}
+            alt="Stay Inn"
+            className={cn("shrink-0", compact ? ADMIN_NAV_LOGO_COMPACT_CLASS : ADMIN_NAV_LOGO_CLASS)}
+          />
           {!compact ? (
             <div className="min-w-0 leading-tight">
-              <p className="text-sm font-extrabold tracking-tight">Stay Inn</p>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Admin Console
               </p>
             </div>
           ) : null}
         </div>
-        {onToggleCollapse ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className={cn("shrink-0", compact && "h-8 w-8")}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-expanded={!collapsed}
-            onClick={onToggleCollapse}
-          >
-            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-          </Button>
+        {showCollapseToggle ? (
+          <SidebarTrigger className={cn("shrink-0", compact && "h-8 w-8")} />
         ) : null}
       </div>
       <nav className={cn("min-h-0 flex-1 space-y-1 overflow-y-auto py-4", compact ? "px-2" : "px-3")}>
@@ -196,40 +187,47 @@ function SidebarBody({
   );
 }
 
-export function AdminSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
-        setCollapsed(true);
-      }
-    } catch {
-      /* ignore */
+function readCollapsedPreference() {
+  try {
+    if (typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
+      return true;
     }
-  }, []);
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
 
-  useEffect(() => {
+export function AdminSidebar() {
+  const [collapsed, setCollapsed] = useState(readCollapsedPreference);
+
+  function handleOpenChange(open: boolean) {
+    const nextCollapsed = !open;
+    setCollapsed(nextCollapsed);
     try {
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, nextCollapsed ? "1" : "0");
       }
     } catch {
       /* ignore */
     }
-  }, [collapsed]);
+  }
 
   return (
-    <aside
-      className={cn(
-        "hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-200 ease-out md:flex",
-        collapsed ? "md:w-[4.5rem]" : "md:w-64 lg:w-72",
-      )}
+    <SidebarProvider
+      open={!collapsed}
+      onOpenChange={handleOpenChange}
+      className="hidden h-full min-h-0 w-auto shrink-0 md:block"
     >
-      <TooltipProvider delayDuration={0}>
-        <SidebarBody collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)} />
-      </TooltipProvider>
-    </aside>
+      <aside
+        className={cn(
+          "flex h-full min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-200 ease-out",
+          collapsed ? "w-[4.5rem]" : "w-64 lg:w-72",
+        )}
+      >
+        <SidebarBody collapsed={collapsed} showCollapseToggle />
+      </aside>
+    </SidebarProvider>
   );
 }
 

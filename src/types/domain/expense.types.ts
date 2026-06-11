@@ -38,6 +38,8 @@ export type ProfitLossMonthDetail = {
   label: string;
   revenue_pkr: number;
   revenue_usd: number;
+  security_retained_pkr?: number;
+  security_retained_usd?: number;
   expense_pkr: number;
   expense_usd: number;
   profit_pkr: number;

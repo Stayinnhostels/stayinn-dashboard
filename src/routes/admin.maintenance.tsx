@@ -20,6 +20,7 @@ import {
   Pencil,
   Loader2,
 } from "lucide-react";
+import { AdminCardGridSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
 import {
   useMaintenanceQuery,
@@ -138,24 +139,24 @@ function MaintenancePage() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Track room issues and common-area repairs. When you set a room to{" "}
-        <span className="font-medium text-foreground">maintenance</span> in Room Management, an open
-        ticket is created here automatically.
-      </p>
+  
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Open" value={stats?.open ?? 0} icon={Clock} accent="warning" />
-        <StatCard label="In progress" value={stats?.in_progress ?? 0} icon={Wrench} accent="info" />
-        <StatCard
-          label="Rooms offline"
-          value={stats?.rooms_in_maintenance ?? 0}
-          icon={Wrench}
-          accent="warning"
-        />
-        <StatCard label="Resolved" value={stats?.resolved ?? 0} icon={CheckCircle2} accent="success" />
-        <StatCard label="Urgent" value={stats?.urgent ?? 0} icon={AlertTriangle} accent="warning" />
-      </div>
+      {isLoading ? (
+        <StatCardsRowSkeleton count={5} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <StatCard label="Open" value={stats?.open ?? 0} icon={Clock} accent="warning" />
+          <StatCard label="In progress" value={stats?.in_progress ?? 0} icon={Wrench} accent="info" />
+          <StatCard
+            label="Rooms offline"
+            value={stats?.rooms_in_maintenance ?? 0}
+            icon={Wrench}
+            accent="warning"
+          />
+          <StatCard label="Resolved" value={stats?.resolved ?? 0} icon={CheckCircle2} accent="success" />
+          <StatCard label="Urgent" value={stats?.urgent ?? 0} icon={AlertTriangle} accent="warning" />
+        </div>
+      )}
 
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
@@ -174,11 +175,7 @@ function MaintenancePage() {
       </Card>
 
       {isLoading ? (
-        <Card className="border-border/60">
-          <CardContent className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" /> Loading tickets…
-          </CardContent>
-        </Card>
+        <AdminCardGridSkeleton count={6} />
       ) : isError ? (
         <Card className="border-border/60">
           <CardContent className="py-16 text-center text-sm text-destructive">
