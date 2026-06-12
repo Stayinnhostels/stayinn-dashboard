@@ -22,7 +22,7 @@ import type { PropertySettings } from "@/types/domain/property-settings.types";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
-type SettingsForm = Omit<PropertySettings, "whatsapp" | "whatsapp_url" | "fullAddress">;
+type SettingsForm = Omit<PropertySettings, "whatsapp_url" | "fullAddress">;
 
 const DEFAULTS: SettingsForm = {
   hotelName: "Stay Inn Hostels",
@@ -41,10 +41,14 @@ const DEFAULTS: SettingsForm = {
   accentColor: DEFAULT_ACCENT_COLOR,
   dashboardPrimaryColor: DEFAULT_DASHBOARD_PRIMARY_COLOR,
   dashboardAccentColor: DEFAULT_DASHBOARD_ACCENT_COLOR,
+  whatsapp: "923310008196",
   website: "https://stayinnhostels.com",
-  instagram: "stayinn",
-  facebook: "stayinn",
-  twitter: "stayinn",
+  instagram: "",
+  facebook: "",
+  twitter: "",
+  youtube: "",
+  linkedin: "",
+  threads: "",
   checkInTime: "14:00",
   checkOutTime: "11:00",
   minStay: 1,
@@ -63,8 +67,8 @@ const DEFAULTS: SettingsForm = {
 };
 
 function toFormSettings(data: PropertySettings): SettingsForm {
-  const { whatsapp: _w, whatsapp_url: _u, fullAddress: _f, ...rest } = data;
-  return rest;
+  const { whatsapp_url: _u, fullAddress: _f, ...rest } = data;
+  return { ...rest, whatsapp: rest.whatsapp ?? "" };
 }
 
 function SettingsPage() {
@@ -339,10 +343,45 @@ function SettingsPage() {
               <CardDescription>Links shown in your footer and contact pages.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5 sm:col-span-2"><Label>Website</Label><Input value={s.website} onChange={(e) => update("website", e.target.value)} placeholder="https://" /></div>
-              <div className="grid gap-1.5"><Label>Instagram handle</Label><Input value={s.instagram} onChange={(e) => update("instagram", e.target.value)} placeholder="username" /></div>
-              <div className="grid gap-1.5"><Label>Facebook handle</Label><Input value={s.facebook} onChange={(e) => update("facebook", e.target.value)} placeholder="username" /></div>
-              <div className="grid gap-1.5"><Label>X / Twitter handle</Label><Input value={s.twitter} onChange={(e) => update("twitter", e.target.value)} placeholder="username" /></div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>WhatsApp number</Label>
+                <Input
+                  value={s.whatsapp ?? ""}
+                  onChange={(e) => update("whatsapp", e.target.value)}
+                  placeholder="+92 331 0008196 or 923310008196"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Shown in the website footer and contact page. Leave blank to use the property phone number.
+                </p>
+              </div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>Website</Label>
+                <Input value={s.website} onChange={(e) => update("website", e.target.value)} placeholder="https://stayinnhostels.com" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Instagram</Label>
+                <Input value={s.instagram} onChange={(e) => update("instagram", e.target.value)} placeholder="@username or full URL" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>YouTube</Label>
+                <Input value={s.youtube} onChange={(e) => update("youtube", e.target.value)} placeholder="@channel or full URL" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>X (Twitter)</Label>
+                <Input value={s.twitter} onChange={(e) => update("twitter", e.target.value)} placeholder="@username or full URL" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Facebook</Label>
+                <Input value={s.facebook} onChange={(e) => update("facebook", e.target.value)} placeholder="username or full URL" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>LinkedIn</Label>
+                <Input value={s.linkedin} onChange={(e) => update("linkedin", e.target.value)} placeholder="company/name or full URL" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Threads</Label>
+                <Input value={s.threads} onChange={(e) => update("threads", e.target.value)} placeholder="@username or full URL" />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

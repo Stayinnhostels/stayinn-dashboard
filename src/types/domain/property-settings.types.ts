@@ -21,6 +21,9 @@ export type PropertySettings = {
   instagram: string;
   facebook: string;
   twitter: string;
+  youtube: string;
+  linkedin: string;
+  threads: string;
   checkInTime: string;
   checkOutTime: string;
   minStay: number;
@@ -53,4 +56,11 @@ export type PublicPropertySettings = Pick<
   | "fullAddress"
   | "primaryColor"
   | "accentColor"
+  | "website"
+  | "instagram"
+  | "facebook"
+  | "twitter"
+  | "youtube"
+  | "linkedin"
+  | "threads"
 >;
