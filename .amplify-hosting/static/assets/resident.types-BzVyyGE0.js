@@ -1,0 +1,1 @@
+const e={male:"Male",female:"Female",other:"Other","":"—"},t={student:"Student",employee:"Employee",other:"Other","":"—"},a={paid:"Paid",returned:"Returned",held:"Held",not_paid:"Not paid",not_applicable:"N/A"},d={paid:"Paid",not_paid:"Not paid",returned:"Returned",partial:"Partial"};export{e as G,t as R,a as S,d as a};

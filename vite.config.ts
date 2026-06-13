@@ -7,9 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { nitro } from "nitro/vite";
 
-// Vercel sets VERCEL=1 during CI builds. The default Lovable stack targets Cloudflare Workers,
-// which Vercel cannot run — use Nitro for a Vercel-compatible server output instead.
-// See: https://tanstack.com/start/latest/docs/framework/react/guide/hosting#vercel
+// Default Lovable stack targets Cloudflare Workers. Vercel and AWS Amplify need Nitro instead.
 const isVercel = process.env.VERCEL === "1";
 
 /** Vite only inlines env vars that start with `VITE_` and exist at **build** time. */
