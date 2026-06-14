@@ -1,1 +1,0 @@
-const l={all:["expenses"],profitLoss:s=>[...l.all,"profit-loss",s],list:s=>[...l.all,"list",s]},e={all:["residents"],months:()=>[...e.all,"months"],register:s=>[...e.all,"register",s],detail:(s,t)=>[...e.all,"detail",s,t??""]};export{l as e,e as r};

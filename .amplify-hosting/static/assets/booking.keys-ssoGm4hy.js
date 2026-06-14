@@ -1,1 +1,0 @@
-const e={all:["bookings"],lists:()=>[...e.all,"list"],list:l=>[...e.lists(),l],details:()=>[...e.all,"detail"],detail:l=>[...e.details(),l],dailyStats:l=>[...e.all,"daily-stats",l],overview:(l,a,s)=>[...e.all,"overview",l,a,s],revenue:()=>[...e.all,"revenue"]};export{e as b};

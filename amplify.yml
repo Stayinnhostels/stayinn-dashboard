@@ -6,6 +6,7 @@ frontend:
         - nvm use 22
         - node --version
         - npm ci --cache .npm --prefer-offline
+        - rm -rf dist .amplify-hosting node_modules/.nitro .vinxi .tanstack
         - |
           if [ -z "$VITE_API_BASE_URL" ]; then
             echo "ERROR: VITE_API_BASE_URL is not set in Amplify environment variables."
