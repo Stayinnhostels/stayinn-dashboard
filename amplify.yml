@@ -11,6 +11,7 @@ frontend:
             echo "ERROR: VITE_API_BASE_URL is not set in Amplify environment variables."
             exit 1
           fi
+          echo "Building with VITE_API_BASE_URL=$VITE_API_BASE_URL"
     build:
       commands:
         - npm run build
@@ -21,7 +22,17 @@ frontend:
             echo "ERROR: dist/index.html still contains TanStack Start SSR output."
             exit 1
           fi
-        - echo "SPA build OK — static index.html ready for Amplify"
+        - |
+          if grep -rq '16.170.226.208' dist/; then
+            echo "ERROR: Build still contains the old EC2 IP. Redeploy after fixing VITE_API_BASE_URL."
+            exit 1
+          fi
+        - |
+          if ! grep -rq 'api.stsofficial.online' dist/assets/; then
+            echo "ERROR: Expected production API URL was not baked into dist/assets."
+            exit 1
+          fi
+        - echo "SPA build OK — static index.html with correct API URL"
   artifacts:
     baseDirectory: dist
     files:

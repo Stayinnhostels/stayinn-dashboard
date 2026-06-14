@@ -7,7 +7,12 @@ function assertProductionApiConfigured() {
   const base = getApiBaseUrl();
   if (base.includes("localhost") || base.includes("127.0.0.1")) {
     throw new Error(
-      "This build still points at localhost. Set VITE_API_BASE_URL in Vercel (Production) and redeploy so login hits your real API."
+      "This build still points at localhost. Set VITE_API_BASE_URL in Amplify (or Vercel) and redeploy so login hits your real API.",
+    );
+  }
+  if (/^https?:\/\/\d+\.\d+\.\d+\.\d+/.test(base)) {
+    throw new Error(
+      "This build still points at a raw IP address. Set VITE_API_BASE_URL=https://api.stsofficial.online in Amplify and redeploy.",
     );
   }
 }
