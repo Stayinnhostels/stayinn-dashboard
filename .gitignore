@@ -24,6 +24,9 @@ dist-ssr
 # Vercel (Nitro Build Output API — local build artifact)
 .vercel/
 
+# AWS Amplify SSR artifact (legacy TanStack Start / Nitro builds)
+.amplify-hosting/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
