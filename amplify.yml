@@ -6,9 +6,22 @@ frontend:
         - nvm use 22
         - node --version
         - npm ci --cache .npm --prefer-offline
+        - |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "ERROR: VITE_API_BASE_URL is not set in Amplify environment variables."
+            exit 1
+          fi
     build:
       commands:
         - npm run build
+        - test -f dist/index.html
+        - grep -q 'id="root"' dist/index.html
+        - |
+          if grep -q 'tsr-stream-barrier' dist/index.html; then
+            echo "ERROR: dist/index.html still contains TanStack Start SSR output."
+            exit 1
+          fi
+        - echo "SPA build OK — static index.html ready for Amplify"
   artifacts:
     baseDirectory: dist
     files:
@@ -16,3 +29,7 @@ frontend:
   cache:
     paths:
       - .npm/**/*
+  customRedirects:
+    - source: "/<*>"
+      target: "/index.html"
+      status: "404-200"

@@ -5,12 +5,13 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-/** Fail CI builds when the API URL was not set in Amplify env vars. */
+/** Fail Amplify builds when the API URL was not set in env vars. */
 function requireViteApiBaseUrlOnCiBuild(): Plugin {
   return {
     name: "require-vite-api-base-url-on-ci",
     configResolved() {
-      if (!process.env.CI) return;
+      const isAmplify = Boolean(process.env.AWS_APP_ID);
+      if (!isAmplify) return;
       const value = process.env.VITE_API_BASE_URL?.trim();
       if (!value) {
         throw new Error(
