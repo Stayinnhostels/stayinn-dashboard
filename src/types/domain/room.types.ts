@@ -50,6 +50,7 @@ export function roomToDraft(room: Room): RoomDraft {
     amenities: room.amenities ?? [],
     images: room.images ?? [],
     badge: room.badge ?? null,
+    display_order: room.display_order ?? 100,
   };
 }
 
@@ -68,6 +69,7 @@ export type Room = {
   amenities: string[];
   images: string[];
   badge: string | null;
+  display_order: number;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -86,6 +88,7 @@ export type RoomDraft = {
   amenities: string[];
   images: string[];
   badge?: string | null;
+  display_order: number;
 };
 
 export type RoomsListParams = {

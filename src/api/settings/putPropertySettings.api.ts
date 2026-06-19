@@ -1,4 +1,5 @@
 import { apiFetch } from "@/api/apiFetch";
+import { stripLegacyPropertySettingsKeys } from "@/lib/property-settings-update";
 import type { PropertySettings } from "@/types/domain/property-settings.types";
 
 type PutPropertySettingsResponse = {
@@ -14,7 +15,7 @@ export async function putPropertySettingsApi(
   const data = await apiFetch<PutPropertySettingsResponse>("/api/v1/settings", {
     method: "PUT",
     token,
-    body: JSON.stringify(input),
+    body: JSON.stringify(stripLegacyPropertySettingsKeys(input)),
   });
   if (!data.success || !data.settings) {
     throw new Error(data.message ?? "Could not save settings");

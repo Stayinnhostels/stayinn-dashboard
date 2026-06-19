@@ -41,5 +41,18 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          if (id.includes("@tanstack/react-router") || id.includes("@tanstack/router")) {
+            return "tanstack-router";
+          }
+          if (id.includes("@tanstack/react-query")) return "tanstack-query";
+        },
+      },
+    },
   },
 });

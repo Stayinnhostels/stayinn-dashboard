@@ -27,6 +27,7 @@ const blank: RoomDraft = {
   amenities: [],
   images: [],
   badge: null,
+  display_order: 100,
 };
 
 function roomToDraft(room: Partial<Room> | null | undefined): RoomDraft {
@@ -45,6 +46,7 @@ function roomToDraft(room: Partial<Room> | null | undefined): RoomDraft {
     amenities: (room.amenities ?? []).filter((a) => a.trim() && a.trim().toLowerCase() !== "none"),
     images: room.images ?? [],
     badge: room.badge ?? null,
+    display_order: room.display_order ?? 100,
   };
 }
 
@@ -72,6 +74,7 @@ export function RoomFormDialog({
   const [capacityText, setCapacityText] = useState("2");
   const [bedsTotalText, setBedsTotalText] = useState("2");
   const [bedsAvailableText, setBedsAvailableText] = useState("2");
+  const [displayOrderText, setDisplayOrderText] = useState("100");
   const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
@@ -83,6 +86,7 @@ export function RoomFormDialog({
     setCapacityText(String(next.capacity));
     setBedsTotalText(String(next.beds_total));
     setBedsAvailableText(String(next.beds_available));
+    setDisplayOrderText(String(next.display_order));
   }, [open, initial]);
 
   const amenityOptions = useMemo(() => {
@@ -99,8 +103,9 @@ export function RoomFormDialog({
     const capacityNum = parsePositiveInt(capacityText, 0);
     const bedsTotalNum = parsePositiveInt(bedsTotalText, 0);
     const bedsAvailableNum = parsePositiveInt(bedsAvailableText, 0);
-    return { priceUsdNum, pricePkrNum, capacityNum, bedsTotalNum, bedsAvailableNum };
-  }, [priceUsdText, pricePkrText, capacityText, bedsTotalText, bedsAvailableText]);
+    const displayOrderNum = parsePositiveInt(displayOrderText, 100);
+    return { priceUsdNum, pricePkrNum, capacityNum, bedsTotalNum, bedsAvailableNum, displayOrderNum };
+  }, [priceUsdText, pricePkrText, capacityText, bedsTotalText, bedsAvailableText, displayOrderText]);
 
   const canSave =
     draft.title.trim().length > 0 &&
@@ -114,7 +119,8 @@ export function RoomFormDialog({
     parsed.capacityNum >= 1 &&
     parsed.bedsTotalNum >= 1 &&
     parsed.bedsAvailableNum >= 0 &&
-    parsed.bedsAvailableNum <= parsed.bedsTotalNum;
+    parsed.bedsAvailableNum <= parsed.bedsTotalNum &&
+    parsed.displayOrderNum >= 1;
 
   function toggleAmenity(name: string, checked: boolean) {
     setDraft((d) => ({
@@ -137,6 +143,7 @@ export function RoomFormDialog({
       capacity: parsed.capacityNum,
       beds_total: parsed.bedsTotalNum,
       beds_available: parsed.bedsAvailableNum,
+      display_order: parsed.displayOrderNum,
     });
   }
 
@@ -267,6 +274,20 @@ export function RoomFormDialog({
               Check USD & PKR prices, capacity, and beds (available cannot exceed total).
             </p>
           )}
+
+          <div className="grid gap-2">
+            <Label>Website display order</Label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={displayOrderText}
+              onChange={(e) => setDisplayOrderText(e.target.value)}
+              placeholder="e.g. 1"
+            />
+            <p className="text-xs text-muted-foreground">
+              1 = shown first on the website, 2 = second, and so on. Use 100 for rooms that should appear later.
+            </p>
+          </div>
 
           <div className="grid gap-2">
             <Label>Badge (optional)</Label>

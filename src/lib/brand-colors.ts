@@ -1,4 +1,4 @@
-export const DEFAULT_PRIMARY_COLOR = "#f97316";
+export const DEFAULT_PRIMARY_COLOR = "#0066B2";
 export const DEFAULT_ACCENT_COLOR = "#0ea5e9";
 
 function parseHex(hex: string): [number, number, number] | null {
@@ -13,7 +13,7 @@ function parseHex(hex: string): [number, number, number] | null {
 
 export function normalizeBrandColor(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim() ?? "";
-  if (!trimmed) return fallback;
+  if (!trimmed) return fallback; 
   const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
   return parseHex(withHash) ? withHash.toLowerCase() : fallback;
 }

@@ -24,6 +24,7 @@ export function roomDraftToApiBody(draft: RoomDraft): Record<string, unknown> {
     beds_available: draft.beds_available,
     amenities: draft.amenities,
     images: draft.images,
+    display_order: draft.display_order,
   };
   if (draft.badge?.trim()) body.badge = draft.badge.trim();
   return body;
@@ -43,6 +44,7 @@ const PATCH_KEYS = [
   "amenities",
   "images",
   "badge",
+  "display_order",
 ] as const;
 
 export function roomDraftToPatchPayload(draft: RoomDraft | Partial<RoomDraft>): Record<string, unknown> {

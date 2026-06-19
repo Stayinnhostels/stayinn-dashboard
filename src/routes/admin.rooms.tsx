@@ -288,7 +288,7 @@ function RoomsListPage() {
                   {r.title}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {r.category} · {r.capacity} guests
+                  {r.category} · {r.capacity} guests · Order {r.display_order ?? 100}
                 </p>
                 <div className="mt-2 flex items-center justify-between">
                   <p className="text-sm font-extrabold">
@@ -332,6 +332,7 @@ function RoomsListPage() {
                       onCheckedChange={(c) => toggleAll(!!c)}
                     />
                   </TableHead>
+                  <TableHead>Order</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>USD / PKR</TableHead>
@@ -345,6 +346,9 @@ function RoomsListPage() {
                   <TableRow key={r.id}>
                     <TableCell>
                       <Checkbox checked={selected.has(r.id)} onCheckedChange={(c) => toggleOne(r.id, !!c)} />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {r.display_order ?? 100}
                     </TableCell>
                     <TableCell className="max-w-[220px] font-semibold">
                       <span className="block truncate" title={r.title}>

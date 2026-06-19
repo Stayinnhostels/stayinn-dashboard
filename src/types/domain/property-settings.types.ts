@@ -1,3 +1,5 @@
+import type { AboutValueCard } from "@/lib/about-values";
+
 export type PropertySettings = {
   hotelName: string;
   tagline: string;
@@ -38,6 +40,55 @@ export type PropertySettings = {
   houseRules: string;
   quietHoursStart: string;
   quietHoursEnd: string;
+  roomsFilterMinPrice: number;
+  roomsFilterMaxPrice: number;
+  heroShowBadge: boolean;
+  heroBadgeText: string;
+  heroPrimaryCtaLabel: string;
+  heroPrimaryCtaHref: string;
+  heroSecondaryCtaLabel: string;
+  heroSecondaryCtaHref: string;
+  heroImageUrl: string;
+  heroImageAlt: string;
+  heroShowStats: boolean;
+  heroStat1Value: string;
+  heroStat1Label: string;
+  heroStat2Value: string;
+  heroStat2Label: string;
+  heroStat3Value: string;
+  heroStat3Label: string;
+  heroShowTrustBadge: boolean;
+  heroTrustTitle: string;
+  heroTrustSubtitle: string;
+  homeCtaShow: boolean;
+  homeCtaTitleLine1: string;
+  homeCtaTitleLine2: string;
+  homeCtaDescription: string;
+  homeCtaPrimaryLabel: string;
+  homeCtaPrimaryHref: string;
+  homeCtaSecondaryLabel: string;
+  homeCtaSecondaryHref: string;
+  homeCtaShowSecondary: boolean;
+  aboutBadgeText: string;
+  aboutTitleLine1: string;
+  aboutTitleAccent: string;
+  aboutIntro: string;
+  aboutMissionHeading: string;
+  aboutMissionParagraph1: string;
+  aboutMissionParagraph2: string;
+  aboutShowBrokerage: boolean;
+  aboutBrokerageValue: string;
+  aboutBrokerageLabel: string;
+  aboutValuesBadge: string;
+  aboutValuesHeading: string;
+  aboutValues: AboutValueCard[];
+  aboutCtaHeading: string;
+  aboutCtaDescription: string;
+  aboutCtaPrimaryLabel: string;
+  aboutCtaPrimaryHref: string;
+  aboutCtaSecondaryLabel: string;
+  aboutCtaSecondaryHref: string;
+  aboutCtaShowSecondary: boolean;
 };
 
 export type PublicPropertySettings = Pick<
@@ -63,4 +114,53 @@ export type PublicPropertySettings = Pick<
   | "youtube"
   | "linkedin"
   | "threads"
+  | "roomsFilterMinPrice"
+  | "roomsFilterMaxPrice"
+  | "heroShowBadge"
+  | "heroBadgeText"
+  | "heroPrimaryCtaLabel"
+  | "heroPrimaryCtaHref"
+  | "heroSecondaryCtaLabel"
+  | "heroSecondaryCtaHref"
+  | "heroImageUrl"
+  | "heroImageAlt"
+  | "heroShowStats"
+  | "heroStat1Value"
+  | "heroStat1Label"
+  | "heroStat2Value"
+  | "heroStat2Label"
+  | "heroStat3Value"
+  | "heroStat3Label"
+  | "heroShowTrustBadge"
+  | "heroTrustTitle"
+  | "heroTrustSubtitle"
+  | "homeCtaShow"
+  | "homeCtaTitleLine1"
+  | "homeCtaTitleLine2"
+  | "homeCtaDescription"
+  | "homeCtaPrimaryLabel"
+  | "homeCtaPrimaryHref"
+  | "homeCtaSecondaryLabel"
+  | "homeCtaSecondaryHref"
+  | "homeCtaShowSecondary"
+  | "aboutBadgeText"
+  | "aboutTitleLine1"
+  | "aboutTitleAccent"
+  | "aboutIntro"
+  | "aboutMissionHeading"
+  | "aboutMissionParagraph1"
+  | "aboutMissionParagraph2"
+  | "aboutShowBrokerage"
+  | "aboutBrokerageValue"
+  | "aboutBrokerageLabel"
+  | "aboutValuesBadge"
+  | "aboutValuesHeading"
+  | "aboutValues"
+  | "aboutCtaHeading"
+  | "aboutCtaDescription"
+  | "aboutCtaPrimaryLabel"
+  | "aboutCtaPrimaryHref"
+  | "aboutCtaSecondaryLabel"
+  | "aboutCtaSecondaryHref"
+  | "aboutCtaShowSecondary"
 >;

@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Globe,
   Sparkles,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -36,6 +37,7 @@ const items: Item[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
+  { to: "/admin/messages", label: "Messages", icon: MessageSquare },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/payments", label: "Payments", icon: Wallet },
   { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
@@ -47,6 +49,7 @@ const items: Item[] = [
   { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/admin/coupons", label: "Coupons", icon: TicketPercent },
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
+  { to: "/admin/website", label: "Website Content", icon: Globe },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

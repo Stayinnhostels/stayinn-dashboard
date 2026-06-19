@@ -19,6 +19,9 @@ import {
   DEFAULT_DASHBOARD_PRIMARY_COLOR,
 } from "@/lib/dashboard-theme";
 import type { PropertySettings } from "@/types/domain/property-settings.types";
+import { HOMEPAGE_HERO_DEFAULTS } from "@/lib/homepage-hero-defaults";
+import { HOMEPAGE_CTA_DEFAULTS } from "@/lib/homepage-cta-defaults";
+import { ABOUT_PAGE_DEFAULTS } from "@/lib/about-page-defaults";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
@@ -64,11 +67,23 @@ const DEFAULTS: SettingsForm = {
     "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in",
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
+  roomsFilterMinPrice: 3000,
+  roomsFilterMaxPrice: 50000,
+  ...HOMEPAGE_HERO_DEFAULTS,
+  ...HOMEPAGE_CTA_DEFAULTS,
+  ...ABOUT_PAGE_DEFAULTS,
 };
 
 function toFormSettings(data: PropertySettings): SettingsForm {
   const { whatsapp_url: _u, fullAddress: _f, ...rest } = data;
-  return { ...rest, whatsapp: rest.whatsapp ?? "" };
+  const form = { ...DEFAULTS };
+  for (const key of Object.keys(DEFAULTS) as (keyof SettingsForm)[]) {
+    const value = rest[key];
+    if (value !== undefined) {
+      (form as Record<string, unknown>)[key] = value;
+    }
+  }
+  return { ...form, whatsapp: rest.whatsapp ?? "" };
 }
 
 function SettingsPage() {
@@ -87,7 +102,7 @@ function SettingsPage() {
   function save() {
     saveMutation.mutate(s, {
       onSuccess: () =>
-        toast.success("Settings saved — website, dashboard theme, emails, and invoices updated"),
+        toast.success("Settings saved — property, branding, and booking rules updated"),
       onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save settings"),
     });
   }
@@ -97,7 +112,7 @@ function SettingsPage() {
     toast.info("Reset to defaults — click Save to apply on the server");
   }
 
-  function uploadLogo(file: File | null, key: "logoUrl" | "coverImageUrl") {
+  function uploadImage(file: File | null, key: "logoUrl" | "coverImageUrl") {
     if (!file) return;
     const r = new FileReader();
     r.onload = () => update(key, r.result as string);
@@ -132,13 +147,13 @@ function SettingsPage() {
             <CardHeader>
               <CardTitle className="text-base">Property information</CardTitle>
               <CardDescription>
-                Saved to the server and used on the public website hero, contact page, footer, booking emails, and invoices.
+                Property name, contact details, and location. Homepage sections are edited under Website in the sidebar.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5 sm:col-span-2"><Label>Hostel name</Label><Input value={s.hotelName} onChange={(e) => update("hotelName", e.target.value)} /></div>
               <div className="grid gap-1.5 sm:col-span-2"><Label>Tagline</Label><Input value={s.tagline} onChange={(e) => update("tagline", e.target.value)} /></div>
-              <div className="grid gap-1.5 sm:col-span-2"><Label>Description</Label><Textarea rows={3} value={s.description} onChange={(e) => update("description", e.target.value)} /></div>
+              <div className="grid gap-1.5 sm:col-span-2"><Label>Short description</Label><Textarea rows={3} value={s.description} onChange={(e) => update("description", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Contact email</Label><Input type="email" value={s.email} onChange={(e) => update("email", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Phone</Label><Input value={s.phone} onChange={(e) => update("phone", e.target.value)} /></div>
               <div className="grid gap-1.5 sm:col-span-2"><Label>Street address</Label><Input value={s.address} onChange={(e) => update("address", e.target.value)} /></div>
@@ -176,7 +191,7 @@ function SettingsPage() {
                   <div className="flex flex-col gap-2">
                     <label className="inline-flex cursor-pointer items-center justify-center rounded-md border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted">
                       Upload logo
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0] ?? null, "logoUrl")} />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadImage(e.target.files?.[0] ?? null, "logoUrl")} />
                     </label>
                     {s.logoUrl && <Button variant="ghost" size="sm" onClick={() => update("logoUrl", "")}><X className="h-3 w-3" /> Remove</Button>}
                   </div>
@@ -191,7 +206,7 @@ function SettingsPage() {
                   <div className="flex flex-col gap-2">
                     <label className="inline-flex cursor-pointer items-center justify-center rounded-md border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted">
                       Upload cover
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadLogo(e.target.files?.[0] ?? null, "coverImageUrl")} />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadImage(e.target.files?.[0] ?? null, "coverImageUrl")} />
                     </label>
                     {s.coverImageUrl && <Button variant="ghost" size="sm" onClick={() => update("coverImageUrl", "")}><X className="h-3 w-3" /> Remove</Button>}
                   </div>
@@ -395,6 +410,41 @@ function SettingsPage() {
                 <span className="font-semibold text-foreground">/booking-rules</span> after you save settings.
               </CardDescription>
             </CardHeader>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Rooms page price filter</CardTitle>
+              <CardDescription>
+                Min and max shown on the public{" "}
+                <span className="font-semibold text-foreground">/rooms</span> price slider (PKR per seat / month).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Minimum price (PKR)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={s.roomsFilterMinPrice}
+                  onChange={(e) => update("roomsFilterMinPrice", Number(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Maximum price (PKR)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={s.roomsFilterMaxPrice}
+                  onChange={(e) => update("roomsFilterMaxPrice", Number(e.target.value))}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Guests can drag the slider between these values. Max must be greater than min.
+              </p>
+            </CardContent>
           </Card>
 
           <Card className="border-border/60">

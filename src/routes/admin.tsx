@@ -9,7 +9,12 @@ import { DashboardThemeProvider } from "@/providers/dashboard-theme-provider";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
+  notFoundComponent: AdminNotFoundPage,
 });
+
+function AdminNotFoundPage() {
+  return <NotFoundView embedded />;
+}
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin": { title: "Dashboard Overview", subtitle: "High-level performance at a glance" },
@@ -21,6 +26,8 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/profit-loss": { title: "Profit & Loss", subtitle: "Hostel expenses vs booking revenue" },
   "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
   "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
+  "/admin/website": { title: "Website", subtitle: "Homepage sections on the public marketing site" },
+  "/admin/website/about": { title: "Website", subtitle: "About page on the public marketing site" },
   "/admin/reviews": { title: "Reviews", subtitle: "Moderate guest feedback" },
   "/admin/staff": { title: "Staff Management", subtitle: "Roles and permissions" },
   "/admin/maintenance": { title: "Maintenance", subtitle: "Tickets and room issues" },
@@ -37,7 +44,7 @@ function resolveMeta(pathname: string) {
     const base = `/admin/${seg[1]}`;
     if (TITLES[base]) return { title: `${TITLES[base].title} · Details`, subtitle: "" };
   }
-  return { title: "Admin", subtitle: "" };
+  return { title: "Page not found", subtitle: "This admin page doesn't exist" };
 }
 
 function AdminLayout() {

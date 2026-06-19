@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminWebsiteRouteImport } from './routes/admin.website'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -23,12 +24,14 @@ import { Route as AdminProfitLossRouteImport } from './routes/admin.profit-loss'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMonthlyRentRouteImport } from './routes/admin.monthly-rent'
+import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
 import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AdminWebsiteAboutRouteImport } from './routes/admin.website.about'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
 import { Route as AdminRoomsIdRouteImport } from './routes/admin.rooms.$id'
 import { Route as AdminBookingsIdRouteImport } from './routes/admin.bookings.$id'
@@ -55,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminWebsiteRoute = AdminWebsiteRouteImport.update({
+  id: '/website',
+  path: '/website',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -102,6 +110,11 @@ const AdminMonthlyRentRoute = AdminMonthlyRentRouteImport.update({
   path: '/monthly-rent',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMessagesRoute = AdminMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMaintenanceRoute = AdminMaintenanceRouteImport.update({
   id: '/maintenance',
   path: '/maintenance',
@@ -132,6 +145,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AdminWebsiteAboutRoute = AdminWebsiteAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => AdminWebsiteRoute,
+} as any)
 const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -158,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -167,10 +186,12 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
+  '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/website/about': typeof AdminWebsiteAboutRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,6 +202,7 @@ export interface FileRoutesByTo {
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -190,10 +212,12 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
+  '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/website/about': typeof AdminWebsiteAboutRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -207,6 +231,7 @@ export interface FileRoutesById {
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
+  '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -216,10 +241,12 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
+  '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/website/about': typeof AdminWebsiteAboutRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,6 +260,7 @@ export interface FileRouteTypes {
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/messages'
     | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
@@ -242,10 +270,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
+    | '/admin/website'
     | '/admin/'
     | '/admin/bookings/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
+    | '/admin/website/about'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -256,6 +286,7 @@ export interface FileRouteTypes {
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/messages'
     | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
@@ -265,10 +296,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
+    | '/admin/website'
     | '/admin'
     | '/admin/bookings/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
+    | '/admin/website/about'
   id:
     | '__root__'
     | '/'
@@ -281,6 +314,7 @@ export interface FileRouteTypes {
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
+    | '/admin/messages'
     | '/admin/monthly-rent'
     | '/admin/notifications'
     | '/admin/payments'
@@ -290,10 +324,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
+    | '/admin/website'
     | '/admin/'
     | '/admin/bookings/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
+    | '/admin/website/about'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -338,6 +374,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/website': {
+      id: '/admin/website'
+      path: '/website'
+      fullPath: '/admin/website'
+      preLoaderRoute: typeof AdminWebsiteRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/users': {
@@ -403,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMonthlyRentRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/messages': {
+      id: '/admin/messages'
+      path: '/messages'
+      fullPath: '/admin/messages'
+      preLoaderRoute: typeof AdminMessagesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/maintenance': {
       id: '/admin/maintenance'
       path: '/maintenance'
@@ -444,6 +494,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/admin/website/about': {
+      id: '/admin/website/about'
+      path: '/about'
+      fullPath: '/admin/website/about'
+      preLoaderRoute: typeof AdminWebsiteAboutRouteImport
+      parentRoute: typeof AdminWebsiteRoute
     }
     '/admin/users/$id': {
       id: '/admin/users/$id'
@@ -517,12 +574,25 @@ const AdminUsersRouteWithChildren = AdminUsersRoute._addFileChildren(
   AdminUsersRouteChildren,
 )
 
+interface AdminWebsiteRouteChildren {
+  AdminWebsiteAboutRoute: typeof AdminWebsiteAboutRoute
+}
+
+const AdminWebsiteRouteChildren: AdminWebsiteRouteChildren = {
+  AdminWebsiteAboutRoute: AdminWebsiteAboutRoute,
+}
+
+const AdminWebsiteRouteWithChildren = AdminWebsiteRoute._addFileChildren(
+  AdminWebsiteRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRouteWithChildren
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminFacilitiesRoute: typeof AdminFacilitiesRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
   AdminMaintenanceRoute: typeof AdminMaintenanceRoute
+  AdminMessagesRoute: typeof AdminMessagesRoute
   AdminMonthlyRentRoute: typeof AdminMonthlyRentRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -532,6 +602,7 @@ interface AdminRouteChildren {
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminUsersRoute: typeof AdminUsersRouteWithChildren
+  AdminWebsiteRoute: typeof AdminWebsiteRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -541,6 +612,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFacilitiesRoute: AdminFacilitiesRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
   AdminMaintenanceRoute: AdminMaintenanceRoute,
+  AdminMessagesRoute: AdminMessagesRoute,
   AdminMonthlyRentRoute: AdminMonthlyRentRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
@@ -550,6 +622,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminUsersRoute: AdminUsersRouteWithChildren,
+  AdminWebsiteRoute: AdminWebsiteRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
 

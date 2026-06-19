@@ -1,6 +1,3 @@
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
-
 const UNSUPPORTED_COLOR = /\boklch\s*\(|\blab\s*\(|\blch\s*\(/i;
 
 function stripClassNames(root: HTMLElement) {
@@ -28,8 +25,14 @@ function sanitizeClonedStyles(clonedDoc: Document, root: HTMLElement) {
 
 /**
  * Renders invoice in a blank iframe so html2canvas never parses dashboard CSS (oklch, etc.).
+ * PDF libraries load on demand so booking detail stays a small initial chunk.
  */
 export async function downloadInvoicePdf(element: HTMLElement, filename: string) {
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.style.cssText =

@@ -17,7 +17,7 @@ import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
-const PIE_COLORS = ["#f97316", "#0ea5e9", "#facc15", "#22c55e", "#a855f7", "#ec4899"];
+const PIE_COLORS = ["#0066B2", "#0ea5e9", "#facc15", "#22c55e", "#a855f7", "#ec4899"];
 const chartCard = "border-border/60 bg-card/60 backdrop-blur";
 
 function ChartState({
