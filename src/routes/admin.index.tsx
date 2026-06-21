@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { StatCard } from "@/components/admin/stat-card";
+import { StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
@@ -10,10 +10,10 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
-import { rooms as roomStore, bookings as bookingStore, profiles as profileStore, getRoom } from "@/lib/mock-store";
 import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomsQuery } from "@/queries/rooms";
 import { chartTooltipMoney, formatMoney } from "@/lib/payments";
+import type { Room } from "@/types/domain/room.types";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
@@ -60,21 +60,16 @@ function OverviewPage() {
     isError: overviewError,
     error: overviewErr,
   } = useBookingOverviewStatsQuery(30, 8, 6);
-  const { data: roomsApi } = useRoomsQuery({ limit: 100 });
-  const { data: bookingsApi } = useBookingsQuery({ limit: 100 });
+  const { data: roomsApi, isLoading: roomsLoading } = useRoomsQuery({ limit: 100 });
+  const { data: bookingsApi, isLoading: bookingsLoading } = useBookingsQuery({ limit: 100 });
 
   const chartErrorMessage =
     overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";
 
-  const { data } = useQuery({
-    queryKey: ["mock", "overview"],
-    queryFn: async () => ({
-      rooms: [...roomStore], bookings: [...bookingStore], users: [...profileStore],
-    }),
-  });
-
-  const rooms = roomsApi?.rooms?.length ? roomsApi.rooms : (data?.rooms ?? []);
-  const bookings = bookingsApi?.bookings?.length ? bookingsApi.bookings : (data?.bookings ?? []);
+  const rooms = roomsApi?.rooms ?? [];
+  const bookings = bookingsApi?.bookings ?? [];
+  const roomById = new Map<string, Room>(rooms.map((room) => [room.id, room]));
+  const statsLoading = overviewLoading || roomsLoading || bookingsLoading;
 
   const totalBeds = rooms.reduce((s, r) => s + r.beds_total, 0);
   const availableBeds = rooms.reduce((s, r) => s + r.beds_available, 0);
@@ -85,7 +80,7 @@ function OverviewPage() {
   const availableRooms = rooms.filter((r) => r.status === "available").length;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const totalBookings = overviewStats?.status?.total ?? bookingsApi?.pagination?.total ?? bookings.length;
+  const totalBookings = overviewStats?.status?.total ?? bookingsApi?.pagination?.total ?? 0;
   const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
 
   const succeededBookings = bookings.filter(
@@ -127,7 +122,7 @@ function OverviewPage() {
 
   const revByCategory: Record<string, number> = {};
   succeededBookings.forEach((b) => {
-    const room = getRoom(b.room_id ?? "");
+    const room = b.room_id ? roomById.get(b.room_id) : undefined;
     const cat = room?.category ?? "other";
     revByCategory[cat] = (revByCategory[cat] ?? 0) + b.total_amount;
   });
@@ -136,7 +131,7 @@ function OverviewPage() {
   const bookingsByRoom: Record<string, number> = {};
   bookings.forEach((b) => { if (b.room_id) bookingsByRoom[b.room_id] = (bookingsByRoom[b.room_id] ?? 0) + 1; });
   const topRooms = Object.entries(bookingsByRoom)
-    .map(([id, count]) => ({ name: getRoom(id)?.title ?? "—", bookings: count }))
+    .map(([id, count]) => ({ name: roomById.get(id)?.title ?? "—", bookings: count }))
     .sort((a, b) => b.bookings - a.bookings).slice(0, 6);
 
   const dayOfWeek = Array.from({ length: 7 }).map((_, i) => ({ label: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i], bookings: 0 }));
@@ -148,29 +143,33 @@ function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Bookings"
-          value={totalBookings}
-          icon={CalendarCheck}
-          accent="primary"
-        />
-        <StatCard label="Check-outs Today" value={checkOutsToday} icon={LogOut} accent="warning" />
-        <StatCard
-          label="Total Rooms"
-          value={totalRooms}
-          delta={`${availableRooms} available`}
-          icon={DoorOpen}
-          accent="info"
-        />
-        <StatCard
-          label="Occupancy"
-          value={`${occupancyRate}%`}
-          delta={`${occupiedBeds} / ${totalBeds} beds`}
-          icon={BedDouble}
-          accent="primary"
-        />
-      </div>
+      {statsLoading ? (
+        <StatCardsRowSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Total Bookings"
+            value={totalBookings}
+            icon={CalendarCheck}
+            accent="primary"
+          />
+          <StatCard label="Check-outs Today" value={checkOutsToday} icon={LogOut} accent="warning" />
+          <StatCard
+            label="Total Rooms"
+            value={totalRooms}
+            delta={`${availableRooms} available`}
+            icon={DoorOpen}
+            accent="info"
+          />
+          <StatCard
+            label="Occupancy"
+            value={`${occupancyRate}%`}
+            delta={`${occupiedBeds} / ${totalBeds} beds`}
+            icon={BedDouble}
+            accent="primary"
+          />
+        </div>
+      )}
 
       <div>
         <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-muted-foreground">Booking Analytics</h2>
