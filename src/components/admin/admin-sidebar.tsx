@@ -19,6 +19,7 @@ import {
   Globe,
   Sparkles,
   MessageSquare,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -40,6 +41,7 @@ const items: Item[] = [
   { to: "/admin/messages", label: "Messages", icon: MessageSquare },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/payments", label: "Payments", icon: Wallet },
+  { to: "/admin/security-payments", label: "Security", icon: ShieldCheck },
   { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
   { to: "/admin/profit-loss", label: "Monthly Reports", icon: Calculator },
   { to: "/admin/monthly-rent", label: "Monthly Rent", icon: ClipboardList },

@@ -7,6 +7,8 @@ export type CreateManualBookingInput = {
   guest_email?: string;
   guest_phone: string;
   guest_cnic?: string;
+  guest_cnic_image_front?: string;
+  guest_cnic_image_back?: string;
   guest_guardian_contact?: string;
   guest_permanent_address?: string;
   /** Channel / company */

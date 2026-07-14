@@ -8,6 +8,16 @@ export type BookingRentLedgerEntry = {
   payment_status: string;
 };
 
+export type SecurityLedgerEntry = {
+  id?: string;
+  type: "deposit" | "refund" | "forfeit" | "adjustment";
+  amount: number;
+  balance_after: number;
+  note: string;
+  payer_name: string;
+  recorded_at: string | null;
+};
+
 export type Booking = {
   id: string;
   room_id: string | null;
@@ -31,6 +41,8 @@ export type Booking = {
   security_amount?: number | null;
   security_returned?: number | null;
   security_retained?: number | null;
+  security_remaining?: number;
+  security_ledger?: SecurityLedgerEntry[];
   currency?: "pkr" | "usd" | null;
   amount_refunded?: number | null;
   amount_retained?: number | null;

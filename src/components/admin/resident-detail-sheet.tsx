@@ -177,6 +177,47 @@ export function ResidentDetailSheet({
                   <DetailField label="Gender" value={GENDER_LABELS[r.gender]} />
                   <DetailField label="Type" value={RESIDENT_TYPE_LABELS[r.resident_type]} />
                   <DetailField label="CNIC number" value={r.cnic} />
+                  <DetailField
+                    label="CNIC images"
+                    value={
+                      r.cnic_image_front || r.cnic_image_back ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-muted-foreground">Front</p>
+                            {r.cnic_image_front ? (
+                              <a
+                                href={r.cnic_image_front}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block overflow-hidden rounded-lg border"
+                              >
+                                <img src={r.cnic_image_front} alt="CNIC front" className="h-24 w-full object-cover" />
+                              </a>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Not uploaded</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-muted-foreground">Back</p>
+                            {r.cnic_image_back ? (
+                              <a
+                                href={r.cnic_image_back}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block overflow-hidden rounded-lg border"
+                              >
+                                <img src={r.cnic_image_back} alt="CNIC back" className="h-24 w-full object-cover" />
+                              </a>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Not uploaded</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        "—"
+                      )
+                    }
+                  />
                   <DetailField label="Email" value={r.email} />
                   <DetailField label="Contact number" value={r.contact_number} />
                   <DetailField label="Guardian contact number" value={r.guardian_contact} />

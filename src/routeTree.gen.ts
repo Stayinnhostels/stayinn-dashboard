@@ -18,6 +18,7 @@ import { Route as AdminWebsiteRouteImport } from './routes/admin.website'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminSecurityPaymentsRouteImport } from './routes/admin.security-payments'
 import { Route as AdminRoomsRouteImport } from './routes/admin.rooms'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminProfitLossRouteImport } from './routes/admin.profit-loss'
@@ -78,6 +79,11 @@ const AdminStaffRoute = AdminStaffRouteImport.update({
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSecurityPaymentsRoute = AdminSecurityPaymentsRouteImport.update({
+  id: '/security-payments',
+  path: '/security-payments',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRoomsRoute = AdminRoomsRouteImport.update({
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
+  '/admin/security-payments': typeof AdminSecurityPaymentsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
+  '/admin/security-payments': typeof AdminSecurityPaymentsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
+  '/admin/security-payments': typeof AdminSecurityPaymentsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
+    | '/admin/security-payments'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
+    | '/admin/security-payments'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/profit-loss'
     | '/admin/reviews'
     | '/admin/rooms'
+    | '/admin/security-payments'
     | '/admin/settings'
     | '/admin/staff'
     | '/admin/users'
@@ -402,6 +414,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/security-payments': {
+      id: '/admin/security-payments'
+      path: '/security-payments'
+      fullPath: '/admin/security-payments'
+      preLoaderRoute: typeof AdminSecurityPaymentsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/rooms': {
@@ -599,6 +618,7 @@ interface AdminRouteChildren {
   AdminProfitLossRoute: typeof AdminProfitLossRoute
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminRoomsRoute: typeof AdminRoomsRouteWithChildren
+  AdminSecurityPaymentsRoute: typeof AdminSecurityPaymentsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminUsersRoute: typeof AdminUsersRouteWithChildren
@@ -619,6 +639,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProfitLossRoute: AdminProfitLossRoute,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminRoomsRoute: AdminRoomsRouteWithChildren,
+  AdminSecurityPaymentsRoute: AdminSecurityPaymentsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminUsersRoute: AdminUsersRouteWithChildren,

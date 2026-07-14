@@ -14,6 +14,8 @@ export type ResidentRegisterRow = {
   gender: ResidentGender;
   email: string;
   cnic: string;
+  cnic_image_front: string;
+  cnic_image_back: string;
   contact_number: string;
   guardian_contact: string;
   permanent_address: string;
@@ -101,6 +103,8 @@ export type UpdateResidentInput = {
   guest_father_name?: string;
   guest_gender?: ResidentGender;
   guest_cnic?: string;
+  guest_cnic_image_front?: string;
+  guest_cnic_image_back?: string;
   guest_guardian_contact?: string;
   guest_permanent_address?: string;
   /** Channel / company — free text or walk_in / website */

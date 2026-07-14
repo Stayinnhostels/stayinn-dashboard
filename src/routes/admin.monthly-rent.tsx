@@ -37,6 +37,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronDown, FileSpreadsheet, FileText, Loader2, LogOut, Pencil, Search, Users } from "lucide-react";
 import { MonthlyRentTableSkeleton } from "@/components/admin/admin-page-skeletons";
+import {
+  CnicImagesEditor,
+  CnicImagesStatusIcon,
+  CnicImagesViewerModal,
+} from "@/components/admin/cnic-images";
 import { toast } from "sonner";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
 import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/month-filter-select";
@@ -249,6 +254,8 @@ function EditResidentDialog({
   const [fatherName, setFatherName] = useState("");
   const [gender, setGender] = useState<ResidentGender>("");
   const [cnic, setCnic] = useState("");
+  const [cnicFront, setCnicFront] = useState("");
+  const [cnicBack, setCnicBack] = useState("");
   const [guardian, setGuardian] = useState("");
   const [address, setAddress] = useState("");
   const [seatLabel, setSeatLabel] = useState("");
@@ -266,6 +273,8 @@ function EditResidentDialog({
     setFatherName(row.father_name);
     setGender(row.gender || "");
     setCnic(row.cnic);
+    setCnicFront(row.cnic_image_front ?? "");
+    setCnicBack(row.cnic_image_back ?? "");
     setGuardian(row.guardian_contact);
     setAddress(row.permanent_address);
     setSeatLabel(row.seat_label);
@@ -285,6 +294,8 @@ function EditResidentDialog({
       guest_father_name: fatherName.trim(),
       guest_gender: gender,
       guest_cnic: cnic.trim(),
+      guest_cnic_image_front: cnicFront,
+      guest_cnic_image_back: cnicBack,
       guest_guardian_contact: guardian.trim(),
       guest_permanent_address: address.trim(),
       seat_label: seatLabel.trim(),
@@ -362,6 +373,12 @@ function EditResidentDialog({
                 placeholder="+92 300 1234567"
               />
             </div>
+            <CnicImagesEditor
+              front={cnicFront}
+              back={cnicBack}
+              onFrontChange={setCnicFront}
+              onBackChange={setCnicBack}
+            />
             <div className="space-y-2 sm:col-span-2">
               <Label>Permanent address</Label>
               <Textarea
@@ -497,6 +514,7 @@ function MonthlyRentPage() {
   const [pageSize, setPageSize] = useState<number>(15);
   const [editRow, setEditRow] = useState<ResidentRegisterRow | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [cnicViewer, setCnicViewer] = useState<ResidentRegisterRow | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
 
@@ -701,7 +719,8 @@ function MonthlyRentPage() {
                     <TableHead className="min-w-[7rem]">Channel</TableHead>
                     <TableHead className="min-w-[9rem]">Email</TableHead>
                     <TableHead className="min-w-[7rem]">Contact</TableHead>
-                    <TableHead className="min-w-[7.5rem]">CNIC</TableHead>
+                    <TableHead className="min-w-[7.5rem]">CNIC number</TableHead>
+                    <TableHead className="w-14 text-center">ID card</TableHead>
                     <TableHead className="min-w-[7.5rem]">Guardian contact</TableHead>
                     <TableHead className="min-w-[10rem]">Permanent address</TableHead>
                     <TableHead className="min-w-[7rem] max-w-[9rem]">Room</TableHead>
@@ -764,6 +783,13 @@ function MonthlyRentPage() {
                         <span className="block truncate" title={r.cnic || undefined}>
                           {r.cnic || "—"}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <CnicImagesStatusIcon
+                          front={r.cnic_image_front ?? ""}
+                          back={r.cnic_image_back ?? ""}
+                          onClick={() => setCnicViewer(r)}
+                        />
                       </TableCell>
                       <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
                         <span className="block truncate" title={r.guardian_contact || undefined}>
@@ -860,6 +886,14 @@ function MonthlyRentPage() {
         month={month}
         open={Boolean(editRow)}
         onOpenChange={(v) => !v && setEditRow(null)}
+      />
+
+      <CnicImagesViewerModal
+        open={Boolean(cnicViewer)}
+        onOpenChange={(v) => !v && setCnicViewer(null)}
+        name={cnicViewer?.name}
+        front={cnicViewer?.cnic_image_front ?? ""}
+        back={cnicViewer?.cnic_image_back ?? ""}
       />
 
       <ResidentDetailSheet

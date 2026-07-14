@@ -61,9 +61,26 @@ export function BookingRefundDialog({
   const [securityReturnText, setSecurityReturnText] = useState("0");
 
   const securityAmount = booking ? bookingSecurityAmount(booking, cur) : null;
-  const securityPaid = booking?.security_status === "paid";
+  const securityRemainingHeld =
+    booking?.security_remaining != null
+      ? booking.security_remaining
+      : securityAmount != null
+        ? Math.max(
+            0,
+            securityAmount -
+              (booking?.security_returned ?? 0) -
+              (booking?.security_retained ?? 0),
+          )
+        : 0;
+  const securityPaid =
+    booking?.security_status === "paid" ||
+    (booking?.security_status === "held" && securityRemainingHeld > 0);
   const showSecurityCheckout =
-    mode === "checkout" && booking != null && isMonthlyBooking(booking) && securityAmount != null;
+    mode === "checkout" &&
+    booking != null &&
+    isMonthlyBooking(booking) &&
+    securityAmount != null &&
+    securityRemainingHeld > 0;
 
   useEffect(() => {
     if (!open || !booking) return;
@@ -73,11 +90,20 @@ export function BookingRefundDialog({
       setRefundText(mode === "cancel" ? String(rentBasis) : "0");
     }
     if (showSecurityCheckout && securityPaid) {
-      setSecurityReturnText(String(securityAmount));
+      setSecurityReturnText(String(securityRemainingHeld));
     } else {
       setSecurityReturnText("0");
     }
-  }, [open, booking?.id, rentBasis, requiresRefund, mode, showSecurityCheckout, securityPaid, securityAmount]);
+  }, [
+    open,
+    booking?.id,
+    rentBasis,
+    requiresRefund,
+    mode,
+    showSecurityCheckout,
+    securityPaid,
+    securityRemainingHeld,
+  ]);
 
   const refundNum = Number(refundText);
   const securityReturnNum = Number(securityReturnText);
@@ -86,10 +112,10 @@ export function BookingRefundDialog({
     return Math.max(0, Math.round((rentBasis - refundNum) * 100) / 100);
   }, [refundNum, rentBasis]);
   const securityKept = useMemo(() => {
-    if (!showSecurityCheckout || !securityPaid || securityAmount == null) return 0;
-    if (!Number.isFinite(securityReturnNum)) return securityAmount;
-    return Math.max(0, Math.round((securityAmount - securityReturnNum) * 100) / 100);
-  }, [showSecurityCheckout, securityPaid, securityAmount, securityReturnNum]);
+    if (!showSecurityCheckout || !securityPaid) return 0;
+    if (!Number.isFinite(securityReturnNum)) return securityRemainingHeld;
+    return Math.max(0, Math.round((securityRemainingHeld - securityReturnNum) * 100) / 100);
+  }, [showSecurityCheckout, securityPaid, securityRemainingHeld, securityReturnNum]);
 
   const rentValid =
     Number.isFinite(refundNum) &&
@@ -99,10 +125,9 @@ export function BookingRefundDialog({
   const securityValid =
     !showSecurityCheckout ||
     !securityPaid ||
-    securityAmount == null ||
     (Number.isFinite(securityReturnNum) &&
       securityReturnNum >= 0 &&
-      securityReturnNum <= securityAmount &&
+      securityReturnNum <= securityRemainingHeld &&
       securityReturnText.trim() !== "");
   const valid = rentValid && securityValid;
 
@@ -196,8 +221,14 @@ export function BookingRefundDialog({
               <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                 <p className="text-sm font-semibold">Security deposit</p>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className="text-muted-foreground">On file for this guest</span>
+                  <span className="text-muted-foreground">Originally deposited</span>
                   <span className="font-bold">{formatMoney(securityAmount, cur)}</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="text-muted-foreground">Still held</span>
+                  <span className="font-bold text-emerald-700">
+                    {formatMoney(securityRemainingHeld, cur)}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Status:{" "}
@@ -209,7 +240,7 @@ export function BookingRefundDialog({
                 {securityPaid ? (
                   <>
                     <div className="grid gap-2">
-                      <Label htmlFor="security-returned">Security returned to guest</Label>
+                      <Label htmlFor="security-returned">Security returned to guest now</Label>
                       <Input
                         id="security-returned"
                         type="text"
@@ -218,7 +249,7 @@ export function BookingRefundDialog({
                         onChange={(e) => setSecurityReturnText(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter 0 if you are keeping the full security deposit.
+                        Enter 0 to keep the remaining held security. Max {formatMoney(securityRemainingHeld, cur)}.
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -259,7 +290,7 @@ export function BookingRefundDialog({
             disabled={!valid || submitting}
             onClick={() => {
               const rentRefunded = requiresRefund ? refundNum : 0;
-              if (mode === "checkout" && showSecurityCheckout && securityPaid && securityAmount != null) {
+              if (mode === "checkout" && showSecurityCheckout && securityPaid) {
                 onConfirm(rentRefunded, { securityReturned: securityReturnNum });
               } else {
                 onConfirm(rentRefunded);

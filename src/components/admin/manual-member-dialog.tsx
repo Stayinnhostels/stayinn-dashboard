@@ -36,9 +36,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
-  const [guestCnic, setGuestCnic] = useState("");
-  const [guardianContact, setGuardianContact] = useState("");
-  const [permanentAddress, setPermanentAddress] = useState("");
   const [channel, setChannel] = useState("Walk-in");
   const [stayUnit, setStayUnit] = useState<"month" | "night">("month");
   const [seats, setSeats] = useState("1");
@@ -138,9 +135,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     setGuestName("");
     setGuestPhone("");
     setGuestEmail("");
-    setGuestCnic("");
-    setGuardianContact("");
-    setPermanentAddress("");
     setChannel("Walk-in");
     setStayUnit("month");
     setSeats("1");
@@ -172,9 +166,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         guest_name: guestName.trim(),
         guest_phone: guestPhone.trim(),
         guest_email: guestEmail.trim() || undefined,
-        guest_cnic: guestCnic.trim() || undefined,
-        guest_guardian_contact: guardianContact.trim() || undefined,
-        guest_permanent_address: permanentAddress.trim() || undefined,
         source: channel.trim() || "walk_in",
         seats_booked: seatsNum,
         stay_unit: stayUnit,
@@ -184,9 +175,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         move_in: moveIn,
         notes: notes.trim() || undefined,
         currency,
-        ...(useCustomPrice && Number.isFinite(parsedTotal)
-          ? { total_amount: parsedTotal }
-          : {}),
+        ...(useCustomPrice && Number.isFinite(parsedTotal) ? { total_amount: parsedTotal } : {}),
         ...(!isNightStay && Number.isFinite(securityCharge) ? { security_amount: securityCharge } : {}),
       },
       {
@@ -208,338 +197,303 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] w-[calc(100%-1.5rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
+        <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-4 text-left">
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
+            <UserPlus className="h-5 w-5 text-primary" />
             Add walk-in member
           </DialogTitle>
           <DialogDescription>
-            Register someone who took a seat manually in <strong>{room.title}</strong>. This creates a booking and
-            reduces available seats.
+            Register a guest in <strong>{room.title}</strong>. Creates a booking and reduces available seats.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="manual-name">Full name *</Label>
-            <Input
-              id="manual-name"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Guest name"
-              required
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-phone">Phone *</Label>
-              <Input
-                id="manual-phone"
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                placeholder="+92 300 1234567"
-                required
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-email">Email</Label>
-              <Input
-                id="manual-email"
-                type="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                placeholder="guest@email.com"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-channel">Channel</Label>
-              <Input
-                id="manual-channel"
-                value={channel}
-                onChange={(e) => setChannel(e.target.value)}
-                placeholder="Walk-in, Website, or company name"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-cnic">CNIC number</Label>
-              <Input
-                id="manual-cnic"
-                value={guestCnic}
-                onChange={(e) => setGuestCnic(e.target.value)}
-                placeholder="35201-1234567-1"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="manual-guardian">Guardian contact number</Label>
-            <Input
-              id="manual-guardian"
-              value={guardianContact}
-              onChange={(e) => setGuardianContact(e.target.value)}
-              placeholder="+92 300 1234567"
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="manual-address">Permanent address</Label>
-            <Textarea
-              id="manual-address"
-              rows={2}
-              value={permanentAddress}
-              onChange={(e) => setPermanentAddress(e.target.value)}
-              placeholder="House / street, city"
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Stay type *</Label>
-            <Select value={stayUnit} onValueChange={(v) => setStayUnit(v as "month" | "night")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Monthly member</SelectItem>
-                <SelectItem value="night">Short visitor (nightly)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {isNightStay
-                ? "Books the seat only for the number of nights — e.g. 4 nights at Rs 1,500/night."
-                : "Monthly residents billed per seat per month."}
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-seats">Seats *</Label>
-              <Input
-                id="manual-seats"
-                type="number"
-                min={1}
-                max={room.beds_available}
-                value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-                required
-              />
-              <p className="text-xs text-muted-foreground">{seatsHint}</p>
-            </div>
-            {isNightStay ? (
-              <>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="manual-nights">Nights *</Label>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="manual-name">Full name *</Label>
                   <Input
-                    id="manual-nights"
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={nights}
-                    onChange={(e) => setNights(e.target.value)}
+                    id="manual-name"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Guest name"
                     required
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="manual-nightly-rate">Rate / night *</Label>
+                  <Label htmlFor="manual-phone">Phone *</Label>
                   <Input
-                    id="manual-nightly-rate"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={nightlyRate}
-                    onChange={(e) => setNightlyRate(e.target.value)}
-                    required
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="manual-months">Stay (months) *</Label>
-                  <Input
-                    id="manual-months"
-                    type="number"
-                    min={1}
-                    max={24}
-                    value={months}
-                    onChange={(e) => setMonths(e.target.value)}
+                    id="manual-phone"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="+92 300 1234567"
                     required
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="manual-months-pay">Paying now (months) *</Label>
+                  <Label htmlFor="manual-email">Email</Label>
                   <Input
-                    id="manual-months-pay"
-                    type="number"
-                    min={1}
-                    max={monthsNum || 24}
-                    value={monthsToPay}
-                    onChange={(e) => setMonthsToPay(e.target.value)}
-                    required
+                    id="manual-email"
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="guest@email.com"
                   />
                 </div>
-              </>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="manual-move-in">{isNightStay ? "Check-in *" : "Move-in *"}</Label>
-              <Input
-                id="manual-move-in"
-                type="date"
-                min={todayIsoDate()}
-                value={moveIn}
-                onChange={(e) => setMoveIn(e.target.value)}
-                required
-              />
-              <p className="text-xs text-muted-foreground">Today or a future date only.</p>
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="manual-notes">Notes</Label>
-            <Textarea
-              id="manual-notes"
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Walk-in, paid cash, ID verified…"
-            />
-          </div>
-
-          <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-3 space-y-3 text-sm">
-            <div className="grid gap-2">
-              <Label>Charge currency</Label>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as "pkr" | "usd")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pkr">PKR (Rs)</SelectItem>
-                  <SelectItem value="usd">USD ($)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <span className="text-muted-foreground">Full stay: </span>
-              <span className="font-bold">{formatMoney(chargeTotal, currency)}</span>
-              <span className="text-muted-foreground">
-                {" "}
-                {isNightStay
-                  ? `(${formatMoney(nightlyRateNum, currency)} × seats × nights)`
-                  : `(${formatMoney(monthlyUnitPrice, currency)} × seats × months)`}
-              </span>
-            </div>
-            {!isNightStay && (
-              <div>
-                <span className="text-muted-foreground">Security deposit: </span>
-                <span className="font-bold">{formatMoney(securityCharge, currency)}</span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  ({formatMoney(securityPerSeat(currency), currency)} × {seatsNum} seat · refundable)
-                </span>
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="manual-channel">Channel</Label>
+                  <Input
+                    id="manual-channel"
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    placeholder="Walk-in, Website, or company name"
+                  />
+                </div>
               </div>
-            )}
-            <div>
-              <span className="text-muted-foreground">Collect now: </span>
-              <span className="font-bold text-emerald-700">{formatMoney(payNowAmount, currency)}</span>
-              {!isNightStay && monthsToPayNum < monthsNum && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {formatMoney(chargeTotal - rentPayNow, currency)} rent due later
-                </span>
-              )}
-            </div>
+            </section>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-border"
-                checked={useCustomPrice}
-                onChange={(e) => {
-                  setUseCustomPrice(e.target.checked);
-                  if (e.target.checked && listTotal > 0) {
-                    setTotalInput(String(listTotal));
-                  }
-                }}
-              />
-              <span>Use negotiated / manual price</span>
-            </label>
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stay</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>Stay type *</Label>
+                  <Select value={stayUnit} onValueChange={(v) => setStayUnit(v as "month" | "night")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="month">Monthly member</SelectItem>
+                      <SelectItem value="night">Short visitor (nightly)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="manual-move-in">{isNightStay ? "Check-in *" : "Move-in *"}</Label>
+                  <Input
+                    id="manual-move-in"
+                    type="date"
+                    min={todayIsoDate()}
+                    value={moveIn}
+                    onChange={(e) => setMoveIn(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="manual-seats">Seats *</Label>
+                  <Input
+                    id="manual-seats"
+                    type="number"
+                    min={1}
+                    max={room.beds_available}
+                    value={seats}
+                    onChange={(e) => setSeats(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">{seatsHint}</p>
+                </div>
+                {isNightStay ? (
+                  <>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="manual-nights">Nights *</Label>
+                      <Input
+                        id="manual-nights"
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={nights}
+                        onChange={(e) => setNights(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1.5 sm:col-span-2">
+                      <Label htmlFor="manual-nightly-rate">Rate / night *</Label>
+                      <Input
+                        id="manual-nightly-rate"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={nightlyRate}
+                        onChange={(e) => setNightlyRate(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="manual-months">Stay (months) *</Label>
+                      <Input
+                        id="manual-months"
+                        type="number"
+                        min={1}
+                        max={24}
+                        value={months}
+                        onChange={(e) => setMonths(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1.5 sm:col-span-2">
+                      <Label htmlFor="manual-months-pay">Paying now (months) *</Label>
+                      <Input
+                        id="manual-months-pay"
+                        type="number"
+                        min={1}
+                        max={monthsNum || 24}
+                        value={monthsToPay}
+                        onChange={(e) => setMonthsToPay(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="manual-notes">Notes</Label>
+                  <Textarea
+                    id="manual-notes"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Walk-in, paid cash…"
+                    className="resize-none"
+                  />
+                </div>
+              </div>
+            </section>
 
-            {useCustomPrice ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor="manual-total" className="flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5" />
-                  Amount to charge *
-                </Label>
-                <Input
-                  id="manual-total"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={totalInput}
-                  onChange={(e) => setTotalInput(e.target.value)}
-                  required
-                />
-                {Number.isFinite(parsedTotal) && listTotal > 0 && parsedTotal !== listTotal ? (
+            <section className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment</h3>
+                <Select value={currency} onValueChange={(v) => setCurrency(v as "pkr" | "usd")}>
+                  <SelectTrigger className="h-8 w-[7.5rem]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pkr">PKR (Rs)</SelectItem>
+                    <SelectItem value="usd">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2 text-sm">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-muted-foreground">Full stay</span>
+                  <span className="font-semibold tabular-nums">{formatMoney(chargeTotal, currency)}</span>
+                </div>
+                {!isNightStay && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      Security ({formatMoney(securityPerSeat(currency), currency)} × {seatsNum})
+                    </span>
+                    <span className="font-semibold tabular-nums">{formatMoney(securityCharge, currency)}</span>
+                  </div>
+                )}
+                <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-2">
+                  <span className="font-medium">Collect now</span>
+                  <span className="text-base font-bold tabular-nums text-emerald-700">
+                    {formatMoney(payNowAmount, currency)}
+                  </span>
+                </div>
+                {!isNightStay && monthsToPayNum < monthsNum && (
                   <p className="text-xs text-muted-foreground">
-                    {parsedTotal < listTotal
-                      ? `Discount: ${formatMoney(listTotal - parsedTotal, currency)} (${(((listTotal - parsedTotal) / listTotal) * 100).toFixed(0)}% off list)`
-                      : `Above list by ${formatMoney(parsedTotal - listTotal, currency)}`}
+                    {formatMoney(chargeTotal - rentPayNow, currency)} rent due later
                   </p>
-                ) : null}
+                )}
               </div>
-            ) : null}
 
-            {!isNightStay && (
-              <>
+              <div className="space-y-3 border-t border-border/60 pt-3">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-border"
-                    checked={useCustomSecurity}
+                    checked={useCustomPrice}
                     onChange={(e) => {
-                      setUseCustomSecurity(e.target.checked);
-                      if (e.target.checked && listSecurity > 0) {
-                        setSecurityInput(String(listSecurity));
+                      setUseCustomPrice(e.target.checked);
+                      if (e.target.checked && listTotal > 0) {
+                        setTotalInput(String(listTotal));
                       }
                     }}
                   />
-                  <span>Use negotiated security deposit</span>
+                  <span>Use negotiated / manual price</span>
                 </label>
 
-                {useCustomSecurity ? (
+                {useCustomPrice ? (
                   <div className="grid gap-1.5">
-                    <Label htmlFor="manual-security" className="flex items-center gap-1.5">
+                    <Label htmlFor="manual-total" className="flex items-center gap-1.5">
                       <Banknote className="h-3.5 w-3.5" />
-                      Security to collect *
+                      Amount to charge *
                     </Label>
                     <Input
-                      id="manual-security"
+                      id="manual-total"
                       type="number"
                       min={0}
                       step={1}
-                      value={securityInput}
-                      onChange={(e) => setSecurityInput(e.target.value)}
+                      value={totalInput}
+                      onChange={(e) => setTotalInput(e.target.value)}
                       required
                     />
-                    {Number.isFinite(parsedSecurity) && listSecurity > 0 && parsedSecurity !== listSecurity ? (
+                    {Number.isFinite(parsedTotal) && listTotal > 0 && parsedTotal !== listTotal ? (
                       <p className="text-xs text-muted-foreground">
-                        {parsedSecurity < listSecurity
-                          ? `Below standard by ${formatMoney(listSecurity - parsedSecurity, currency)}`
-                          : `Above standard by ${formatMoney(parsedSecurity - listSecurity, currency)}`}
+                        {parsedTotal < listTotal
+                          ? `Discount: ${formatMoney(listTotal - parsedTotal, currency)} (${(((listTotal - parsedTotal) / listTotal) * 100).toFixed(0)}% off list)`
+                          : `Above list by ${formatMoney(parsedTotal - listTotal, currency)}`}
                       </p>
                     ) : null}
                   </div>
                 ) : null}
-              </>
-            )}
+
+                {!isNightStay && (
+                  <>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border"
+                        checked={useCustomSecurity}
+                        onChange={(e) => {
+                          setUseCustomSecurity(e.target.checked);
+                          if (e.target.checked && listSecurity > 0) {
+                            setSecurityInput(String(listSecurity));
+                          }
+                        }}
+                      />
+                      <span>Use negotiated security deposit</span>
+                    </label>
+
+                    {useCustomSecurity ? (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="manual-security" className="flex items-center gap-1.5">
+                          <Banknote className="h-3.5 w-3.5" />
+                          Security to collect *
+                        </Label>
+                        <Input
+                          id="manual-security"
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={securityInput}
+                          onChange={(e) => setSecurityInput(e.target.value)}
+                          required
+                        />
+                        {Number.isFinite(parsedSecurity) &&
+                        listSecurity > 0 &&
+                        parsedSecurity !== listSecurity ? (
+                          <p className="text-xs text-muted-foreground">
+                            {parsedSecurity < listSecurity
+                              ? `Below standard by ${formatMoney(listSecurity - parsedSecurity, currency)}`
+                              : `Above standard by ${formatMoney(parsedSecurity - listSecurity, currency)}`}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </section>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="shrink-0 gap-2 border-t border-border/60 bg-background px-6 py-4 sm:gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
