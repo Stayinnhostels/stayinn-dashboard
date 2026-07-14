@@ -176,12 +176,12 @@ export function ResidentDetailSheet({
                   <DetailField label="Father name" value={r.father_name} />
                   <DetailField label="Gender" value={GENDER_LABELS[r.gender]} />
                   <DetailField label="Type" value={RESIDENT_TYPE_LABELS[r.resident_type]} />
-                  <DetailField label="CNIC" value={r.cnic} />
+                  <DetailField label="CNIC number" value={r.cnic} />
                   <DetailField label="Email" value={r.email} />
-                  <DetailField label="Contact" value={r.contact_number} />
-                  <DetailField label="Guardian contact" value={r.guardian_contact} />
+                  <DetailField label="Contact number" value={r.contact_number} />
+                  <DetailField label="Guardian contact number" value={r.guardian_contact} />
                   <DetailField label="Permanent address" value={r.permanent_address} />
-                  <DetailField label="Channel" value={r.channel} />
+                  <DetailField label="Channel / company" value={r.channel} />
                 </div>
               </div>
 

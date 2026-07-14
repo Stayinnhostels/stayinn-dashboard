@@ -243,6 +243,9 @@ function EditResidentDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const update = useUpdateResidentMutation();
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [channel, setChannel] = useState("");
   const [fatherName, setFatherName] = useState("");
   const [gender, setGender] = useState<ResidentGender>("");
   const [cnic, setCnic] = useState("");
@@ -257,6 +260,9 @@ function EditResidentDialog({
 
   useEffect(() => {
     if (!row || !open) return;
+    setEmail(row.email?.endsWith("@stayinn.internal") ? "" : row.email ?? "");
+    setPhone(row.contact_number ?? "");
+    setChannel(row.channel ?? "");
     setFatherName(row.father_name);
     setGender(row.gender || "");
     setCnic(row.cnic);
@@ -273,6 +279,9 @@ function EditResidentDialog({
   function handleSave() {
     if (!row) return;
     const input: UpdateResidentInput = {
+      guest_email: email.trim(),
+      guest_phone: phone.trim(),
+      source: channel.trim(),
       guest_father_name: fatherName.trim(),
       guest_gender: gender,
       guest_cnic: cnic.trim(),
@@ -313,6 +322,56 @@ function EditResidentDialog({
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
+              <Label>Channel / company</Label>
+              <Input
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                placeholder="Walk-in, Website, or company name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="guest@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contact number</Label>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+92 300 1234567"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CNIC number</Label>
+              <Input
+                value={cnic}
+                onChange={(e) => setCnic(e.target.value)}
+                placeholder="35201-1234567-1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Guardian contact number</Label>
+              <Input
+                value={guardian}
+                onChange={(e) => setGuardian(e.target.value)}
+                placeholder="+92 300 1234567"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Permanent address</Label>
+              <Textarea
+                rows={2}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="House / street, city"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
               <Label>Father name</Label>
               <Input value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
             </div>
@@ -332,18 +391,6 @@ function EditResidentDialog({
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>CNIC</Label>
-              <Input
-                value={cnic}
-                onChange={(e) => setCnic(e.target.value)}
-                placeholder="35201-1234567-1"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Guardian contact</Label>
-              <Input value={guardian} onChange={(e) => setGuardian(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Seat label</Label>
@@ -369,10 +416,6 @@ function EditResidentDialog({
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Permanent address</Label>
-              <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Security deposit</Label>
@@ -655,7 +698,12 @@ function MonthlyRentPage() {
                     <TableHead className="sticky left-0 z-10 bg-card w-10">#</TableHead>
                     <TableHead className="min-w-[6rem]">Booking</TableHead>
                     <TableHead className="min-w-[8rem]">Name</TableHead>
+                    <TableHead className="min-w-[7rem]">Channel / company</TableHead>
+                    <TableHead className="min-w-[9rem]">Email</TableHead>
                     <TableHead className="min-w-[7rem]">Contact</TableHead>
+                    <TableHead className="min-w-[7.5rem]">CNIC</TableHead>
+                    <TableHead className="min-w-[7.5rem]">Guardian contact</TableHead>
+                    <TableHead className="min-w-[10rem]">Permanent address</TableHead>
                     <TableHead className="min-w-[7rem] max-w-[9rem]">Room</TableHead>
                     <TableHead className="w-14">Seat</TableHead>
                     <TableHead className="min-w-[5.5rem]">Check-in</TableHead>
@@ -692,8 +740,40 @@ function MonthlyRentPage() {
                           {r.name}
                         </span>
                       </TableCell>
+                      <TableCell className="max-w-[8rem] text-xs">
+                        <span className="block truncate" title={r.channel || undefined}>
+                          {r.channel || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[10rem] text-xs">
+                        <span
+                          className="block truncate"
+                          title={
+                            r.email && !r.email.endsWith("@stayinn.internal")
+                              ? r.email
+                              : undefined
+                          }
+                        >
+                          {r.email && !r.email.endsWith("@stayinn.internal") ? r.email : "—"}
+                        </span>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs tabular-nums">
-                        {r.contact_number}
+                        {r.contact_number || "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
+                        <span className="block truncate" title={r.cnic || undefined}>
+                          {r.cnic || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
+                        <span className="block truncate" title={r.guardian_contact || undefined}>
+                          {r.guardian_contact || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[12rem] text-xs">
+                        <span className="block truncate" title={r.permanent_address || undefined}>
+                          {r.permanent_address || "—"}
+                        </span>
                       </TableCell>
                       <TableCell className="max-w-[9rem]">
                         <span className="block truncate text-xs" title={r.room_title || r.room_seat}>

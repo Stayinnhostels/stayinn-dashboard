@@ -36,6 +36,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestCnic, setGuestCnic] = useState("");
+  const [guardianContact, setGuardianContact] = useState("");
+  const [permanentAddress, setPermanentAddress] = useState("");
+  const [channel, setChannel] = useState("Walk-in");
   const [stayUnit, setStayUnit] = useState<"month" | "night">("month");
   const [seats, setSeats] = useState("1");
   const [months, setMonths] = useState("1");
@@ -134,6 +138,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     setGuestName("");
     setGuestPhone("");
     setGuestEmail("");
+    setGuestCnic("");
+    setGuardianContact("");
+    setPermanentAddress("");
+    setChannel("Walk-in");
     setStayUnit("month");
     setSeats("1");
     setMonths("1");
@@ -164,6 +172,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         guest_name: guestName.trim(),
         guest_phone: guestPhone.trim(),
         guest_email: guestEmail.trim() || undefined,
+        guest_cnic: guestCnic.trim() || undefined,
+        guest_guardian_contact: guardianContact.trim() || undefined,
+        guest_permanent_address: permanentAddress.trim() || undefined,
+        source: channel.trim() || "walk_in",
         seats_booked: seatsNum,
         stay_unit: stayUnit,
         ...(isNightStay
@@ -196,7 +208,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
@@ -232,7 +244,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="manual-email">Email (optional)</Label>
+              <Label htmlFor="manual-email">Email</Label>
               <Input
                 id="manual-email"
                 type="email"
@@ -241,6 +253,48 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 placeholder="guest@email.com"
               />
             </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="manual-channel">Channel / company</Label>
+              <Input
+                id="manual-channel"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                placeholder="Walk-in, Website, or company name"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="manual-cnic">CNIC number</Label>
+              <Input
+                id="manual-cnic"
+                value={guestCnic}
+                onChange={(e) => setGuestCnic(e.target.value)}
+                placeholder="35201-1234567-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="manual-guardian">Guardian contact number</Label>
+            <Input
+              id="manual-guardian"
+              value={guardianContact}
+              onChange={(e) => setGuardianContact(e.target.value)}
+              placeholder="+92 300 1234567"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="manual-address">Permanent address</Label>
+            <Textarea
+              id="manual-address"
+              rows={2}
+              value={permanentAddress}
+              onChange={(e) => setPermanentAddress(e.target.value)}
+              placeholder="House / street, city"
+            />
           </div>
 
           <div className="grid gap-1.5">

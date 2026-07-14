@@ -242,7 +242,7 @@ export function MonthlyRentTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            {Array.from({ length: 13 }).map((_, i) => (
+            {Array.from({ length: 18 }).map((_, i) => (
               <TableHead key={i}>
                 <Skeleton className="h-4 w-16" />
               </TableHead>
@@ -252,7 +252,7 @@ export function MonthlyRentTableSkeleton() {
         <TableBody>
           {Array.from({ length: 10 }).map((_, row) => (
             <TableRow key={row}>
-              {Array.from({ length: 13 }).map((_, col) => (
+              {Array.from({ length: 18 }).map((_, col) => (
                 <TableCell key={col}>
                   <Skeleton className="h-4 w-14" />
                 </TableCell>

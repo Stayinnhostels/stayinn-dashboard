@@ -6,6 +6,11 @@ export type CreateManualBookingInput = {
   guest_name: string;
   guest_email?: string;
   guest_phone: string;
+  guest_cnic?: string;
+  guest_guardian_contact?: string;
+  guest_permanent_address?: string;
+  /** Channel / company */
+  source?: string;
   seats_booked: number;
   stay_unit?: "month" | "night";
   months?: number;

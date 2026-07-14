@@ -95,11 +95,16 @@ export type ResidentRegisterParams = {
 };
 
 export type UpdateResidentInput = {
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
   guest_father_name?: string;
   guest_gender?: ResidentGender;
   guest_cnic?: string;
   guest_guardian_contact?: string;
   guest_permanent_address?: string;
+  /** Channel / company — free text or walk_in / website */
+  source?: string;
   seat_label?: string;
   resident_type?: ResidentType;
   security_status?: SecurityStatus;
