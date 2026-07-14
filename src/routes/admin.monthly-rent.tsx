@@ -322,7 +322,7 @@ function EditResidentDialog({
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label>Channel / company</Label>
+              <Label>Channel </Label>
               <Input
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
@@ -698,7 +698,7 @@ function MonthlyRentPage() {
                     <TableHead className="sticky left-0 z-10 bg-card w-10">#</TableHead>
                     <TableHead className="min-w-[6rem]">Booking</TableHead>
                     <TableHead className="min-w-[8rem]">Name</TableHead>
-                    <TableHead className="min-w-[7rem]">Channel / company</TableHead>
+                    <TableHead className="min-w-[7rem]">Channel</TableHead>
                     <TableHead className="min-w-[9rem]">Email</TableHead>
                     <TableHead className="min-w-[7rem]">Contact</TableHead>
                     <TableHead className="min-w-[7.5rem]">CNIC</TableHead>

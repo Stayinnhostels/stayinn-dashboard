@@ -257,7 +257,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="manual-channel">Channel / company</Label>
+              <Label htmlFor="manual-channel">Channel</Label>
               <Input
                 id="manual-channel"
                 value={channel}
