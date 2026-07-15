@@ -48,6 +48,7 @@ interface AuthStoreState {
 interface AuthStoreActions {
   hydrate: () => void;
   persistSession: (input: { user: AuthUser; token: string; remember: boolean }) => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
   logout: () => void;
 }
 
@@ -74,6 +75,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
     const session: StoredSession = { user, token };
     saveSession(session, remember);
     set({ user, token, loading: false });
+  },
+
+  updateUser(partial) {
+    set((state) => {
+      if (!state.user || !state.token) return state;
+      const user = { ...state.user, ...partial };
+      const remember = typeof window !== "undefined" && Boolean(localStorage.getItem(SESSION_KEY));
+      saveSession({ user, token: state.token }, remember);
+      return { user };
+    });
   },
 
   logout() {

@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X, LayoutDashboard } from "lucide-react";
+import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X, LayoutDashboard, UserRound } from "lucide-react";
 import { SettingsPageSkeleton } from "@/components/admin/admin-page-skeletons";
+import { AdminProfileSettingsCard } from "@/components/admin/admin-profile-settings-card";
 import { toast } from "sonner";
 import { usePropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 import { useUpdatePropertySettingsMutation } from "@/queries/settings/useUpdatePropertySettingsMutation";
@@ -133,14 +134,19 @@ function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="property" className="space-y-4">
+      <Tabs defaultValue="profile" className="space-y-4">
         <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="profile"><UserRound className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="property"><Building2 className="h-3.5 w-3.5" /> Property</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-3.5 w-3.5" /> Branding</TabsTrigger>
           <TabsTrigger value="dashboard"><LayoutDashboard className="h-3.5 w-3.5" /> Dashboard</TabsTrigger>
           <TabsTrigger value="social"><Share2 className="h-3.5 w-3.5" /> Social</TabsTrigger>
           <TabsTrigger value="booking"><BedDouble className="h-3.5 w-3.5" /> Booking rules</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile" className="space-y-4">
+          <AdminProfileSettingsCard />
+        </TabsContent>
 
         <TabsContent value="property" className="space-y-4">
           <Card className="border-border/60">

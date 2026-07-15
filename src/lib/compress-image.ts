@@ -46,3 +46,42 @@ export async function compressImageFile(file: File): Promise<string> {
     img.src = source;
   });
 }
+
+/** Smaller JPEG for profile avatars stored as data URLs. */
+export async function compressAvatarFile(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`${file.name} is not an image`);
+  }
+
+  const source = await readFileAsDataUrl(file);
+  const maxSide = 512;
+  const maxLength = 220_000;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not process image"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      let quality = 0.85;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      while (dataUrl.length > maxLength && quality > 0.4) {
+        quality -= 0.08;
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+      resolve(dataUrl);
+    };
+    img.onerror = () => reject(new Error(`Could not load ${file.name}`));
+    img.src = source;
+  });
+}
