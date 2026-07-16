@@ -1,6 +1,23 @@
 import { createFileRoute, Link, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +36,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Trash2, Eye, BedDouble, LayoutGrid, List as ListIcon, Pencil } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Trash2,
+  Eye,
+  BedDouble,
+  LayoutGrid,
+  List as ListIcon,
+  Pencil,
+  GripVertical,
+} from "lucide-react";
 import { toast } from "sonner";
 import { RoomsListSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
@@ -32,14 +59,195 @@ import {
   useDeleteRoomMutation,
   useDeleteRoomsMutation,
   useBulkRoomStatusMutation,
+  useReorderRoomsMutation,
 } from "@/queries/rooms";
 import { roomKeys } from "@/queries/keys/room.keys";
 
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
-const PAGE_SIZE = 12;
+const ROOMS_FETCH_LIMIT = 500;
 
 const statusVariants = roomStatusStyles;
+
+function DragHandle() {
+  return (
+    <span className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing">
+      <GripVertical className="h-4 w-4" />
+    </span>
+  );
+}
+
+function SortableRoomCard({
+  room,
+  selected,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  room: Room;
+  selected: boolean;
+  onToggle: (id: string, checked: boolean) => void;
+  onEdit: (room: Room) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: room.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`overflow-hidden border-border/60 transition-shadow hover:shadow-lg ${isDragging ? "shadow-xl ring-2 ring-primary/40" : ""}`}
+    >
+      <div className="relative aspect-[4/3] bg-muted">
+        {room.images?.[0] ? (
+          <img src={room.images[0]} alt={room.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <BedDouble className="h-12 w-12 text-muted-foreground/40" />
+          </div>
+        )}
+        <div className="absolute left-2 top-2 flex items-center gap-1.5">
+          <button
+            {...attributes}
+            {...listeners}
+            className="rounded bg-background/80 p-1 hover:bg-background"
+          >
+            <DragHandle />
+          </button>
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(c) => onToggle(room.id, !!c)}
+            className="bg-background/80"
+          />
+        </div>
+        <Badge variant="outline" className={`absolute right-2 top-2 capitalize ${statusVariants[room.status]}`}>
+          {room.status}
+        </Badge>
+      </div>
+      <CardContent className="p-4">
+        <p className="truncate font-bold tracking-tight" title={room.title}>
+          {room.title}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {room.category} · {room.capacity} guests · Order {room.display_order ?? 100}
+        </p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm font-extrabold">
+            ${Number(room.price_per_night_usd ?? room.price_per_night).toLocaleString()}{" "}
+            <span className="text-xs font-normal text-muted-foreground">USD</span>
+          </p>
+          <p className="text-sm font-bold text-muted-foreground">
+            Rs {Number(room.price_per_night_pkr ?? room.price_per_night).toLocaleString()}{" "}
+            <span className="text-xs font-normal">PKR</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {room.beds_available}/{room.beds_total} beds
+          </p>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Button asChild size="sm" variant="outline" className="flex-1">
+            <Link to="/admin/rooms/$id" params={{ id: room.id }}>
+              <Eye className="h-3.5 w-3.5" /> View
+            </Link>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onEdit(room)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onDelete(room.id)}>
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SortableRoomRow({
+  room,
+  selected,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  room: Room;
+  selected: boolean;
+  onToggle: (id: string, checked: boolean) => void;
+  onEdit: (room: Room) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: room.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? "bg-muted/50" : ""}>
+      <TableCell>
+        <div className="flex items-center gap-1.5">
+          <button
+            {...attributes}
+            {...listeners}
+            className="rounded p-0.5 hover:bg-muted"
+          >
+            <DragHandle />
+          </button>
+          <Checkbox checked={selected} onCheckedChange={(c) => onToggle(room.id, !!c)} />
+        </div>
+      </TableCell>
+      <TableCell className="font-mono text-sm text-muted-foreground">
+        {room.display_order ?? 100}
+      </TableCell>
+      <TableCell className="max-w-[220px] font-semibold">
+        <span className="block truncate" title={room.title}>
+          {room.title}
+        </span>
+      </TableCell>
+      <TableCell>{room.category}</TableCell>
+      <TableCell className="text-xs">
+        <div>${Number(room.price_per_night_usd ?? room.price_per_night).toLocaleString()}</div>
+        <div className="text-muted-foreground">
+          Rs {Number(room.price_per_night_pkr ?? room.price_per_night).toLocaleString()}
+        </div>
+      </TableCell>
+      <TableCell>
+        {room.beds_available}/{room.beds_total}
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className={`capitalize ${statusVariants[room.status]}`}>
+          {room.status}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right">
+        <Button asChild size="icon" variant="ghost">
+          <Link to="/admin/rooms/$id" params={{ id: room.id }}>
+            <Eye className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button size="icon" variant="ghost" onClick={() => onEdit(room)}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" onClick={() => onDelete(room.id)}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 function RoomsAdminPage() {
   const detailMatch = useMatch({ from: "/admin/rooms/$id", shouldThrow: false });
@@ -55,35 +263,73 @@ function RoomsListPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
-  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Room | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bulkDelete, setBulkDelete] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [localRooms, setLocalRooms] = useState<Room[] | null>(null);
 
   const listParams = useMemo(
     () => ({
-      page,
-      limit: PAGE_SIZE,
+      page: 1,
+      limit: ROOMS_FETCH_LIMIT,
       ...(statusFilter !== "all" ? { status: statusFilter as RoomStatus } : {}),
       ...(query.trim() ? { search: query.trim() } : {}),
     }),
-    [page, statusFilter, query],
+    [statusFilter, query],
   );
 
   const { data, isLoading, isError, error } = useRoomsQuery(listParams);
-  const rooms = data?.rooms ?? [];
-  const pagination = data?.pagination;
-  const totalPages = pagination?.pages ?? 1;
+  const serverRooms = data?.rooms ?? [];
+  const rooms = localRooms ?? serverRooms;
+
+  const prevServerRoomsRef = useRef(serverRooms);
+  if (localRooms && prevServerRoomsRef.current !== serverRooms) {
+    setLocalRooms(null);
+  }
+  prevServerRoomsRef.current = serverRooms;
 
   const createRoom = useCreateRoomMutation();
   const updateRoom = useUpdateRoomMutation();
   const deleteRoom = useDeleteRoomMutation();
   const deleteRooms = useDeleteRoomsMutation();
   const bulkStatus = useBulkRoomStatusMutation();
+  const reorderRooms = useReorderRoomsMutation();
 
   const saving = createRoom.isPending || updateRoom.isPending;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      setLocalRooms((prev) => {
+        const list = prev ?? serverRooms;
+        const oldIndex = list.findIndex((r) => r.id === active.id);
+        const newIndex = list.findIndex((r) => r.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return list;
+        const reordered = arrayMove(list, oldIndex, newIndex);
+
+        const orderedIds = reordered.map((r) => r.id);
+        reorderRooms.mutate(orderedIds, {
+          onError: () => {
+            toast.error("Failed to save order. Refreshing…");
+            setLocalRooms(null);
+            void queryClient.invalidateQueries({ queryKey: roomKeys.all });
+          },
+        });
+
+        return reordered;
+      });
+    },
+    [serverRooms, reorderRooms, queryClient],
+  );
 
   function handleSave(values: RoomDraft) {
     if (editing?.id) {
@@ -105,7 +351,6 @@ function RoomsListPage() {
           setCreating(false);
           setQuery("");
           setStatusFilter("all");
-          setPage(1);
           setSelected(new Set());
           await queryClient.invalidateQueries({ queryKey: roomKeys.all });
           navigate({ to: "/admin/rooms", replace: true });
@@ -140,10 +385,6 @@ function RoomsListPage() {
     }
   }
 
-  function toggleAll(checked: boolean) {
-    setSelected(checked ? new Set(rooms.map((r) => r.id)) : new Set());
-  }
-
   function toggleOne(id: string, checked: boolean) {
     const next = new Set(selected);
     if (checked) next.add(id);
@@ -161,21 +402,12 @@ function RoomsListPage() {
               name="rooms-search"
               autoComplete="off"
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search rooms…"
               className="pl-9"
             />
           </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-            }}
-          >
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
@@ -261,149 +493,57 @@ function RoomsListPage() {
           </CardContent>
         </Card>
       ) : view === "grid" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {rooms.map((r) => (
-            <Card key={r.id} className="overflow-hidden border-border/60 transition-shadow hover:shadow-lg">
-              <div className="relative aspect-[4/3] bg-muted">
-                {r.images?.[0] ? (
-                  <img src={r.images[0]} alt={r.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                  </div>
-                )}
-                <div className="absolute left-2 top-2">
-                  <Checkbox
-                    checked={selected.has(r.id)}
-                    onCheckedChange={(c) => toggleOne(r.id, !!c)}
-                    className="bg-background/80"
-                  />
-                </div>
-                <Badge variant="outline" className={`absolute right-2 top-2 capitalize ${statusVariants[r.status]}`}>
-                  {r.status}
-                </Badge>
-              </div>
-              <CardContent className="p-4">
-                <p className="truncate font-bold tracking-tight" title={r.title}>
-                  {r.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {r.category} · {r.capacity} guests · Order {r.display_order ?? 100}
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-sm font-extrabold">
-                    ${Number(r.price_per_night_usd ?? r.price_per_night).toLocaleString()}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">USD</span>
-                  </p>
-                  <p className="text-sm font-bold text-muted-foreground">
-                    Rs {Number(r.price_per_night_pkr ?? r.price_per_night).toLocaleString()}{" "}
-                    <span className="text-xs font-normal">PKR</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.beds_available}/{r.beds_total} beds
-                  </p>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button asChild size="sm" variant="outline" className="flex-1">
-                    <Link to="/admin/rooms/$id" params={{ id: r.id }}>
-                      <Eye className="h-3.5 w-3.5" /> View
-                    </Link>
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDeleteId(r.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={rooms.map((r) => r.id)} strategy={rectSortingStrategy}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {rooms.map((r) => (
+                <SortableRoomCard
+                  key={r.id}
+                  room={r}
+                  selected={selected.has(r.id)}
+                  onToggle={toggleOne}
+                  onEdit={setEditing}
+                  onDelete={setDeleteId}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         <Card className="border-border/60">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={selected.size > 0 && selected.size === rooms.length}
-                      onCheckedChange={(c) => toggleAll(!!c)}
-                    />
-                  </TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>USD / PKR</TableHead>
-                  <TableHead>Beds</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rooms.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <Checkbox checked={selected.has(r.id)} onCheckedChange={(c) => toggleOne(r.id, !!c)} />
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">
-                      {r.display_order ?? 100}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] font-semibold">
-                      <span className="block truncate" title={r.title}>
-                        {r.title}
-                      </span>
-                    </TableCell>
-                    <TableCell>{r.category}</TableCell>
-                    <TableCell className="text-xs">
-                      <div>${Number(r.price_per_night_usd ?? r.price_per_night).toLocaleString()}</div>
-                      <div className="text-muted-foreground">
-                        Rs {Number(r.price_per_night_pkr ?? r.price_per_night).toLocaleString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {r.beds_available}/{r.beds_total}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`capitalize ${statusVariants[r.status]}`}>
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild size="icon" variant="ghost">
-                        <Link to="/admin/rooms/$id" params={{ id: r.id }}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteId(r.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={rooms.map((r) => r.id)} strategy={rectSortingStrategy}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-14" />
+                      <TableHead>Order</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>USD / PKR</TableHead>
+                      <TableHead>Beds</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rooms.map((r) => (
+                      <SortableRoomRow
+                        key={r.id}
+                        room={r}
+                        selected={selected.has(r.id)}
+                        onToggle={toggleOne}
+                        onEdit={setEditing}
+                        onDelete={setDeleteId}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </SortableContext>
+            </DndContext>
           </CardContent>
         </Card>
-      )}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-            Previous
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Page {page} of {totalPages}
-            {pagination ? ` · ${pagination.total} rooms` : ""}
-          </span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-            Next
-          </Button>
-        </div>
       )}
 
       <RoomFormDialog

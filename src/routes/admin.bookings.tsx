@@ -2,9 +2,10 @@ import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router"
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Search } from "lucide-react";
+import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Search, X } from "lucide-react";
 import { BookingsListSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,12 +17,21 @@ import {
 } from "@/components/admin/booking-refund-dialog";
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
+import { cn } from "@/lib/utils";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
 
 export const Route = createFileRoute("/admin/bookings")({ component: BookingsAdminPage });
 
 const PAGE_SIZE = 50;
 const STATUSES: BookingStatus[] = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
+
+const STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  checked_in: "Checked in",
+  checked_out: "Checked out",
+  cancelled: "Cancelled",
+};
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
@@ -40,8 +50,20 @@ function BookingsAdminPage() {
 function BookingsListPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [moveInFrom, setMoveInFrom] = useState("");
+  const [moveInTo, setMoveInTo] = useState("");
+  const [checkOutFrom, setCheckOutFrom] = useState("");
+  const [checkOutTo, setCheckOutTo] = useState("");
   const [view, setView] = useState<"grid" | "table" | "calendar">("grid");
   const [page, setPage] = useState(1);
+
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    Boolean(query.trim()) ||
+    Boolean(moveInFrom) ||
+    Boolean(moveInTo) ||
+    Boolean(checkOutFrom) ||
+    Boolean(checkOutTo);
 
   const listParams = useMemo(
     () => ({
@@ -49,9 +71,23 @@ function BookingsListPage() {
       limit: PAGE_SIZE,
       ...(statusFilter !== "all" ? { status: statusFilter as BookingStatus } : {}),
       ...(query.trim() ? { search: query.trim() } : {}),
+      ...(moveInFrom ? { move_in_from: moveInFrom } : {}),
+      ...(moveInTo ? { move_in_to: moveInTo } : {}),
+      ...(checkOutFrom ? { check_out_from: checkOutFrom } : {}),
+      ...(checkOutTo ? { check_out_to: checkOutTo } : {}),
     }),
-    [page, statusFilter, query],
+    [page, statusFilter, query, moveInFrom, moveInTo, checkOutFrom, checkOutTo],
   );
+
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("all");
+    setMoveInFrom("");
+    setMoveInTo("");
+    setCheckOutFrom("");
+    setCheckOutTo("");
+    setPage(1);
+  }
 
   const { data, isLoading, isError, error } = useBookingsQuery(listParams);
   const bookings = data?.bookings ?? [];
@@ -168,54 +204,127 @@ function BookingsListPage() {
       />
 
       <Card className="border-border/60">
-        <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by guest, email, phone…"
+                className="pl-9"
+              />
+            </div>
+            <Tabs value={view} onValueChange={(v) => setView(v as "grid" | "table" | "calendar")}>
+              <TabsList>
+                <TabsTrigger value="grid">
+                  <LayoutGrid className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="table">
+                  <ListIcon className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="calendar">
+                  <CalendarCheck className="h-4 w-4" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Button variant="outline" onClick={exportCsv} disabled={bookings.length === 0}>
+              Export CSV
+            </Button>
+            {hasActiveFilters ? (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4" />
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={statusFilter === "all" ? "default" : "outline"}
+              onClick={() => {
+                setStatusFilter("all");
                 setPage(1);
               }}
-              placeholder="Search by guest, room, ID…"
-              className="pl-9"
-            />
+            >
+              All
+            </Button>
+            {STATUSES.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                size="sm"
+                variant={statusFilter === s ? "default" : "outline"}
+                className={cn(statusFilter !== s && statusColor[s])}
+                onClick={() => {
+                  setStatusFilter(s);
+                  setPage(1);
+                }}
+              >
+                {STATUS_LABELS[s]}
+              </Button>
+            ))}
           </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUSES.map((s) => (
-                <SelectItem key={s} value={s} className="capitalize">
-                  {s.replace("_", " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Tabs value={view} onValueChange={(v) => setView(v as "grid" | "table" | "calendar")}>
-            <TabsList>
-              <TabsTrigger value="grid">
-                <LayoutGrid className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="table">
-                <ListIcon className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <CalendarCheck className="h-4 w-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button variant="outline" onClick={exportCsv} disabled={bookings.length === 0}>
-            Export CSV
-          </Button>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-check-in-from">Check-in from</Label>
+              <Input
+                id="filter-check-in-from"
+                type="date"
+                value={moveInFrom}
+                max={moveInTo || undefined}
+                onChange={(e) => {
+                  setMoveInFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-check-in-to">Check-in to</Label>
+              <Input
+                id="filter-check-in-to"
+                type="date"
+                value={moveInTo}
+                min={moveInFrom || undefined}
+                onChange={(e) => {
+                  setMoveInTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-check-out-from">Check-out from</Label>
+              <Input
+                id="filter-check-out-from"
+                type="date"
+                value={checkOutFrom}
+                max={checkOutTo || undefined}
+                onChange={(e) => {
+                  setCheckOutFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="filter-check-out-to">Check-out to</Label>
+              <Input
+                id="filter-check-out-to"
+                type="date"
+                value={checkOutTo}
+                min={checkOutFrom || undefined}
+                onChange={(e) => {
+                  setCheckOutTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

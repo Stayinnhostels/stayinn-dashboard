@@ -60,6 +60,12 @@ export type BookingsListParams = {
   status?: BookingStatus;
   room_id?: string;
   search?: string;
+  /** Check-in (move-in) date range, YYYY-MM-DD */
+  move_in_from?: string;
+  move_in_to?: string;
+  /** Check-out date range, YYYY-MM-DD */
+  check_out_from?: string;
+  check_out_to?: string;
 };
 
 export type BookingsPagination = {

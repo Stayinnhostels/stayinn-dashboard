@@ -6,4 +6,5 @@ export {
   useDeleteRoomMutation,
   useDeleteRoomsMutation,
   useBulkRoomStatusMutation,
+  useReorderRoomsMutation,
 } from "./useRoomMutations";
