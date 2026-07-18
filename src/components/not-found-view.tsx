@@ -45,12 +45,12 @@ export function NotFoundView({
             <Compass className="h-8 w-8" />
           </div>
 
-          <p className="text-6xl font-extrabold tracking-tight md:text-7xl">
-            <span className="bg-[image:var(--gradient-hero)] bg-clip-text text-transparent">404</span>
-          </p>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground">Page not found</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">
+            This page doesn&apos;t exist
+          </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
-            The page you&apos;re looking for doesn&apos;t exist, was moved, or you may not have access to it.
+            There is no such page in Stay Inn. The link may be wrong, outdated, or the page may have
+            been moved.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">

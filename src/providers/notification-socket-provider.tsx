@@ -1,7 +1,9 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { io, type Socket } from "socket.io-client";
+import { MissedBookingAlertsHost } from "@/components/admin/missed-booking-alerts-host";
 import { appEnv } from "@/config/env";
+import { playBookingRing, unlockNotificationAudio } from "@/lib/notification-sound";
 import { notificationKeys } from "@/queries/keys/notification.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { useLiveAlertsStore } from "@/stores/notifications/live-alerts.store";
@@ -11,10 +13,15 @@ type NotificationSocketProviderProps = {
   children: ReactNode;
 };
 
+const BURST_WINDOW_MS = 10_000;
+const BURST_COUNT = 2;
+
 export function NotificationSocketProvider({ children }: NotificationSocketProviderProps) {
   const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
   const pushAlert = useLiveAlertsStore((s) => s.push);
+  const setBulkMode = useLiveAlertsStore((s) => s.setBulkMode);
+  const recentBookingAt = useRef<number[]>([]);
 
   useEffect(() => {
     if (!token) return;
@@ -41,6 +48,18 @@ export function NotificationSocketProvider({ children }: NotificationSocketProvi
       };
       pushAlert(normalized);
       void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+
+      if (normalized.type === "booking") {
+        const now = Date.now();
+        recentBookingAt.current = [
+          ...recentBookingAt.current.filter((t) => now - t < BURST_WINDOW_MS),
+          now,
+        ];
+        const bulk = recentBookingAt.current.length >= BURST_COUNT;
+        if (bulk) setBulkMode(true);
+        unlockNotificationAudio();
+        playBookingRing(bulk ? "bulk" : "single");
+      }
     });
 
     socket.on("unread_count", (payload: { count: number }) => {
@@ -63,7 +82,12 @@ export function NotificationSocketProvider({ children }: NotificationSocketProvi
       socket?.disconnect();
       socket = null;
     };
-  }, [token, queryClient, pushAlert]);
+  }, [token, queryClient, pushAlert, setBulkMode]);
 
-  return children;
+  return (
+    <>
+      <MissedBookingAlertsHost />
+      {children}
+    </>
+  );
 }

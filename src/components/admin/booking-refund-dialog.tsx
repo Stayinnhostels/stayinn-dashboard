@@ -140,7 +140,7 @@ export function BookingRefundDialog({
       : requiresRefund
         ? rentCollected > 0 && rentCollected < contractTotal
           ? "Guest is leaving early. Refund is based on rent collected so far — not the full booking total. Enter how much rent you returned; the rest stays as your revenue."
-          : "Guest is leaving early. Enter how much rent you returned. The rest counts as your revenue in Monthly Reports and Payments."
+          : "Guest is leaving early. Enter how much rent you returned. The rest counts as your revenue in Monthly Expenses and Payments."
         : "Mark this stay as completed. No payment was collected.";
 
   return (
@@ -265,7 +265,7 @@ export function BookingRefundDialog({
                       </div>
                       {securityKept > 0 ? (
                         <p className="col-span-2 text-xs text-muted-foreground">
-                          Kept security counts as revenue in Monthly Reports for the checkout month.
+                          Kept security counts as revenue in Monthly Expenses for the checkout month.
                         </p>
                       ) : null}
                     </div>

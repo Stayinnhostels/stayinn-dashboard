@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { postLogoutApi } from "@/api/auth/postLogout.api";
 import { useAuthStore } from "@/stores/auth/auth.store";
+import { useLiveAlertsStore } from "@/stores/notifications/live-alerts.store";
 import { authKeys } from "@/queries/keys/auth.keys";
 import { clearDashboardThemeCache } from "@/lib/dashboard-theme-storage";
 
@@ -36,6 +37,12 @@ export function useAuth() {
     }
     storeLogout();
     clearDashboardThemeCache();
+    try {
+      sessionStorage.removeItem("stayinn-missed-bookings-announced");
+    } catch {
+      /* ignore */
+    }
+    useLiveAlertsStore.getState().clear();
     queryClient.removeQueries({ queryKey: authKeys.all });
   }, [queryClient, storeLogout]);
 

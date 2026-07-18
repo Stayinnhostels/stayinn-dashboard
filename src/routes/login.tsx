@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth-context";
+import { unlockNotificationAudio } from "@/lib/notification-sound";
 import { useLoginMutation } from "@/queries/auth/useLoginMutation";
 
 const LOGIN_LOGO_SRC = "/logos/navlogo.png?v=2";
@@ -58,6 +59,8 @@ function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
+      // Unlock audio on this click so booking rings work right after login.
+      unlockNotificationAudio();
       await loginMutation.mutateAsync({
         email: values.email,
         password: values.password,

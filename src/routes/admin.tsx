@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
+import { NotFoundView } from "@/components/not-found-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
 import { DashboardThemeProvider } from "@/providers/dashboard-theme-provider";
@@ -27,7 +28,14 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Held deposits, returns, and remaining balances by guest",
   },
   "/admin/financials": { title: "Revenue & Analytics", subtitle: "Deep financial insights" },
-  "/admin/profit-loss": { title: "Profit & Loss", subtitle: "Hostel expenses vs booking revenue" },
+  "/admin/expenses": {
+    title: "Monthly Expenses",
+    subtitle: "Log expenses by month, then see revenue, costs, and profit side by side",
+  },
+  "/admin/profit-loss": {
+    title: "Monthly Expenses",
+    subtitle: "Log expenses by month, then see revenue, costs, and profit side by side",
+  },
   "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
   "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
   "/admin/website": { title: "Website", subtitle: "Homepage sections on the public marketing site" },

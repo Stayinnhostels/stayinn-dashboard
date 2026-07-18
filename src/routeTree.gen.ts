@@ -29,6 +29,7 @@ import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
 import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
+import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -136,6 +137,11 @@ const AdminFacilitiesRoute = AdminFacilitiesRouteImport.update({
   path: '/facilities',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminExpensesRoute = AdminExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCouponsRoute = AdminCouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
     | '/admin/maintenance'
@@ -493,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFacilitiesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/expenses': {
+      id: '/admin/expenses'
+      path: '/expenses'
+      fullPath: '/admin/expenses'
+      preLoaderRoute: typeof AdminExpensesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/coupons': {
       id: '/admin/coupons'
       path: '/coupons'
@@ -608,6 +627,7 @@ const AdminWebsiteRouteWithChildren = AdminWebsiteRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRouteWithChildren
   AdminCouponsRoute: typeof AdminCouponsRoute
+  AdminExpensesRoute: typeof AdminExpensesRoute
   AdminFacilitiesRoute: typeof AdminFacilitiesRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
   AdminMaintenanceRoute: typeof AdminMaintenanceRoute
@@ -629,6 +649,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRouteWithChildren,
   AdminCouponsRoute: AdminCouponsRoute,
+  AdminExpensesRoute: AdminExpensesRoute,
   AdminFacilitiesRoute: AdminFacilitiesRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
   AdminMaintenanceRoute: AdminMaintenanceRoute,
