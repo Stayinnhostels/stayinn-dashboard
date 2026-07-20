@@ -1,5 +1,6 @@
 import { apiFetch } from "@/api/apiFetch";
 import type {
+  MonthPaymentStats,
   Payment,
   PaymentsListParams,
   PaymentsPagination,
@@ -10,6 +11,8 @@ type GetPaymentsResponse = {
   success: boolean;
   payments: Payment[];
   revenue?: RevenueSummary;
+  month_stats?: MonthPaymentStats | null;
+  month?: string | null;
   pagination: PaymentsPagination;
 };
 
@@ -19,6 +22,7 @@ export async function getPaymentsApi(token: string, params: PaymentsListParams =
   if (params.limit) search.set("limit", String(params.limit));
   if (params.status) search.set("status", params.status);
   if (params.search?.trim()) search.set("search", params.search.trim());
+  if (params.month) search.set("month", params.month);
 
   const q = search.toString();
   const data = await apiFetch<GetPaymentsResponse>(
@@ -31,6 +35,8 @@ export async function getPaymentsApi(token: string, params: PaymentsListParams =
   return {
     payments: data.payments,
     revenue: data.revenue,
+    month_stats: data.month_stats ?? null,
+    month: data.month ?? null,
     pagination: data.pagination,
   };
 }

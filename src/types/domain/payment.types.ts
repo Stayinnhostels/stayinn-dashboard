@@ -18,6 +18,10 @@ export type Payment = {
   amount_retained?: number;
   currency: string;
   status: PaymentStatus;
+  /** Rent ledger status when viewing a specific month */
+  ledger_status?: "paid" | "not_paid" | "returned" | "partial";
+  month?: string;
+  month_label?: string;
   method: string;
   source: string;
   guest_name: string;
@@ -34,6 +38,8 @@ export type PaymentsListParams = {
   limit?: number;
   status?: PaymentStatus;
   search?: string;
+  /** YYYY-MM — rent payments & stats for that month (past or future) */
+  month?: string;
 };
 
 export type PaymentsPagination = {
@@ -59,4 +65,23 @@ export type CurrencyRevenueBucket = {
 export type RevenueSummary = {
   pkr: CurrencyRevenueBucket;
   usd: CurrencyRevenueBucket;
+};
+
+export type MonthPaymentCurrencyStats = {
+  due: number;
+  collected: number;
+  unpaid: number;
+  paid_count: number;
+  unpaid_count: number;
+  partial_count: number;
+  resident_count: number;
+};
+
+export type MonthPaymentStats = {
+  month: string;
+  label: string;
+  pkr: MonthPaymentCurrencyStats;
+  usd: MonthPaymentCurrencyStats;
+  revenue_pkr: number;
+  revenue_usd: number;
 };

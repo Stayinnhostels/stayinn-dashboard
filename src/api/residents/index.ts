@@ -1,6 +1,8 @@
 import { apiFetch } from "@/api/apiFetch";
 import type {
   ResidentDetail,
+  ResidentDirectoryParams,
+  ResidentDirectoryRow,
   ResidentMonthOption,
   ResidentRegisterParams,
   ResidentRegisterRow,
@@ -32,6 +34,34 @@ export async function getResidentsRegisterApi(token: string, params: ResidentReg
   return {
     month: data.month,
     cohort: data.cohort,
+    residents: data.residents,
+    pagination: data.pagination,
+  };
+}
+
+type DirectoryResponse = {
+  success: boolean;
+  scope: string;
+  residents: ResidentDirectoryRow[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+};
+
+export async function getResidentsDirectoryApi(token: string, params: ResidentDirectoryParams = {}) {
+  const search = new URLSearchParams();
+  if (params.page != null) search.set("page", String(params.page));
+  if (params.limit != null) search.set("limit", String(params.limit));
+  if (params.search) search.set("search", params.search);
+  if (params.scope) search.set("scope", params.scope);
+
+  const q = search.toString();
+  const data = await apiFetch<DirectoryResponse>(`/api/v1/residents/directory${q ? `?${q}` : ""}`, {
+    token,
+  });
+  if (!data.success || !Array.isArray(data.residents)) {
+    throw new Error("Invalid residents directory response");
+  }
+  return {
+    scope: data.scope,
     residents: data.residents,
     pagination: data.pagination,
   };
@@ -83,4 +113,5 @@ export {
   downloadMonthRentRegisterExcelApi,
   downloadResidentDossierPdfApi,
   downloadResidentDossierExcelApi,
+  downloadResidentMonthInvoiceApi,
 } from "./downloadResidentExport.api";

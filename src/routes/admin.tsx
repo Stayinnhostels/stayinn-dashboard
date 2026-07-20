@@ -22,7 +22,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/rooms": { title: "Room Management", subtitle: "Inventory, pricing & availability" },
   "/admin/bookings": { title: "Booking Management", subtitle: "All reservations across the property" },
   "/admin/users": { title: "User Management", subtitle: "Registered guests and staff" },
-  "/admin/payments": { title: "Payments", subtitle: "Transactions, refunds and invoices" },
+  "/admin/payments": {
+    title: "Payments",
+    subtitle: "Month-by-month rent collected, unpaid, and payment status",
+  },
   "/admin/security-payments": {
     title: "Security deposits",
     subtitle: "Held deposits, returns, and remaining balances by guest",
@@ -37,6 +40,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Log expenses by month, then see revenue, costs, and profit side by side",
   },
   "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
+  "/admin/residents": {
+    title: "Residents",
+    subtitle: "Complete resident directory — profiles, stay history, and PDF records",
+  },
   "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
   "/admin/website": { title: "Website", subtitle: "Homepage sections on the public marketing site" },
   "/admin/website/about": { title: "Website", subtitle: "About page on the public marketing site" },

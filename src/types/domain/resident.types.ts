@@ -28,6 +28,8 @@ export type ResidentRegisterRow = {
   status: string;
   security_status: SecurityStatus;
   security_amount: number | null;
+  /** True only for the check-in month — security is a one-time deposit. */
+  security_due_this_month?: boolean;
   payment_status: RentPaymentStatus;
   monthly_rent: number;
   currency: "pkr" | "usd";
@@ -87,6 +89,24 @@ export type ResidentDetail = {
 
 export type ResidentRegisterCohort = "active" | "checkouts";
 
+export type ResidentDirectoryScope = "active" | "past" | "all";
+
+export type ResidentDirectoryRow = ResidentRegisterRow & {
+  months_in_stay: number;
+  months_living: number;
+  months_remaining: number;
+  total_rent_due: number;
+  total_rent_collected: number;
+  has_cnic_images: boolean;
+};
+
+export type ResidentDirectoryParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  scope?: ResidentDirectoryScope;
+};
+
 export type ResidentRegisterParams = {
   month?: string;
   page?: number;
@@ -118,6 +138,8 @@ export type UpdateResidentInput = {
   payment_status?: RentPaymentStatus;
   /** Mark the first N stay months as paid (e.g. guest pays 2 months at check-in). */
   collect_rent_months?: number;
+  /** Apply monthly_rent to this month and all later months in the stay. */
+  apply_rent_forward?: boolean;
 };
 
 export const GENDER_LABELS: Record<ResidentGender, string> = {

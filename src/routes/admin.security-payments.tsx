@@ -266,7 +266,10 @@ function SecurityRow({
         {formatMoney(row.security_remaining ?? 0, cur)}
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className={securityBadgeClass(row.security_status)}>
+        <Badge
+          variant="outline"
+          className={`whitespace-nowrap ${securityBadgeClass(row.security_status)}`}
+        >
           {SECURITY_STATUS_LABELS[row.security_status]}
         </Badge>
       </TableCell>

@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, FileSpreadsheet, FileText, Loader2, LogOut, Pencil, Search, Users } from "lucide-react";
+import { ChevronDown, FileSpreadsheet, FileText, Loader2, LogOut, Pencil, Receipt, Search, Users } from "lucide-react";
 import { MonthlyRentTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import {
   CnicImagesEditor,
@@ -48,6 +48,7 @@ import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/mont
 import {
   downloadMonthRentRegisterExcelApi,
   downloadMonthRentRegisterPdfApi,
+  downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
 import {
   useResidentsRegisterQuery,
@@ -124,13 +125,17 @@ function rentBadgeClass(status: RentPaymentStatus) {
 const SECURITY_STATUS_OPTIONS = Object.keys(SECURITY_STATUS_LABELS) as SecurityStatus[];
 const RENT_STATUS_OPTIONS = Object.keys(RENT_PAYMENT_STATUS_LABELS) as RentPaymentStatus[];
 
-function InlineSecurityStatus({ row }: { row: ResidentRegisterRow }) {
+function InlineSecurityStatus({ row, month }: { row: ResidentRegisterRow; month: string }) {
   const update = useUpdateResidentMutation();
+
+  if (!row.security_due_this_month) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
 
   const setStatus = (next: SecurityStatus) => {
     if (next === row.security_status) return;
     update.mutate(
-      { bookingId: row.booking_id, input: { security_status: next } },
+      { bookingId: row.booking_id, input: { security_status: next, month } },
       {
         onSuccess: () => toast.success(`Security: ${SECURITY_STATUS_LABELS[next]}`),
         onError: () => toast.error("Could not update security status"),
@@ -264,6 +269,7 @@ function EditResidentDialog({
   const [securityAmount, setSecurityAmount] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<RentPaymentStatus>("not_paid");
+  const [applyRentForward, setApplyRentForward] = useState(false);
 
   useEffect(() => {
     if (!row || !open) return;
@@ -283,6 +289,7 @@ function EditResidentDialog({
     setSecurityAmount(row.security_amount != null ? String(row.security_amount) : "");
     setMonthlyRent(String(row.monthly_rent));
     setPaymentStatus(row.payment_status);
+    setApplyRentForward(false);
   }, [row, open]);
 
   function handleSave() {
@@ -300,11 +307,16 @@ function EditResidentDialog({
       guest_permanent_address: address.trim(),
       seat_label: seatLabel.trim(),
       resident_type: residentType,
-      security_status: securityStatus,
-      security_amount: securityAmount.trim() ? Number(securityAmount) : null,
       month,
       monthly_rent: Number(monthlyRent),
       payment_status: paymentStatus,
+      ...(applyRentForward ? { apply_rent_forward: true } : {}),
+      ...(row.security_due_this_month
+        ? {
+            security_status: securityStatus,
+            security_amount: securityAmount.trim() ? Number(securityAmount) : null,
+          }
+        : {}),
     };
 
     update.mutate(
@@ -434,33 +446,42 @@ function EditResidentDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Security deposit</Label>
-              <Select
-                value={securityStatus}
-                onValueChange={(v) => setSecurityStatus(v as SecurityStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(SECURITY_STATUS_LABELS) as SecurityStatus[]).map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {SECURITY_STATUS_LABELS[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Security amount</Label>
-              <Input
-                type="number"
-                min={0}
-                value={securityAmount}
-                onChange={(e) => setSecurityAmount(e.target.value)}
-              />
-            </div>
+            {row.security_due_this_month ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Security deposit (check-in month only)</Label>
+                  <Select
+                    value={securityStatus}
+                    onValueChange={(v) => setSecurityStatus(v as SecurityStatus)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(SECURITY_STATUS_LABELS) as SecurityStatus[]).map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {SECURITY_STATUS_LABELS[k]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Security amount</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={securityAmount}
+                    onChange={(e) => setSecurityAmount(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                Security is a one-time deposit shown only on the check-in month (
+                {row.check_in ? String(row.check_in).slice(0, 7) : "move-in month"}).
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Monthly rent ({month})</Label>
               <Input
@@ -469,6 +490,15 @@ function EditResidentDialog({
                 value={monthlyRent}
                 onChange={(e) => setMonthlyRent(e.target.value)}
               />
+              <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+                  checked={applyRentForward}
+                  onChange={(e) => setApplyRentForward(e.target.checked)}
+                />
+                <span>Apply this rent to {month} and all later months (for rent increases)</span>
+              </label>
             </div>
             <div className="space-y-2">
               <Label>Rent payment status</Label>
@@ -517,6 +547,7 @@ function MonthlyRentPage() {
   const [cnicViewer, setCnicViewer] = useState<ResidentRegisterRow | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [invoiceBookingId, setInvoiceBookingId] = useState<string | null>(null);
 
   const params = useMemo(
     () => ({ month, cohort, page, limit: pageSize, ...(search ? { search } : {}) }),
@@ -567,11 +598,26 @@ function MonthlyRentPage() {
     }
   }
 
+  async function handleDownloadRowInvoice(bookingId: string) {
+    if (!token) {
+      toast.error("You must be signed in to download");
+      return;
+    }
+    setInvoiceBookingId(bookingId);
+    try {
+      await downloadResidentMonthInvoiceApi(token, bookingId, month);
+      toast.success(`Rent invoice for ${monthLabel} downloaded`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invoice download failed");
+    } finally {
+      setInvoiceBookingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-2">
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 sm:gap-3">
           <MonthFilterSelect
             id="rent-month"
             value={month}
@@ -579,87 +625,94 @@ function MonthlyRentPage() {
               setMonth(v);
               setPage(1);
             }}
+            className="shrink-0"
           />
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSearch(searchInput.trim());
-              setPage(1);
-            }}
-          >
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="w-64 pl-9"
-                placeholder="Search name, CNIC, phone…"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
-            <Button type="submit" variant="secondary">
-              Search
+          <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-2 sm:gap-3">
+            <Badge variant="secondary" className="h-9 gap-1.5 px-3 whitespace-nowrap">
+              <Users className="h-3.5 w-3.5" />
+              {pagination?.total ?? 0}{" "}
+              {cohort === "checkouts" ? "checkouts" : "active"}
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              disabled={downloadingPdf}
+              onClick={() => void handleDownloadPdf()}
+            >
+              {downloadingPdf ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
+              PDF
             </Button>
-          </form>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              disabled={downloadingExcel}
+              onClick={() => void handleDownloadExcel()}
+            >
+              {downloadingExcel ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+              )}
+              Excel
+            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Label
+                htmlFor="rent-page-size"
+                className="text-xs text-muted-foreground whitespace-nowrap"
+              >
+                Rows
+              </Label>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger id="rent-page-size" className="h-9 w-[4.5rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        <Badge variant="secondary" className="gap-1 self-start lg:self-auto">
-          <Users className="h-3.5 w-3.5" />
-          {pagination?.total ?? 0}{" "}
-          {cohort === "checkouts" ? "checkouts" : "active"}
-        </Badge>
-        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={downloadingPdf}
-            onClick={() => void handleDownloadPdf()}
-          >
-            {downloadingPdf ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" />
-            )}
-            PDF
+
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSearch(searchInput.trim());
+            setPage(1);
+          }}
+        >
+          <div className="relative min-w-0 flex-1 sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-9 w-full pl-9"
+              placeholder="Search name, CNIC, phone…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          <Button type="submit" variant="secondary" className="h-9 shrink-0">
+            Search
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={downloadingExcel}
-            onClick={() => void handleDownloadExcel()}
-          >
-            {downloadingExcel ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-            )}
-            Excel
-          </Button>
-        </div>
-        <div className="flex items-center gap-2 self-start lg:self-auto">
-          <Label htmlFor="rent-page-size" className="text-xs text-muted-foreground whitespace-nowrap">
-            Rows per page
-          </Label>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(v) => {
-              setPageSize(Number(v));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="rent-page-size" className="h-9 w-[5.5rem]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <SelectItem key={n} value={String(n)}>
-                  {n}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        </form>
       </div>
 
       <Card className="border-border/60">
@@ -816,12 +869,12 @@ function MonthlyRentPage() {
                         {r.check_out ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
+                        <Badge variant="outline" className={cn("whitespace-nowrap text-xs", statusBadgeClass(r.status))}>
                           {r.status.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <InlineSecurityStatus row={r} />
+                        <InlineSecurityStatus row={r} month={month} />
                       </TableCell>
                       <TableCell>
                         <InlineRentStatus row={r} month={month} />
@@ -830,17 +883,37 @@ function MonthlyRentPage() {
                         {formatMoney(r.monthly_rent, r.currency)}
                       </TableCell>
                       <TableCell className="sticky right-0 z-10 bg-card">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditRow(r);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            title={`Download ${monthLabel} invoice`}
+                            disabled={invoiceBookingId === r.booking_id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDownloadRowInvoice(r.booking_id);
+                            }}
+                          >
+                            {invoiceBookingId === r.booking_id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Receipt className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            title="Edit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditRow(r);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

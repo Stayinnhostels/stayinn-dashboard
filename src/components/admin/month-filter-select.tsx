@@ -107,8 +107,7 @@ export function MonthFilterSelect({
 
   return (
     <div className={className}>
-     
-      <div className="mt-1 flex flex-wrap items-center gap-1">
+      <div className="flex flex-nowrap items-center gap-1">
         {showNav ? (
           <Button
             type="button"

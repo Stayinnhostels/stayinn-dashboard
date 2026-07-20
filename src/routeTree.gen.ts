@@ -21,6 +21,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSecurityPaymentsRouteImport } from './routes/admin.security-payments'
 import { Route as AdminRoomsRouteImport } from './routes/admin.rooms'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminResidentsRouteImport } from './routes/admin.residents'
 import { Route as AdminProfitLossRouteImport } from './routes/admin.profit-loss'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
@@ -95,6 +96,11 @@ const AdminRoomsRoute = AdminRoomsRouteImport.update({
 const AdminReviewsRoute = AdminReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminResidentsRoute = AdminResidentsRouteImport.update({
+  id: '/residents',
+  path: '/residents',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProfitLossRoute = AdminProfitLossRouteImport.update({
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
+  '/admin/residents': typeof AdminResidentsRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
+  '/admin/residents': typeof AdminResidentsRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
+  '/admin/residents': typeof AdminResidentsRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/profit-loss'
+    | '/admin/residents'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/profit-loss'
+    | '/admin/residents'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/payments'
     | '/admin/profit-loss'
+    | '/admin/residents'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -447,6 +459,13 @@ declare module '@tanstack/react-router' {
       path: '/reviews'
       fullPath: '/admin/reviews'
       preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/residents': {
+      id: '/admin/residents'
+      path: '/residents'
+      fullPath: '/admin/residents'
+      preLoaderRoute: typeof AdminResidentsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/profit-loss': {
@@ -636,6 +655,7 @@ interface AdminRouteChildren {
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProfitLossRoute: typeof AdminProfitLossRoute
+  AdminResidentsRoute: typeof AdminResidentsRoute
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminRoomsRoute: typeof AdminRoomsRouteWithChildren
   AdminSecurityPaymentsRoute: typeof AdminSecurityPaymentsRoute
@@ -658,6 +678,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProfitLossRoute: AdminProfitLossRoute,
+  AdminResidentsRoute: AdminResidentsRoute,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminRoomsRoute: AdminRoomsRouteWithChildren,
   AdminSecurityPaymentsRoute: AdminSecurityPaymentsRoute,

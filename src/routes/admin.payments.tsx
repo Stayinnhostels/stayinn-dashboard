@@ -6,35 +6,36 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Search, Wallet, CheckCircle2, Clock, X } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Search, Users, Wallet } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
 import { PaymentsTableSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
-import { useRevenueSummaryQuery } from "@/queries/bookings/useRevenueSummaryQuery";
+import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/month-filter-select";
 import { usePaymentsQuery } from "@/queries/payments";
 import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/payments";
+import { RENT_PAYMENT_STATUS_LABELS } from "@/types/domain/resident.types";
 import type { Payment, PaymentStatus } from "@/types/domain/payment.types";
 
 export const Route = createFileRoute("/admin/payments")({ component: PaymentsPage });
 
 function PaymentsPage() {
+  const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
 
-  const paymentStatus =
-    statusFilter === "all" ? undefined : (statusFilter as PaymentStatus);
+  const paymentStatus = statusFilter === "all" ? undefined : (statusFilter as PaymentStatus);
 
   const { data, isLoading, isError } = usePaymentsQuery({
     page,
     limit: 50,
     status: paymentStatus,
     search: query.trim() || undefined,
+    month,
   });
-
-  const { data: revenue, isLoading: revenueLoading } = useRevenueSummaryQuery();
 
   const payments = data?.payments ?? [];
   const pagination = data?.pagination;
+  const monthStats = data?.month_stats;
 
   const statusBadgeClass = useMemo(
     () =>
@@ -51,82 +52,81 @@ function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-     
-
-      {revenueLoading ? (
-        <StatCardsRowSkeleton count={8} />
-      ) : (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard
-          label="Revenue this month (PKR)"
-          value={revenueLoading ? "…" : formatMoney(revenue?.pkr?.month ?? 0, "pkr")}
-          icon={Wallet}
-          accent="success"
-          delta={`All-time collected ${formatMoney(revenue?.pkr?.total ?? 0, "pkr")}`}
-        />
-        <StatCard
-          label="Outstanding rent (PKR)"
-          value={formatMoney(revenue?.pkr?.outstanding_rent ?? 0, "pkr")}
-          icon={Clock}
-          accent="warning"
-          delta={`${revenue?.pkr?.outstanding_count ?? 0} active stay(s) with unpaid months`}
-        />
-        <StatCard
-          label="Pending requests (PKR)"
-          value={formatMoney(revenue?.pkr?.pending_amount ?? 0, "pkr")}
-          icon={Clock}
-          accent="warning"
-          delta={`${revenue?.pkr?.pending_count ?? 0} unconfirmed booking(s)`}
-        />
-        <StatCard
-          label="Revenue this month (USD)"
-          value={revenueLoading ? "…" : formatMoney(revenue?.usd?.month ?? 0, "usd")}
-          icon={Wallet}
-          accent="info"
-          delta={`All-time collected ${formatMoney(revenue?.usd?.total ?? 0, "usd")}`}
-        />
-        <StatCard
-          label="Outstanding rent (USD)"
-          value={formatMoney(revenue?.usd?.outstanding_rent ?? 0, "usd")}
-          icon={Clock}
-          accent="warning"
-          delta={`${revenue?.usd?.outstanding_count ?? 0} active stay(s) with unpaid months`}
-        />
-        <StatCard
-          label="Pending requests (USD)"
-          value={formatMoney(revenue?.usd?.pending_amount ?? 0, "usd")}
-          icon={Clock}
-          accent="warning"
-          delta={`${revenue?.usd?.pending_count ?? 0} unconfirmed booking(s)`}
-        />
-        <StatCard
-          label="Succeeded bookings"
-          value={(revenue?.pkr?.succeeded_count ?? 0) + (revenue?.usd?.succeeded_count ?? 0)}
-          icon={CheckCircle2}
-          accent="success"
-        />
-        <StatCard
-          label="Refunded"
-          value={formatMoney(revenue?.pkr?.refunded_amount ?? 0, "pkr")}
-          icon={X}
-          accent="info"
-          delta={[
-            (revenue?.pkr?.refunded_count ?? 0) > 0
-              ? `PKR ${(revenue?.pkr?.refunded_count ?? 0)} refund(s)`
-              : null,
-            (revenue?.usd?.refunded_amount ?? 0) > 0
-              ? `${formatMoney(revenue?.usd?.refunded_amount ?? 0, "usd")} (${revenue?.usd?.refunded_count ?? 0})`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ") || "No refunds yet"}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Payments by month</p>
+          <p className="text-xs text-muted-foreground">
+            Browse past or future months — rent due, collected, and unpaid for that period.
+          </p>
+        </div>
+        <MonthFilterSelect
+          id="payments-month"
+          value={month}
+          onChange={(v) => {
+            setMonth(v);
+            setPage(1);
+          }}
         />
       </div>
+
+      {isLoading && !monthStats ? (
+        <StatCardsRowSkeleton count={6} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <StatCard
+            label={`Collected · ${monthLabel} (PKR)`}
+            value={formatMoney(monthStats?.pkr.collected ?? 0, "pkr")}
+            icon={Wallet}
+            accent="success"
+            delta={`Due ${formatMoney(monthStats?.pkr.due ?? 0, "pkr")}`}
+          />
+          <StatCard
+            label={`Unpaid · ${monthLabel} (PKR)`}
+            value={formatMoney(monthStats?.pkr.unpaid ?? 0, "pkr")}
+            icon={Clock}
+            accent="warning"
+            delta={`${monthStats?.pkr.unpaid_count ?? 0} resident(s) unpaid`}
+          />
+          <StatCard
+            label={`Residents · ${monthLabel}`}
+            value={
+              (monthStats?.pkr.resident_count ?? 0) + (monthStats?.usd.resident_count ?? 0)
+            }
+            icon={Users}
+            accent="info"
+            delta={`${(monthStats?.pkr.paid_count ?? 0) + (monthStats?.usd.paid_count ?? 0)} paid · ${(monthStats?.pkr.partial_count ?? 0) + (monthStats?.usd.partial_count ?? 0)} partial`}
+          />
+          <StatCard
+            label={`Collected · ${monthLabel} (USD)`}
+            value={formatMoney(monthStats?.usd.collected ?? 0, "usd")}
+            icon={Wallet}
+            accent="info"
+            delta={`Due ${formatMoney(monthStats?.usd.due ?? 0, "usd")}`}
+          />
+          <StatCard
+            label={`Unpaid · ${monthLabel} (USD)`}
+            value={formatMoney(monthStats?.usd.unpaid ?? 0, "usd")}
+            icon={Clock}
+            accent="warning"
+            delta={`${monthStats?.usd.unpaid_count ?? 0} resident(s) unpaid`}
+          />
+          <StatCard
+            label={`Net revenue · ${monthLabel}`}
+            value={formatMoney(monthStats?.revenue_pkr ?? 0, "pkr")}
+            icon={CheckCircle2}
+            accent="success"
+            delta={
+              (monthStats?.revenue_usd ?? 0) > 0
+                ? `+ ${formatMoney(monthStats?.revenue_usd ?? 0, "usd")}`
+                : "After refunds / retained security"
+            }
+          />
+        </div>
       )}
 
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="relative min-w-[220px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -134,7 +134,7 @@ function PaymentsPage() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search guest, email, room…"
+              placeholder="Search guest, email, phone…"
               className="pl-9"
             />
           </div>
@@ -150,10 +150,10 @@ function PaymentsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="succeeded">Succeeded</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
-              <SelectItem value="partial_refund">Partial refund</SelectItem>
+              <SelectItem value="succeeded">Paid</SelectItem>
+              <SelectItem value="pending">Not paid</SelectItem>
+              <SelectItem value="partial_refund">Partial</SelectItem>
+              <SelectItem value="refunded">Returned</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
@@ -169,13 +169,13 @@ function PaymentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Payment</TableHead>
+                  <TableHead>Booking</TableHead>
                   <TableHead>Guest</TableHead>
                   <TableHead>Room</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <TableHead>Month</TableHead>
+                  <TableHead>Rent due</TableHead>
+                  <TableHead>Collected</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -183,7 +183,8 @@ function PaymentsPage() {
                 {payments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                      No payments match your filters.
+                      No rent payments for {monthLabel}
+                      {query.trim() ? " matching your search" : ""}.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -233,6 +234,11 @@ function PaymentRow({
   payment: Payment;
   statusBadgeClass: Record<PaymentStatus, string>;
 }) {
+  const cur = normalizeMoneyCurrency(p.currency);
+  const ledgerLabel = p.ledger_status
+    ? RENT_PAYMENT_STATUS_LABELS[p.ledger_status]
+    : paymentStatusLabel(p.status);
+
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">#{p.booking_id.slice(-8).toUpperCase()}</TableCell>
@@ -246,35 +252,21 @@ function PaymentRow({
         </Link>
         <div className="text-xs text-muted-foreground">{p.guest_email}</div>
       </TableCell>
-      <TableCell>{p.room_title ?? "—"}</TableCell>
-      <TableCell className="capitalize text-xs text-muted-foreground">
-        {p.source === "walk_in" ? "Walk-in" : p.source}
+      <TableCell className="max-w-[9rem]">
+        <span className="block truncate" title={p.room_title ?? undefined}>
+          {p.room_title ?? "—"}
+        </span>
       </TableCell>
-      <TableCell className="font-bold">
-        <div>{formatMoney(p.amount, normalizeMoneyCurrency(p.currency))}</div>
-        {p.collected_rent != null &&
-          p.total_amount != null &&
-          p.collected_rent !== p.total_amount &&
-          p.booking_status !== "cancelled" && (
-            <div className="text-[10px] font-normal text-muted-foreground">
-              of {formatMoney(p.total_amount, normalizeMoneyCurrency(p.currency))} contract
-            </div>
-          )}
-        {p.booking_status === "cancelled" &&
-          (p.amount_refunded != null || p.amount_retained != null) && (
-            <div className="text-[10px] font-normal text-muted-foreground">
-              Refunded {formatMoney(p.amount_refunded ?? 0, normalizeMoneyCurrency(p.currency))}
-              {(p.amount_retained ?? 0) > 0 &&
-                ` · Kept ${formatMoney(p.amount_retained ?? 0, normalizeMoneyCurrency(p.currency))}`}
-            </div>
-          )}
+      <TableCell className="text-xs whitespace-nowrap">{p.month_label ?? p.month ?? "—"}</TableCell>
+      <TableCell className="font-bold tabular-nums">{formatMoney(p.amount, cur)}</TableCell>
+      <TableCell className="tabular-nums text-emerald-700">
+        {formatMoney(p.collected_rent ?? 0, cur)}
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className={statusBadgeClass[p.status] ?? ""}>
-          {paymentStatusLabel(p.status)}
+        <Badge variant="outline" className={`whitespace-nowrap ${statusBadgeClass[p.status] ?? ""}`}>
+          {ledgerLabel}
         </Badge>
       </TableCell>
-      <TableCell>{p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}</TableCell>
       <TableCell className="text-right">
         <Button asChild size="sm" variant="ghost" title="View booking & invoice">
           <Link to="/admin/bookings/$id" params={{ id: p.booking_id }} hash="booking-invoice">

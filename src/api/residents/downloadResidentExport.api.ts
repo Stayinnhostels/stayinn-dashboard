@@ -87,3 +87,15 @@ export async function downloadResidentDossierExcelApi(
     `resident-record-${bookingId}.xlsx`,
   );
 }
+
+export async function downloadResidentMonthInvoiceApi(
+  token: string,
+  bookingId: string,
+  month: string,
+) {
+  await downloadBinary(
+    token,
+    `/api/v1/residents/${bookingId}/export/month-invoice?month=${encodeURIComponent(month)}`,
+    `rent-invoice-${month}.pdf`,
+  );
+}

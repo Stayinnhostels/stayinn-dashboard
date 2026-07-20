@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Receipt,
   ChevronDown,
+  ContactRound,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -56,6 +57,7 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
       { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
+      { to: "/admin/residents", label: "Residents", icon: ContactRound },
       { to: "/admin/monthly-rent", label: "Monthly Rent", icon: ClipboardList },
       { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
       { to: "/admin/facilities", label: "Facilities", icon: Sparkles },

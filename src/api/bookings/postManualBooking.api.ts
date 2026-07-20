@@ -18,6 +18,10 @@ export type CreateManualBookingInput = {
   months?: number;
   nights?: number;
   months_to_pay?: number;
+  /** full = charge whole arrival month; prorate = remaining days only */
+  first_month_billing?: "full" | "prorate";
+  /** Optional custom amount for prorated arrival month */
+  first_month_amount?: number;
   nightly_rate?: number;
   move_in: string;
   notes?: string;

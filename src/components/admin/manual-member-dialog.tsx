@@ -30,6 +30,36 @@ function todayIsoDate() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function parseLocalDate(iso: string) {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+}
+
+function daysInMonth(iso: string) {
+  const d = parseLocalDate(iso);
+  if (!d) return 0;
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+/** Inclusive days from move-in through month end. */
+function daysRemainingInMonth(iso: string) {
+  const d = parseLocalDate(iso);
+  if (!d) return 0;
+  const dim = daysInMonth(iso);
+  return Math.max(0, dim - d.getDate() + 1);
+}
+
+function roundMoney(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+function monthShortLabel(iso: string) {
+  const d = parseLocalDate(iso);
+  if (!d) return "arrival month";
+  return d.toLocaleString("en", { month: "short" });
+}
+
 export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const createManual = useCreateManualBookingMutation();
 
@@ -41,6 +71,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [seats, setSeats] = useState("1");
   const [months, setMonths] = useState("1");
   const [monthsToPay, setMonthsToPay] = useState("1");
+  const [firstMonthBilling, setFirstMonthBilling] = useState<"full" | "prorate">("full");
+  const [useCustomFirstMonth, setUseCustomFirstMonth] = useState(false);
+  const [firstMonthAmountInput, setFirstMonthAmountInput] = useState("");
   const [nights, setNights] = useState("4");
   const [nightlyRate, setNightlyRate] = useState("1500");
   const [moveIn, setMoveIn] = useState(() => todayIsoDate());
@@ -60,12 +93,15 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
       ? (room.price_per_night_usd ?? room.price_per_night)
       : (room.price_per_night_pkr ?? room.price_per_night);
   const isNightStay = stayUnit === "night";
+  /** List price for one month (all seats). Months field is stay length only. */
+  const listMonthlyRent =
+    Number.isFinite(seatsNum) && seatsNum >= 1 ? monthlyUnitPrice * seatsNum : 0;
   const listTotal = isNightStay
     ? Number.isFinite(seatsNum) && Number.isFinite(nightsNum) && Number.isFinite(nightlyRateNum)
       ? nightlyRateNum * seatsNum * nightsNum
       : 0
-    : Number.isFinite(seatsNum) && Number.isFinite(monthsNum)
-      ? monthlyUnitPrice * seatsNum * monthsNum
+    : Number.isFinite(monthsNum) && monthsNum >= 1
+      ? listMonthlyRent * monthsNum
       : 0;
 
   useEffect(() => {
@@ -75,25 +111,64 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   }, [open, moveIn]);
 
   useEffect(() => {
-    if (!useCustomPrice) {
+    if (useCustomPrice) return;
+    if (isNightStay) {
       setTotalInput(listTotal > 0 ? String(listTotal) : "");
+    } else {
+      setTotalInput(listMonthlyRent > 0 ? String(listMonthlyRent) : "");
     }
-  }, [listTotal, useCustomPrice]);
+  }, [listMonthlyRent, listTotal, useCustomPrice, isNightStay]);
 
   const parsedTotal = Number(totalInput);
   const parsedSecurity = Number(securityInput);
   const monthsToPayNum = Number.parseInt(monthsToPay, 10);
   const listSecurity =
     !isNightStay && Number.isFinite(seatsNum) ? securityDepositForSeats(seatsNum, currency) : 0;
-  const chargeTotal = useCustomPrice && Number.isFinite(parsedTotal) ? parsedTotal : listTotal;
+  /** Negotiated input for monthly stays = rent for ONE month (all seats). */
+  const monthlyRent =
+    !isNightStay && useCustomPrice && Number.isFinite(parsedTotal) && parsedTotal >= 0
+      ? parsedTotal
+      : listMonthlyRent;
+
+  const moveInDay = parseLocalDate(moveIn)?.getDate() ?? 1;
+  const isMidMonthArrival = !isNightStay && moveInDay > 1;
+  const remainingDays = !isNightStay ? daysRemainingInMonth(moveIn) : 0;
+  const daysInArrivalMonth = !isNightStay ? daysInMonth(moveIn) : 0;
+  const suggestedProrate =
+    monthlyRent > 0 && daysInArrivalMonth > 0
+      ? roundMoney((monthlyRent / daysInArrivalMonth) * remainingDays)
+      : 0;
+  const parsedFirstMonthOverride = Number(firstMonthAmountInput);
+  const arrivalMonthCharge = isNightStay
+    ? 0
+    : firstMonthBilling === "prorate"
+      ? useCustomFirstMonth && Number.isFinite(parsedFirstMonthOverride) && parsedFirstMonthOverride >= 0
+        ? parsedFirstMonthOverride
+        : suggestedProrate
+      : monthlyRent;
+
+  const chargeTotal = isNightStay
+    ? useCustomPrice && Number.isFinite(parsedTotal)
+      ? parsedTotal
+      : listTotal
+    : roundMoney(
+        arrivalMonthCharge +
+          monthlyRent * Math.max(0, (Number.isFinite(monthsNum) ? monthsNum : 0) - 1),
+      );
   const securityCharge =
     useCustomSecurity && Number.isFinite(parsedSecurity) ? parsedSecurity : listSecurity;
   const rentPayNow = isNightStay
     ? chargeTotal
-    : monthsNum > 0 && Number.isFinite(monthsToPayNum)
-      ? Math.round((chargeTotal / monthsNum) * monthsToPayNum * 100) / 100
+    : Number.isFinite(monthsToPayNum) && monthsToPayNum >= 1
+      ? roundMoney(
+          arrivalMonthCharge + monthlyRent * Math.max(0, monthsToPayNum - 1),
+        )
       : 0;
   const payNowAmount = rentPayNow + (isNightStay ? 0 : securityCharge);
+  const pricePerSeat =
+    !isNightStay && Number.isFinite(seatsNum) && seatsNum > 0
+      ? roundMoney(monthlyRent / seatsNum)
+      : undefined;
 
   useEffect(() => {
     if (!useCustomSecurity && listSecurity > 0) {
@@ -111,6 +186,21 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     }
   }, [monthsNum, isNightStay]);
 
+  // Mid-month arrivals default to days billing; day-1 stays force full month.
+  useEffect(() => {
+    if (isNightStay) return;
+    if (!isMidMonthArrival) {
+      setFirstMonthBilling("full");
+      setUseCustomFirstMonth(false);
+    }
+  }, [isMidMonthArrival, isNightStay, moveIn]);
+
+  useEffect(() => {
+    if (!useCustomFirstMonth && suggestedProrate > 0) {
+      setFirstMonthAmountInput(String(suggestedProrate));
+    }
+  }, [suggestedProrate, useCustomFirstMonth]);
+
   const canSubmit =
     guestName.trim().length > 0 &&
     guestPhone.trim().length >= 5 &&
@@ -123,7 +213,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         monthsNum >= 1 &&
         Number.isFinite(monthsToPayNum) &&
         monthsToPayNum >= 1 &&
-        monthsToPayNum <= monthsNum) &&
+        monthsToPayNum <= monthsNum &&
+        (!useCustomFirstMonth ||
+          firstMonthBilling !== "prorate" ||
+          (Number.isFinite(parsedFirstMonthOverride) && parsedFirstMonthOverride >= 0))) &&
     moveIn.trim().length > 0 &&
     moveIn >= todayIsoDate() &&
     (!useCustomPrice || (Number.isFinite(parsedTotal) && parsedTotal >= 0)) &&
@@ -140,6 +233,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     setSeats("1");
     setMonths("1");
     setMonthsToPay("1");
+    setFirstMonthBilling("full");
+    setUseCustomFirstMonth(false);
+    setFirstMonthAmountInput("");
     setNights("4");
     setNightlyRate("1500");
     setMoveIn(todayIsoDate());
@@ -171,11 +267,30 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         stay_unit: stayUnit,
         ...(isNightStay
           ? { nights: nightsNum, nightly_rate: nightlyRateNum }
-          : { months: monthsNum, months_to_pay: monthsToPayNum }),
+          : {
+              months: monthsNum,
+              months_to_pay: monthsToPayNum,
+              first_month_billing: isMidMonthArrival ? firstMonthBilling : "full",
+              ...(firstMonthBilling === "prorate" && isMidMonthArrival
+                ? { first_month_amount: arrivalMonthCharge }
+                : {}),
+            }),
         move_in: moveIn,
         notes: notes.trim() || undefined,
         currency,
-        ...(useCustomPrice && Number.isFinite(parsedTotal) ? { total_amount: parsedTotal } : {}),
+        ...(isNightStay
+          ? useCustomPrice && Number.isFinite(parsedTotal)
+            ? { total_amount: parsedTotal }
+            : {}
+          : {
+              // Monthly rent drives ledger; total_amount includes prorated first month when used.
+              ...(useCustomPrice && Number.isFinite(monthlyRent)
+                ? { price_per_seat: pricePerSeat }
+                : {}),
+              ...(useCustomPrice || firstMonthBilling === "prorate"
+                ? { total_amount: chargeTotal, price_per_seat: pricePerSeat }
+                : {}),
+            }),
         ...(!isNightStay && Number.isFinite(securityCharge) ? { security_amount: securityCharge } : {}),
       },
       {
@@ -324,7 +439,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 ) : (
                   <>
                     <div className="grid gap-1.5">
-                      <Label htmlFor="manual-months">Stay (months) *</Label>
+                      <Label htmlFor="manual-months">Stay length (months) *</Label>
                       <Input
                         id="manual-months"
                         type="number"
@@ -334,9 +449,66 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         onChange={(e) => setMonths(e.target.value)}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">How long they stay — not how much they pay.</p>
                     </div>
+                    {isMidMonthArrival ? (
+                      <div className="grid gap-1.5 sm:col-span-2">
+                        <Label>Arrival month ({monthShortLabel(moveIn)}) charge *</Label>
+                        <Select
+                          value={firstMonthBilling}
+                          onValueChange={(v) => setFirstMonthBilling(v as "full" | "prorate")}
+                        >
+                          <SelectTrigger id="manual-first-month-billing">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="full">
+                              Full month — {formatMoney(monthlyRent, currency)}
+                            </SelectItem>
+                            <SelectItem value="prorate">
+                              Days only — {remainingDays} day
+                              {remainingDays === 1 ? "" : "s"} ≈ {formatMoney(suggestedProrate, currency)}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Guest arrives on day {moveInDay}. Choose full {monthShortLabel(moveIn)} rent, or
+                          only the remaining days in the month.
+                        </p>
+                        {firstMonthBilling === "prorate" ? (
+                          <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+                              checked={useCustomFirstMonth}
+                              onChange={(e) => {
+                                setUseCustomFirstMonth(e.target.checked);
+                                if (e.target.checked && suggestedProrate > 0) {
+                                  setFirstMonthAmountInput(String(suggestedProrate));
+                                }
+                              }}
+                            />
+                            <span>Override days amount</span>
+                          </label>
+                        ) : null}
+                        {firstMonthBilling === "prorate" && useCustomFirstMonth ? (
+                          <div className="grid gap-1.5">
+                            <Label htmlFor="manual-first-month-amount">Days amount *</Label>
+                            <Input
+                              id="manual-first-month-amount"
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={firstMonthAmountInput}
+                              onChange={(e) => setFirstMonthAmountInput(e.target.value)}
+                              required
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="grid gap-1.5 sm:col-span-2">
-                      <Label htmlFor="manual-months-pay">Paying now (months) *</Label>
+                      <Label htmlFor="manual-months-pay">Paying now (months of rent) *</Label>
                       <Input
                         id="manual-months-pay"
                         type="number"
@@ -346,6 +518,11 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         onChange={(e) => setMonthsToPay(e.target.value)}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        {isMidMonthArrival && firstMonthBilling === "prorate"
+                          ? `Marks ${monthsToPayNum || 1} ledger month(s) paid: ${monthShortLabel(moveIn)} at days rate, then full months after — plus security once.`
+                          : "Collect this many months of rent now (at the monthly rate), plus security once."}
+                      </p>
                     </div>
                   </>
                 )}
@@ -378,14 +555,40 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
               </div>
 
               <div className="grid gap-2 text-sm">
+                {!isNightStay && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground">Rent / month</span>
+                    <span className="font-semibold tabular-nums">{formatMoney(monthlyRent, currency)}</span>
+                  </div>
+                )}
+                {!isNightStay && isMidMonthArrival && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      {monthShortLabel(moveIn)}{" "}
+                      {firstMonthBilling === "prorate"
+                        ? `(${remainingDays} day${remainingDays === 1 ? "" : "s"})`
+                        : "(full month)"}
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatMoney(arrivalMonthCharge, currency)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-muted-foreground">Full stay</span>
+                  <span className="text-muted-foreground">
+                    {isNightStay
+                      ? "Full stay"
+                      : firstMonthBilling === "prorate"
+                        ? `Full stay (${monthsNum || 0} mo, days first)`
+                        : `Full stay (${monthsNum || 0} mo)`}
+                  </span>
                   <span className="font-semibold tabular-nums">{formatMoney(chargeTotal, currency)}</span>
                 </div>
                 {!isNightStay && (
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-muted-foreground">
-                      Security ({formatMoney(securityPerSeat(currency), currency)} × {seatsNum})
+                      Security once at check-in ({formatMoney(securityPerSeat(currency), currency)} ×{" "}
+                      {seatsNum})
                     </span>
                     <span className="font-semibold tabular-nums">{formatMoney(securityCharge, currency)}</span>
                   </div>
@@ -411,19 +614,24 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     checked={useCustomPrice}
                     onChange={(e) => {
                       setUseCustomPrice(e.target.checked);
-                      if (e.target.checked && listTotal > 0) {
-                        setTotalInput(String(listTotal));
+                      if (e.target.checked) {
+                        const seed = isNightStay ? listTotal : listMonthlyRent;
+                        if (seed > 0) setTotalInput(String(seed));
                       }
                     }}
                   />
-                  <span>Use negotiated / manual price</span>
+                  <span>
+                    {isNightStay
+                      ? "Use negotiated / manual price"
+                      : "Use negotiated monthly rent"}
+                  </span>
                 </label>
 
                 {useCustomPrice ? (
                   <div className="grid gap-1.5">
                     <Label htmlFor="manual-total" className="flex items-center gap-1.5">
                       <Banknote className="h-3.5 w-3.5" />
-                      Amount to charge *
+                      {isNightStay ? "Amount to charge *" : "Rent per month *"}
                     </Label>
                     <Input
                       id="manual-total"
@@ -434,11 +642,33 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                       onChange={(e) => setTotalInput(e.target.value)}
                       required
                     />
-                    {Number.isFinite(parsedTotal) && listTotal > 0 && parsedTotal !== listTotal ? (
+                    {!isNightStay && Number.isFinite(parsedTotal) && parsedTotal >= 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        Full stay ≈ {formatMoney(chargeTotal, currency)}
+                        {firstMonthBilling === "prorate"
+                          ? ` (${monthShortLabel(moveIn)} days + ${Math.max(0, (monthsNum || 0) - 1)} full months)`
+                          : ` (${monthsNum || 0} × monthly)`}
+                        . Raise rent later from Monthly Rent → Apply forward.
+                      </p>
+                    ) : null}
+                    {isNightStay &&
+                    Number.isFinite(parsedTotal) &&
+                    listTotal > 0 &&
+                    parsedTotal !== listTotal ? (
                       <p className="text-xs text-muted-foreground">
                         {parsedTotal < listTotal
                           ? `Discount: ${formatMoney(listTotal - parsedTotal, currency)} (${(((listTotal - parsedTotal) / listTotal) * 100).toFixed(0)}% off list)`
                           : `Above list by ${formatMoney(parsedTotal - listTotal, currency)}`}
+                      </p>
+                    ) : null}
+                    {!isNightStay &&
+                    Number.isFinite(parsedTotal) &&
+                    listMonthlyRent > 0 &&
+                    parsedTotal !== listMonthlyRent ? (
+                      <p className="text-xs text-muted-foreground">
+                        {parsedTotal < listMonthlyRent
+                          ? `Below list by ${formatMoney(listMonthlyRent - parsedTotal, currency)} / month`
+                          : `Above list by ${formatMoney(parsedTotal - listMonthlyRent, currency)} / month`}
                       </p>
                     ) : null}
                   </div>

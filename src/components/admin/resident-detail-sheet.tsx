@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   downloadResidentDossierExcelApi,
   downloadResidentDossierPdfApi,
+  downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
 import { useResidentDetailQuery } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -46,6 +47,7 @@ export function ResidentDetailSheet({
   const { data, isLoading, isError } = useResidentDetailQuery(open ? bookingId : null, month);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [invoiceMonth, setInvoiceMonth] = useState<string | null>(null);
 
   const r = data?.resident;
   const stay = data?.stay;
@@ -61,7 +63,7 @@ export function ResidentDetailSheet({
     setDownloadingPdf(true);
     try {
       await downloadResidentDossierPdfApi(token, bookingId, month);
-      toast.success("Resident record PDF downloaded");
+      toast.success("Full resident record PDF downloaded (includes ID card images)");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "PDF download failed");
     } finally {
@@ -82,6 +84,22 @@ export function ResidentDetailSheet({
       toast.error(err instanceof Error ? err.message : "Excel download failed");
     } finally {
       setDownloadingExcel(false);
+    }
+  }
+
+  async function handleDownloadMonthInvoice(monthKey: string) {
+    if (!token || !bookingId) {
+      toast.error("You must be signed in to download");
+      return;
+    }
+    setInvoiceMonth(monthKey);
+    try {
+      await downloadResidentMonthInvoiceApi(token, bookingId, monthKey);
+      toast.success(`Rent invoice for ${monthKey} downloaded`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invoice download failed");
+    } finally {
+      setInvoiceMonth(null);
     }
   }
 
@@ -109,8 +127,8 @@ export function ResidentDetailSheet({
               <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
                 <p className="text-xs font-medium text-primary">Official resident record</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Download a complete dossier for government or verification — check-in/out dates, room,
-                  months lived, monthly rent, and total collected.
+                  Full dossier: personal details, CNIC / ID card images, stay dates, room, every month of
+                  rent, and totals. Use this for verification or government records.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
@@ -125,7 +143,7 @@ export function ResidentDetailSheet({
                     ) : (
                       <FileText className="mr-2 h-4 w-4" />
                     )}
-                    Download PDF
+                    Full record PDF
                   </Button>
                   <Button
                     type="button"
@@ -139,7 +157,21 @@ export function ResidentDetailSheet({
                     ) : (
                       <FileSpreadsheet className="mr-2 h-4 w-4" />
                     )}
-                    Download Excel
+                    Full record Excel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={invoiceMonth === month}
+                    onClick={() => void handleDownloadMonthInvoice(month)}
+                  >
+                    {invoiceMonth === month ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Receipt className="mr-2 h-4 w-4" />
+                    )}
+                    This month invoice
                   </Button>
                 </div>
               </div>
@@ -293,6 +325,7 @@ export function ResidentDetailSheet({
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Rent</TableHead>
                         <TableHead className="text-right">Collected</TableHead>
+                        <TableHead className="w-[1%] text-right">Invoice</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -305,6 +338,23 @@ export function ResidentDetailSheet({
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {formatMoney(m.collected_amount ?? 0, summary.currency)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              disabled={invoiceMonth === m.month}
+                              onClick={() => void handleDownloadMonthInvoice(m.month)}
+                            >
+                              {invoiceMonth === m.month ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Receipt className="h-3.5 w-3.5" />
+                              )}
+                              <span className="sr-only">Download invoice</span>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
