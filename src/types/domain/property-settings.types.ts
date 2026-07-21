@@ -105,6 +105,7 @@ export type PublicPropertySettings = Pick<
   | "whatsapp"
   | "whatsapp_url"
   | "fullAddress"
+  | "logoUrl"
   | "primaryColor"
   | "accentColor"
   | "website"

@@ -39,17 +39,17 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
       <header style={{ borderBottom: "2px solid #000000", paddingBottom: "12px", marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
           <div>
-            <h1
+            <img
+              src={property.logoUrl || "/logos/navlogo.png"}
+              alt={property.hotelName}
               style={{
-                margin: 0,
-                fontSize: "22pt",
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                color: "#000000",
+                display: "block",
+                maxWidth: "180px",
+                maxHeight: "56px",
+                objectFit: "contain",
+                marginBottom: property.tagline ? "6px" : 0,
               }}
-            >
-              {property.hotelName}
-            </h1>
+            />
             {property.tagline ? (
               <p style={{ margin: "4px 0 0", fontSize: "10pt", color: "#000000" }}>{property.tagline}</p>
             ) : null}

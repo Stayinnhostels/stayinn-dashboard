@@ -8,6 +8,7 @@ export type PropertyInvoiceSettings = {
   address: string;
   city: string;
   country: string;
+  logoUrl?: string;
 };
 
 export type InvoiceLineItem = {

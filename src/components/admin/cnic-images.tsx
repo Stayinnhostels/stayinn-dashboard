@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { compressImageFile } from "@/lib/compress-image";
+import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
+import { readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
 import { cn } from "@/lib/utils";
 
 type CnicImages = {
@@ -34,9 +35,17 @@ type UploadSlotProps = {
   uploading: boolean;
   onChange: (value: string) => void;
   onUploading: (busy: boolean) => void;
+  onPickForCrop: (imageSrc: string) => void;
 };
 
-function CnicUploadSlot({ label, value, uploading, onChange, onUploading }: UploadSlotProps) {
+function CnicUploadSlot({
+  label,
+  value,
+  uploading,
+  onChange,
+  onUploading,
+  onPickForCrop,
+}: UploadSlotProps) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -60,6 +69,7 @@ function CnicUploadSlot({ label, value, uploading, onChange, onUploading }: Uplo
             <>
               <ImagePlus className="h-5 w-5" />
               <span>Upload {label.toLowerCase()}</span>
+              <span className="text-[10px] text-muted-foreground/80">Then crop to card</span>
             </>
           )}
           <input
@@ -73,8 +83,8 @@ function CnicUploadSlot({ label, value, uploading, onChange, onUploading }: Uplo
               if (!file) return;
               onUploading(true);
               try {
-                onChange(await compressImageFile(file));
-                toast.success(`${label} ready`);
+                const src = await readImageFileAsDataUrl(file);
+                onPickForCrop(src);
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Could not process image");
               } finally {
@@ -98,12 +108,21 @@ type EditorProps = {
 export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: EditorProps) {
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
+  const [cropSide, setCropSide] = useState<"Front" | "Back" | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
+  function openCrop(side: "Front" | "Back", src: string) {
+    setCropSide(side);
+    setCropSrc(src);
+  }
 
   return (
     <div className="space-y-3 sm:col-span-2">
       <div>
         <Label>CNIC images</Label>
-        <p className="text-xs text-muted-foreground">Upload clear photos of both sides of the ID card.</p>
+        <p className="text-xs text-muted-foreground">
+          Upload each side, then crop to the ID card frame. Crop applies only to ID cards.
+        </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CnicUploadSlot
@@ -112,6 +131,7 @@ export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: E
           uploading={uploadingFront}
           onChange={onFrontChange}
           onUploading={setUploadingFront}
+          onPickForCrop={(src) => openCrop("Front", src)}
         />
         <CnicUploadSlot
           label="Back"
@@ -119,8 +139,25 @@ export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: E
           uploading={uploadingBack}
           onChange={onBackChange}
           onUploading={setUploadingBack}
+          onPickForCrop={(src) => openCrop("Back", src)}
         />
       </div>
+
+      <CnicCropDialog
+        open={Boolean(cropSide && cropSrc)}
+        imageSrc={cropSrc}
+        sideLabel={cropSide ?? "Front"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCropSide(null);
+            setCropSrc(null);
+          }
+        }}
+        onCropped={(dataUrl) => {
+          if (cropSide === "Front") onFrontChange(dataUrl);
+          else if (cropSide === "Back") onBackChange(dataUrl);
+        }}
+      />
     </div>
   );
 }

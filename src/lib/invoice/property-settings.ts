@@ -9,6 +9,7 @@ export const PROPERTY_INVOICE_DEFAULTS: PropertyInvoiceSettings = {
   address: "Lahore",
   city: "Punjab",
   country: "Pakistan",
+  logoUrl: "",
 };
 
 export function toInvoicePropertySettings(
@@ -23,6 +24,7 @@ export function toInvoicePropertySettings(
     address: settings.address ?? PROPERTY_INVOICE_DEFAULTS.address,
     city: settings.city ?? PROPERTY_INVOICE_DEFAULTS.city,
     country: settings.country ?? PROPERTY_INVOICE_DEFAULTS.country,
+    logoUrl: settings.logoUrl ?? PROPERTY_INVOICE_DEFAULTS.logoUrl,
   };
 }
 
