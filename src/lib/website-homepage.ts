@@ -30,7 +30,7 @@ export type HeroSectionForm = Pick<
 
 export const HERO_SECTION_DEFAULTS: HeroSectionForm = {
   hotelName: "Stay Inn Hostels",
-  tagline: "Your home away from home",
+  tagline: "Live your journey, stay with us",
   description:
     "Affordable, secure and spotlessly clean accommodation built for students and working professionals. Pick your seat — we handle the rest.",
   ...HOMEPAGE_HERO_DEFAULTS,

@@ -2,15 +2,23 @@ import { getApiBaseUrl } from "@/api/client";
 import type { LogoutApiResponseJson } from "@/types/api/auth/logout.response.types";
 
 /**
- * Revokes the JWT on the server (`POST /api/auth/logout`).
+ * Revokes the JWT / refresh token on the server (`POST /api/auth/logout`).
  */
-export async function postLogoutApi(accessToken: string): Promise<void> {
+export async function postLogoutApi(
+  accessToken: string | null | undefined,
+  refreshToken?: string | null,
+): Promise<void> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (accessToken?.trim()) {
+    headers.Authorization = `Bearer ${accessToken.trim()}`;
+  }
+
   const res = await fetch(`${getApiBaseUrl()}/api/auth/logout`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken.trim()}`,
-    },
+    headers,
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
   });
 
   if (!res.ok) {

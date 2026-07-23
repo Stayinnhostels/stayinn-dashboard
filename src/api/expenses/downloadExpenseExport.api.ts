@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "@/api/client";
+import { authFetch } from "@/api/authFetch";
 import { filenameFromContentDisposition, triggerBrowserDownload } from "@/lib/download-blob";
 
 async function downloadBinary(
@@ -6,11 +6,7 @@ async function downloadBinary(
   path: string,
   fallbackFilename: string,
 ): Promise<void> {
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    headers: {
-      Authorization: `Bearer ${token.trim()}`,
-    },
-  });
+  const res = await authFetch(path, {}, token);
 
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { message?: string };

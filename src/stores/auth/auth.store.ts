@@ -7,6 +7,7 @@ const LEGACY_USER_KEY = "stayinn.auth.user";
 interface StoredSession {
   user: AuthUser;
   token: string;
+  refreshToken?: string;
 }
 
 function parseSession(raw: string | null): StoredSession | null {
@@ -16,6 +17,7 @@ function parseSession(raw: string | null): StoredSession | null {
     if (!parsed?.user || !parsed?.token || typeof parsed.token !== "string") return null;
     if (parsed.token === "mock-token") return null;
     if (parsed.user.role !== "super_admin") return null;
+    if (parsed.refreshToken != null && typeof parsed.refreshToken !== "string") return null;
     return parsed;
   } catch {
     return null;
@@ -42,12 +44,18 @@ function saveSession(session: StoredSession | null, remember: boolean) {
 interface AuthStoreState {
   user: AuthUser | null;
   token: string | null;
+  refreshToken: string | null;
   loading: boolean;
 }
 
 interface AuthStoreActions {
   hydrate: () => void;
-  persistSession: (input: { user: AuthUser; token: string; remember: boolean }) => void;
+  persistSession: (input: {
+    user: AuthUser;
+    token: string;
+    refreshToken?: string | null;
+    remember: boolean;
+  }) => void;
   updateUser: (partial: Partial<AuthUser>) => void;
   logout: () => void;
 }
@@ -57,24 +65,34 @@ export type AuthStore = AuthStoreState & AuthStoreActions;
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   token: null,
+  refreshToken: null,
   loading: true,
 
   hydrate() {
     const session = loadSession();
     if (session) {
-      set({ user: session.user, token: session.token, loading: false });
+      set({
+        user: session.user,
+        token: session.token,
+        refreshToken: session.refreshToken ?? null,
+        loading: false,
+      });
     } else {
       if (typeof window !== "undefined") {
         localStorage.removeItem(LEGACY_USER_KEY);
       }
-      set({ user: null, token: null, loading: false });
+      set({ user: null, token: null, refreshToken: null, loading: false });
     }
   },
 
-  persistSession({ user, token, remember }) {
-    const session: StoredSession = { user, token };
+  persistSession({ user, token, refreshToken, remember }) {
+    const session: StoredSession = {
+      user,
+      token,
+      ...(refreshToken ? { refreshToken } : {}),
+    };
     saveSession(session, remember);
-    set({ user, token, loading: false });
+    set({ user, token, refreshToken: refreshToken ?? null, loading: false });
   },
 
   updateUser(partial) {
@@ -82,13 +100,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (!state.user || !state.token) return state;
       const user = { ...state.user, ...partial };
       const remember = typeof window !== "undefined" && Boolean(localStorage.getItem(SESSION_KEY));
-      saveSession({ user, token: state.token }, remember);
+      saveSession(
+        {
+          user,
+          token: state.token,
+          ...(state.refreshToken ? { refreshToken: state.refreshToken } : {}),
+        },
+        remember,
+      );
       return { user };
     });
   },
 
   logout() {
     saveSession(null, true);
-    set({ user: null, token: null, loading: false });
+    set({ user: null, token: null, refreshToken: null, loading: false });
   },
 }));

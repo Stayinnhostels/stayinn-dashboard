@@ -38,7 +38,7 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
             <Input
               value={value.tagline}
               onChange={(e) => onChange("tagline", e.target.value)}
-              placeholder="Seat by Seat."
+              placeholder="Live your journey, stay with us"
             />
             <p className="text-xs text-muted-foreground">Shown in the gradient accent color next to the hostel name.</p>
           </div>

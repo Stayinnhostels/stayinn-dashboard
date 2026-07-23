@@ -23,9 +23,14 @@ export function useLoginMutation() {
       useAuthStore.getState().persistSession({
         user,
         token: data.token,
+        refreshToken: data.refreshToken,
         remember: variables.remember ?? true,
       });
-      queryClient.setQueryData(authKeys.session(), { user, token: data.token });
+      queryClient.setQueryData(authKeys.session(), {
+        user,
+        token: data.token,
+        refreshToken: data.refreshToken,
+      });
     },
   });
 }

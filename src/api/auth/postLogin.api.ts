@@ -36,7 +36,7 @@ export async function postLoginApi(body: LoginApiRequestBody): Promise<LoginApiS
     throw new Error(msg);
   }
 
-  if (!data.success || !data.token || !data.user) {
+  if (!data.success || !data.token || !data.refreshToken || !data.user) {
     throw new Error(typeof data.message === "string" ? data.message : "Invalid response from server");
   }
 
@@ -45,5 +45,7 @@ export async function postLoginApi(body: LoginApiRequestBody): Promise<LoginApiS
     message: data.message,
     user: data.user,
     token: data.token,
+    refreshToken: data.refreshToken,
+    expiresIn: data.expiresIn,
   };
 }

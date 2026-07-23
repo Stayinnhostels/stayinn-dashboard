@@ -27,10 +27,10 @@ export function useAuth() {
   const storeLogout = useAuthStore((s) => s.logout);
 
   const logout = useCallback(async () => {
-    const currentToken = useAuthStore.getState().token;
+    const { token: currentToken, refreshToken } = useAuthStore.getState();
     try {
-      if (currentToken) {
-        await postLogoutApi(currentToken);
+      if (currentToken || refreshToken) {
+        await postLogoutApi(currentToken, refreshToken);
       }
     } catch {
       // Still clear local session if the network fails or the token was already invalid.

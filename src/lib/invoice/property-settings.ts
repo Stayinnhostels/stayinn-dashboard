@@ -3,7 +3,7 @@ import type { PublicPropertySettings, PropertySettings } from "@/types/domain/pr
 
 export const PROPERTY_INVOICE_DEFAULTS: PropertyInvoiceSettings = {
   hotelName: "Stay Inn Hostels",
-  tagline: "Your home away from home",
+  tagline: "Live your journey, stay with us",
   email: "info@stayinnhostels.com",
   phone: "+92 331 0008196",
   address: "Lahore",

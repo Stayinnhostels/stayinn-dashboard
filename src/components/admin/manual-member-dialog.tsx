@@ -106,8 +106,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    const today = todayIsoDate();
-    if (moveIn < today) setMoveIn(today);
+    if (!moveIn) setMoveIn(todayIsoDate());
   }, [open, moveIn]);
 
   useEffect(() => {
@@ -218,7 +217,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
           firstMonthBilling !== "prorate" ||
           (Number.isFinite(parsedFirstMonthOverride) && parsedFirstMonthOverride >= 0))) &&
     moveIn.trim().length > 0 &&
-    moveIn >= todayIsoDate() &&
     (!useCustomPrice || (Number.isFinite(parsedTotal) && parsedTotal >= 0)) &&
     (isNightStay ||
       !useCustomSecurity ||
@@ -390,7 +388,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                   <Input
                     id="manual-move-in"
                     type="date"
-                    min={todayIsoDate()}
                     value={moveIn}
                     onChange={(e) => setMoveIn(e.target.value)}
                     required

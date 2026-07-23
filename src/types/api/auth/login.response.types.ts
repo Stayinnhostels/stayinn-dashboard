@@ -15,6 +15,8 @@ export interface LoginApiSuccessResponse {
   message?: string;
   user: LoginApiUserDto;
   token: string;
+  refreshToken: string;
+  expiresIn?: string;
 }
 
 /** Parsed JSON before validation (may be error payload). */

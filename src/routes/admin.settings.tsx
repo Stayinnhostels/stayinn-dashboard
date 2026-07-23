@@ -30,7 +30,7 @@ type SettingsForm = Omit<PropertySettings, "whatsapp_url" | "fullAddress">;
 
 const DEFAULTS: SettingsForm = {
   hotelName: "Stay Inn Hostels",
-  tagline: "Your home away from home",
+  tagline: "Live your journey, stay with us",
   description:
     "A modern hostel offering comfortable shared and private rooms in the heart of the city.",
   email: "info@stayinnhostels.com",
