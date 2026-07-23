@@ -226,12 +226,25 @@ export const BookingInvoiceDocument = forwardRef<HTMLDivElement, Props>(function
           marginTop: "32px",
           paddingTop: "12px",
           borderTop: "2px solid #000000",
-          textAlign: "center",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: "16px",
           fontSize: "9pt",
           color: "#000000",
         }}
       >
-        Thank you for your business.
+        <p style={{ margin: 0 }}>Thank you for your business.</p>
+        <img
+          src="/logos/invoice-stamp.png"
+          alt="Stay Inn Hostels official stamp"
+          style={{
+            width: "112px",
+            height: "112px",
+            objectFit: "contain",
+            flexShrink: 0,
+          }}
+        />
       </footer>
     </div>
   );
