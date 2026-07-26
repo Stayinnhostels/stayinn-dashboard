@@ -50,6 +50,7 @@ import {
 import { toast } from "sonner";
 import { RoomsListSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
+import { formatRoomLabel } from "@/types/domain/room.types";
 import type { Room, RoomDraft, RoomStatus } from "@/types/domain/room.types";
 import { roomStatusStyles } from "@/types/domain/room.types";
 import {
@@ -134,10 +135,11 @@ function SortableRoomCard({
         </Badge>
       </div>
       <CardContent className="p-4">
-        <p className="truncate font-bold tracking-tight" title={room.title}>
-          {room.title}
+        <p className="truncate font-bold tracking-tight" title={formatRoomLabel(room)}>
+          {formatRoomLabel(room)}
         </p>
         <p className="text-xs text-muted-foreground">
+          {room.room_number != null ? `No. ${room.room_number} · ` : ""}
           {room.category} · {room.capacity} guests · Order {room.display_order ?? 100}
         </p>
         <div className="mt-2 flex items-center justify-between">
@@ -212,8 +214,11 @@ function SortableRoomRow({
       <TableCell className="font-mono text-sm text-muted-foreground">
         {room.display_order ?? 100}
       </TableCell>
+      <TableCell className="font-mono text-sm font-semibold">
+        {room.room_number ?? "—"}
+      </TableCell>
       <TableCell className="max-w-[220px] font-semibold">
-        <span className="block truncate" title={room.title}>
+        <span className="block truncate" title={formatRoomLabel(room)}>
           {room.title}
         </span>
       </TableCell>
@@ -519,6 +524,7 @@ function RoomsListPage() {
                     <TableRow>
                       <TableHead className="w-14" />
                       <TableHead>Order</TableHead>
+                      <TableHead>No.</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>USD / PKR</TableHead>
@@ -549,6 +555,12 @@ function RoomsListPage() {
       <RoomFormDialog
         open={creating || !!editing}
         initial={editing}
+        suggestedRoomNumber={
+          Math.max(
+            100,
+            ...rooms.map((r) => (r.room_number != null ? r.room_number : 100)),
+          ) + 1
+        }
         onClose={() => {
           setCreating(false);
           setEditing(null);

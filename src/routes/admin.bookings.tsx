@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Search, X } from "lucide-react";
+import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Pencil, Search, X } from "lucide-react";
 import { BookingsListSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -368,6 +368,11 @@ function BookingsListPage() {
                       <Eye className="h-3.5 w-3.5" /> View
                     </Link>
                   </Button>
+                  <Button asChild size="sm" variant="secondary" title="Edit booking">
+                    <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                   <Select
                     value={b.status}
                     onValueChange={(v) => onStatusChange(b.id, v as BookingStatus, b.status)}
@@ -446,6 +451,11 @@ function BookingsListPage() {
                         <Button asChild size="sm" variant="ghost" title="View booking">
                           <Link to="/admin/bookings/$id" params={{ id: b.id }}>
                             <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" title="Edit booking">
+                          <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
+                            <Pencil className="h-4 w-4" />
                           </Link>
                         </Button>
                         <Button asChild size="sm" variant="ghost" title="Invoice / Bill">

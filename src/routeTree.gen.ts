@@ -21,6 +21,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSecurityPaymentsRouteImport } from './routes/admin.security-payments'
 import { Route as AdminRoomsRouteImport } from './routes/admin.rooms'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminResidentsByRoomRouteImport } from './routes/admin.residents-by-room'
 import { Route as AdminResidentsRouteImport } from './routes/admin.residents'
 import { Route as AdminProfitLossRouteImport } from './routes/admin.profit-loss'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
@@ -96,6 +97,11 @@ const AdminRoomsRoute = AdminRoomsRouteImport.update({
 const AdminReviewsRoute = AdminReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminResidentsByRoomRoute = AdminResidentsByRoomRouteImport.update({
+  id: '/residents-by-room',
+  path: '/residents-by-room',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminResidentsRoute = AdminResidentsRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
   '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
   '/admin/security-payments': typeof AdminSecurityPaymentsRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/profit-loss'
     | '/admin/residents'
+    | '/admin/residents-by-room'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/profit-loss'
     | '/admin/residents'
+    | '/admin/residents-by-room'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/admin/payments'
     | '/admin/profit-loss'
     | '/admin/residents'
+    | '/admin/residents-by-room'
     | '/admin/reviews'
     | '/admin/rooms'
     | '/admin/security-payments'
@@ -459,6 +471,13 @@ declare module '@tanstack/react-router' {
       path: '/reviews'
       fullPath: '/admin/reviews'
       preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/residents-by-room': {
+      id: '/admin/residents-by-room'
+      path: '/residents-by-room'
+      fullPath: '/admin/residents-by-room'
+      preLoaderRoute: typeof AdminResidentsByRoomRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/residents': {
@@ -656,6 +675,7 @@ interface AdminRouteChildren {
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProfitLossRoute: typeof AdminProfitLossRoute
   AdminResidentsRoute: typeof AdminResidentsRoute
+  AdminResidentsByRoomRoute: typeof AdminResidentsByRoomRoute
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminRoomsRoute: typeof AdminRoomsRouteWithChildren
   AdminSecurityPaymentsRoute: typeof AdminSecurityPaymentsRoute
@@ -679,6 +699,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProfitLossRoute: AdminProfitLossRoute,
   AdminResidentsRoute: AdminResidentsRoute,
+  AdminResidentsByRoomRoute: AdminResidentsByRoomRoute,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminRoomsRoute: AdminRoomsRouteWithChildren,
   AdminSecurityPaymentsRoute: AdminSecurityPaymentsRoute,

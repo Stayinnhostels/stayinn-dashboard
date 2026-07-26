@@ -15,6 +15,7 @@ export type { RoomDraft };
 
 const blank: RoomDraft = {
   title: "",
+  room_number: 101,
   description: "",
   price_per_night: 0,
   price_per_night_usd: 0,
@@ -30,10 +31,14 @@ const blank: RoomDraft = {
   display_order: 100,
 };
 
-function roomToDraft(room: Partial<Room> | null | undefined): RoomDraft {
-  if (!room) return blank;
+function roomToDraft(
+  room: Partial<Room> | null | undefined,
+  suggestedRoomNumber = 101,
+): RoomDraft {
+  if (!room) return { ...blank, room_number: suggestedRoomNumber };
   return {
     title: room.title ?? "",
+    room_number: room.room_number ?? null,
     description: room.description ?? "",
     price_per_night: room.price_per_night_usd ?? room.price_per_night ?? 0,
     price_per_night_usd: room.price_per_night_usd ?? room.price_per_night ?? 0,
@@ -61,12 +66,15 @@ export function RoomFormDialog({
   onClose,
   onSubmit,
   submitting,
+  suggestedRoomNumber = 101,
 }: {
   open: boolean;
   initial: Partial<Room> | null;
   onClose: () => void;
   onSubmit: (v: RoomDraft) => void;
   submitting: boolean;
+  /** Next available number when creating a new room (defaults to 101). */
+  suggestedRoomNumber?: number;
 }) {
   const [draft, setDraft] = useState<RoomDraft>(blank);
   const [priceUsdText, setPriceUsdText] = useState("0");
@@ -75,11 +83,12 @@ export function RoomFormDialog({
   const [bedsTotalText, setBedsTotalText] = useState("2");
   const [bedsAvailableText, setBedsAvailableText] = useState("2");
   const [displayOrderText, setDisplayOrderText] = useState("100");
+  const [roomNumberText, setRoomNumberText] = useState("101");
   const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
     if (!open) return;
-    const next = roomToDraft(initial);
+    const next = roomToDraft(initial, suggestedRoomNumber);
     setDraft(next);
     setPriceUsdText(String(next.price_per_night_usd));
     setPricePkrText(String(next.price_per_night_pkr));
@@ -87,7 +96,10 @@ export function RoomFormDialog({
     setBedsTotalText(String(next.beds_total));
     setBedsAvailableText(String(next.beds_available));
     setDisplayOrderText(String(next.display_order));
-  }, [open, initial]);
+    setRoomNumberText(
+      next.room_number != null ? String(next.room_number) : String(suggestedRoomNumber),
+    );
+  }, [open, initial, suggestedRoomNumber]);
 
   const amenityOptions = useMemo(() => {
     const base: string[] = [...ROOM_AMENITY_OPTIONS];
@@ -104,8 +116,28 @@ export function RoomFormDialog({
     const bedsTotalNum = parsePositiveInt(bedsTotalText, 0);
     const bedsAvailableNum = parsePositiveInt(bedsAvailableText, 0);
     const displayOrderNum = parsePositiveInt(displayOrderText, 100);
-    return { priceUsdNum, pricePkrNum, capacityNum, bedsTotalNum, bedsAvailableNum, displayOrderNum };
-  }, [priceUsdText, pricePkrText, capacityText, bedsTotalText, bedsAvailableText, displayOrderText]);
+    const roomNumberTrim = roomNumberText.trim();
+    const roomNumberNum =
+      roomNumberTrim === "" ? null : parsePositiveInt(roomNumberTrim, Number.NaN);
+    return {
+      priceUsdNum,
+      pricePkrNum,
+      capacityNum,
+      bedsTotalNum,
+      bedsAvailableNum,
+      displayOrderNum,
+      roomNumberNum,
+      roomNumberTrim,
+    };
+  }, [
+    priceUsdText,
+    pricePkrText,
+    capacityText,
+    bedsTotalText,
+    bedsAvailableText,
+    displayOrderText,
+    roomNumberText,
+  ]);
 
   const canSave =
     draft.title.trim().length > 0 &&
@@ -120,7 +152,11 @@ export function RoomFormDialog({
     parsed.bedsTotalNum >= 1 &&
     parsed.bedsAvailableNum >= 0 &&
     parsed.bedsAvailableNum <= parsed.bedsTotalNum &&
-    parsed.displayOrderNum >= 1;
+    parsed.displayOrderNum >= 1 &&
+    (parsed.roomNumberTrim === "" ||
+      (parsed.roomNumberNum != null &&
+        Number.isFinite(parsed.roomNumberNum) &&
+        parsed.roomNumberNum >= 101));
 
   function toggleAmenity(name: string, checked: boolean) {
     setDraft((d) => ({
@@ -137,6 +173,10 @@ export function RoomFormDialog({
     if (!canSave) return;
     onSubmit({
       ...draft,
+      room_number:
+        parsed.roomNumberTrim === "" || parsed.roomNumberNum == null
+          ? null
+          : parsed.roomNumberNum,
       price_per_night_usd: parsed.priceUsdNum,
       price_per_night_pkr: parsed.pricePkrNum,
       price_per_night: parsed.priceUsdNum,
@@ -166,16 +206,36 @@ export function RoomFormDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label>Title</Label>
-            <Input
-              name="room-title"
-              type="text"
-              autoComplete="off"
-              value={draft.title}
-              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            />
+          <div className="grid gap-3 sm:grid-cols-[7.5rem_1fr]">
+            <div className="grid gap-2">
+              <Label htmlFor="room-number">Room no.</Label>
+              <Input
+                id="room-number"
+                name="room-number"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={roomNumberText}
+                onChange={(e) => setRoomNumberText(e.target.value)}
+                placeholder="101"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="room-title">Title</Label>
+              <Input
+                id="room-title"
+                name="room-title"
+                type="text"
+                autoComplete="off"
+                value={draft.title}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Room numbers start at <span className="font-semibold">101</span> and must be unique
+            (102, 103, …). Leave blank only if you do not want a number yet.
+          </p>
           <div className="grid gap-2">
             <Label>Description</Label>
             <Textarea
@@ -271,7 +331,8 @@ export function RoomFormDialog({
 
           {!canSave && (
             <p className="text-xs text-destructive">
-              Check USD & PKR prices, capacity, and beds (available cannot exceed total).
+              Check room number (101+), USD & PKR prices, capacity, and beds (available cannot exceed
+              total).
             </p>
           )}
 

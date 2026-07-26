@@ -8,3 +8,4 @@ export { getBookingOverviewStatsApi } from "./getBookingOverviewStats.api";
 export { postManualBookingApi } from "./postManualBooking.api";
 export { patchBookingStatusApi } from "./patchBookingStatus.api";
 export { patchBookingPricingApi } from "./patchBookingPricing.api";
+export { patchBookingDetailsApi } from "./patchBookingDetails.api";

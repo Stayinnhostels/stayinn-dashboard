@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, FileText, Loader2, Mail, Phone, User, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Mail, Pencil, Phone, User, X } from "lucide-react";
 import { BookingDetailSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
 import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
+import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { SECURITY_STATUS_LABELS } from "@/types/domain/resident.types";
 import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
 import type { CheckoutConfirmExtras } from "@/components/admin/booking-refund-dialog";
@@ -18,17 +19,24 @@ import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/booki
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { BookingStatus } from "@/types/domain/booking.types";
 
-export const Route = createFileRoute("/admin/bookings/$id")({ component: BookingDetailPage });
+export const Route = createFileRoute("/admin/bookings/$id")({
+  component: BookingDetailPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: search.edit === true || search.edit === "1" || search.edit === "true" ? true : undefined,
+  }),
+});
 
 const STATUSES: BookingStatus[] = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
 
 function BookingDetailPage() {
   const { id } = Route.useParams();
+  const { edit: editFromSearch } = Route.useSearch();
   const navigate = useNavigate();
   const { data: booking, isLoading, isError, error } = useBookingQuery(id);
   const updateStatus = useUpdateBookingStatusMutation();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading || !booking) return;
@@ -38,6 +46,17 @@ function BookingDetailPage() {
       }, 300);
     }
   }, [booking?.id, isLoading]);
+
+  useEffect(() => {
+    if (!booking || !editFromSearch) return;
+    setEditOpen(true);
+    void navigate({
+      to: "/admin/bookings/$id",
+      params: { id },
+      search: {},
+      replace: true,
+    });
+  }, [booking?.id, editFromSearch, id, navigate]);
 
   function applyStatus(
     status: BookingStatus,
@@ -118,6 +137,9 @@ function BookingDetailPage() {
           <ArrowLeft className="h-4 w-4" /> Back to bookings
         </Button>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4" /> Edit booking
+          </Button>
           <Button
             variant="default"
             onClick={() => document.getElementById("booking-invoice")?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -135,6 +157,8 @@ function BookingDetailPage() {
           </Button>
         </div>
       </div>
+
+      <EditBookingDialog booking={booking} open={editOpen} onOpenChange={setEditOpen} />
 
       <BookingRefundDialog
         open={cancelOpen}
@@ -157,16 +181,21 @@ function BookingDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/60 lg:col-span-2">
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>Booking #{booking.id.slice(-6)}</CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Created {booking.created_at ? new Date(booking.created_at).toLocaleString() : "—"}
                 </p>
               </div>
-              <Badge variant="outline" className="capitalize">
-                {booking.status.replace("_", " ")}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {booking.status.replace("_", " ")}
+                </Badge>
+                <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -176,7 +205,14 @@ function BookingDetailPage() {
             <Field label="Move-in" value={booking.move_in ?? "—"} />
             <Field label="Check-out" value={booking.check_out ?? "—"} />
             <Field label="Seats booked" value={String(booking.seats_booked)} />
-            <Field label="Months" value={String(booking.months)} />
+            <Field
+              label={booking.stay_unit === "night" ? "Nights" : "Months"}
+              value={
+                booking.stay_unit === "night"
+                  ? String(booking.nights ?? "—")
+                  : String(booking.months)
+              }
+            />
             <Field
               label="Price per seat / month"
               value={formatMoney(booking.price_per_seat, normalizeMoneyCurrency(booking.currency))}

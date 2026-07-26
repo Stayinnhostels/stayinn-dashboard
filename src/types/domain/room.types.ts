@@ -38,6 +38,7 @@ export const ROOM_AMENITY_OPTIONS = [
 export function roomToDraft(room: Room): RoomDraft {
   return {
     title: room.title,
+    room_number: room.room_number ?? null,
     description: room.description ?? "",
     price_per_night: room.price_per_night_usd ?? room.price_per_night,
     price_per_night_usd: room.price_per_night_usd ?? room.price_per_night,
@@ -54,9 +55,18 @@ export function roomToDraft(room: Room): RoomDraft {
   };
 }
 
+/** "101 · Twin Deluxe" when a room number is set. */
+export function formatRoomLabel(room: Pick<Room, "title" | "room_number">) {
+  if (room.room_number != null) {
+    return room.title ? `${room.room_number} · ${room.title}` : `Room ${room.room_number}`;
+  }
+  return room.title;
+}
+
 export type Room = {
   id: string;
   title: string;
+  room_number: number | null;
   description: string;
   price_per_night: number;
   price_per_night_usd: number;
@@ -76,6 +86,7 @@ export type Room = {
 
 export type RoomDraft = {
   title: string;
+  room_number: number | null;
   description: string;
   price_per_night: number;
   price_per_night_usd: number;

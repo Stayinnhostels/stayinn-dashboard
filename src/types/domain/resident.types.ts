@@ -107,6 +107,46 @@ export type ResidentDirectoryParams = {
   scope?: ResidentDirectoryScope;
 };
 
+export type ResidentByRoomPerson = {
+  booking_id: string;
+  booking_ref: string;
+  name: string;
+  email: string;
+  contact_number: string;
+  cnic: string;
+  seat_label: string;
+  seats_booked: number;
+  status: string;
+  check_in: string | null;
+  check_out: string | null;
+  resident_type: string;
+  channel: string;
+};
+
+export type ResidentsByRoomGroup = {
+  room_id: string | null;
+  room_number: number | null;
+  room_title: string;
+  category: string;
+  status: string;
+  beds_total: number;
+  beds_available: number;
+  occupied_seats: number;
+  residents: ResidentByRoomPerson[];
+};
+
+export type ResidentsByRoomSummary = {
+  total_rooms: number;
+  occupied_rooms: number;
+  empty_rooms: number;
+  total_residents: number;
+};
+
+export type ResidentsByRoomParams = {
+  search?: string;
+  include_empty?: boolean;
+};
+
 export type ResidentRegisterParams = {
   month?: string;
   page?: number;

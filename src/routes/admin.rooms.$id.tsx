@@ -26,7 +26,12 @@ import { RoomStatusPicker } from "@/components/admin/room-status-picker";
 import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
-import { ROOM_AMENITY_OPTIONS, type RoomDraft, type RoomStatus } from "@/types/domain/room.types";
+import {
+  ROOM_AMENITY_OPTIONS,
+  formatRoomLabel,
+  type RoomDraft,
+  type RoomStatus,
+} from "@/types/domain/room.types";
 
 export const Route = createFileRoute("/admin/rooms/$id")({ component: RoomDetailPage });
 
@@ -240,8 +245,11 @@ function RoomDetailPage() {
           <CardContent className="space-y-3 p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-extrabold tracking-tight">{room.title}</h2>
-                <p className="text-sm text-muted-foreground">{room.category}</p>
+                <h2 className="text-2xl font-extrabold tracking-tight">{formatRoomLabel(room)}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {room.room_number != null ? `Room ${room.room_number} · ` : ""}
+                  {room.category}
+                </p>
               </div>
               <RoomStatusPicker
                 status={room.status}

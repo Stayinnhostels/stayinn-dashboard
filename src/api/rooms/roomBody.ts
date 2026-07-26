@@ -26,12 +26,14 @@ export function roomDraftToApiBody(draft: RoomDraft): Record<string, unknown> {
     images: draft.images,
     display_order: draft.display_order,
   };
+  body.room_number = draft.room_number ?? null;
   if (draft.badge?.trim()) body.badge = draft.badge.trim();
   return body;
 }
 
 const PATCH_KEYS = [
   "title",
+  "room_number",
   "description",
   "price_per_night",
   "price_per_night_usd",

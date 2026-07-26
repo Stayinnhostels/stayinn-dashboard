@@ -6,6 +6,9 @@ import type {
   ResidentMonthOption,
   ResidentRegisterParams,
   ResidentRegisterRow,
+  ResidentsByRoomGroup,
+  ResidentsByRoomParams,
+  ResidentsByRoomSummary,
   UpdateResidentInput,
 } from "@/types/domain/resident.types";
 
@@ -64,6 +67,30 @@ export async function getResidentsDirectoryApi(token: string, params: ResidentDi
     scope: data.scope,
     residents: data.residents,
     pagination: data.pagination,
+  };
+}
+
+type ByRoomResponse = {
+  success: boolean;
+  rooms: ResidentsByRoomGroup[];
+  summary: ResidentsByRoomSummary;
+};
+
+export async function getResidentsByRoomApi(token: string, params: ResidentsByRoomParams = {}) {
+  const search = new URLSearchParams();
+  if (params.search) search.set("search", params.search);
+  if (params.include_empty === false) search.set("include_empty", "false");
+
+  const q = search.toString();
+  const data = await apiFetch<ByRoomResponse>(`/api/v1/residents/by-room${q ? `?${q}` : ""}`, {
+    token,
+  });
+  if (!data.success || !Array.isArray(data.rooms)) {
+    throw new Error("Invalid residents-by-room response");
+  }
+  return {
+    rooms: data.rooms,
+    summary: data.summary,
   };
 }
 

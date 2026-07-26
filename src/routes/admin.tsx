@@ -44,6 +44,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Residents",
     subtitle: "Complete resident directory — profiles, stay history, and PDF records",
   },
+  "/admin/residents-by-room": {
+    title: "Residents by Room",
+    subtitle: "See who is living in each room — occupancy at a glance",
+  },
   "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
   "/admin/website": { title: "Website", subtitle: "Homepage sections on the public marketing site" },
   "/admin/website/about": { title: "Website", subtitle: "About page on the public marketing site" },
