@@ -3,7 +3,7 @@ import { Download, Eye, FileText, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking } from "@/types/domain/booking.types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -78,9 +78,6 @@ export function BookingInvoicePanel({ booking }: Props) {
             <FileText className="h-4 w-4" />
             Invoice / Bill
           </CardTitle>
-          <CardDescription>
-            Generate a black &amp; white invoice for this booking.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
@@ -123,9 +120,7 @@ export function BookingInvoicePanel({ booking }: Props) {
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto bg-white p-0">
           <DialogHeader className="border-b border-black/10 px-6 py-4">
             <DialogTitle className="text-black">Invoice preview</DialogTitle>
-            <DialogDescription className="text-black/70">
-              {invoiceData.invoiceNumber} — white background, black text only
-            </DialogDescription>
+            <DialogDescription className="sr-only">Details</DialogDescription>
           </DialogHeader>
           <div className="flex justify-center bg-neutral-100 p-4">
             <BookingInvoiceDocument data={invoiceData} />

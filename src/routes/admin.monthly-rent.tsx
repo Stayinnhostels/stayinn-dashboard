@@ -477,10 +477,7 @@ function EditResidentDialog({
                 </div>
               </>
             ) : (
-              <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                Security is a one-time deposit shown only on the check-in month (
-                {row.check_in ? String(row.check_in).slice(0, 7) : "move-in month"}).
-              </div>
+              <div className="sm:col-span-2 text-xs text-muted-foreground">Security: check-in month only</div>
             )}
             <div className="space-y-2">
               <Label>Monthly rent ({month})</Label>
@@ -497,7 +494,7 @@ function EditResidentDialog({
                   checked={applyRentForward}
                   onChange={(e) => setApplyRentForward(e.target.checked)}
                 />
-                <span>Apply this rent to {month} and all later months (for rent increases)</span>
+                <span>Apply to later months</span>
               </label>
             </div>
             <div className="space-y-2">
@@ -757,9 +754,7 @@ function MonthlyRentPage() {
             <MonthlyRentTableSkeleton />
           ) : residents.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
-              {cohort === "checkouts"
-                ? `No checkouts in ${monthLabel}. Residents who leave during this month appear here.`
-                : `No active residents for ${monthLabel}. Anyone who checked out this month is under Checkouts.`}
+              {cohort === "checkouts" ? "No checkouts." : "No residents."}
             </div>
           ) : (
             <div className="overflow-x-auto">

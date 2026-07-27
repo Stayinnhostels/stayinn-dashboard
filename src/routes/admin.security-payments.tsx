@@ -336,11 +336,7 @@ function ReturnSecurityDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Return security</DialogTitle>
-          <DialogDescription>
-            {row
-              ? `Return cash from ${row.guest_name}'s deposit. Remaining held will update automatically.`
-              : null}
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         {row ? (
@@ -430,9 +426,7 @@ function SecurityHistoryDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Security ledger</DialogTitle>
-          <DialogDescription>
-            {row ? `${row.guest_name} · ${row.room_title ?? "Room"}` : null}
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         {ledger.length === 0 ? (

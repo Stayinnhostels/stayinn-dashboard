@@ -53,12 +53,6 @@ function PaymentsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium">Payments by month</p>
-          <p className="text-xs text-muted-foreground">
-            Browse past or future months — rent due, collected, and unpaid for that period.
-          </p>
-        </div>
         <MonthFilterSelect
           id="payments-month"
           value={month}

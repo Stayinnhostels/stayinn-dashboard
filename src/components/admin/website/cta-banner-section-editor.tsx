@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -16,13 +16,11 @@ export function CtaBannerSectionEditor({ value, onChange }: CtaBannerSectionEdit
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Visibility</CardTitle>
-          <CardDescription>Show or hide the gradient booking banner at the bottom of the homepage.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-semibold">Show CTA banner</p>
-              <p className="text-xs text-muted-foreground">Turn off to remove this section from the homepage.</p>
             </div>
             <Switch checked={value.homeCtaShow} onCheckedChange={(v) => onChange("homeCtaShow", v)} />
           </div>
@@ -32,7 +30,6 @@ export function CtaBannerSectionEditor({ value, onChange }: CtaBannerSectionEdit
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Headline</CardTitle>
-          <CardDescription>Large white heading on the left side of the banner.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -66,10 +63,6 @@ export function CtaBannerSectionEditor({ value, onChange }: CtaBannerSectionEdit
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Buttons</CardTitle>
-          <CardDescription>
-            Primary button uses a solid white style; secondary uses an outline. Use paths like{" "}
-            <code className="text-xs">/booking</code> or <code className="text-xs">/contact</code>.
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -91,7 +84,6 @@ export function CtaBannerSectionEditor({ value, onChange }: CtaBannerSectionEdit
           <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
             <div>
               <p className="font-semibold">Show secondary button</p>
-              <p className="text-xs text-muted-foreground">e.g. Schedule a Visit</p>
             </div>
             <Switch checked={value.homeCtaShowSecondary} onCheckedChange={(v) => onChange("homeCtaShowSecondary", v)} />
           </div>

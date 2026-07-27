@@ -60,11 +60,6 @@ function NotificationsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card px-4 py-3 shadow-[var(--shadow-soft)]">
-        <p className="text-sm font-bold text-primary">Live alerts</p>
-      
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           <span className="font-bold text-foreground">{unread}</span> unread ·{" "}

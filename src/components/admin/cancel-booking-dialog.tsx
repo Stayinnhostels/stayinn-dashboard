@@ -58,11 +58,7 @@ export function CancelBookingDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Cancel booking</DialogTitle>
-          <DialogDescription>
-            {requiresRefund
-              ? "Enter how much money you returned to the guest. The rest stays in your revenue (payments)."
-              : "This booking was not paid yet. No refund is recorded."}
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         {booking && (

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -152,9 +152,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Property information</CardTitle>
-              <CardDescription>
-                Property name, contact details, and location. Homepage sections are edited under Website in the sidebar.
-              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5 sm:col-span-2"><Label>Hostel name</Label><Input value={s.hotelName} onChange={(e) => update("hotelName", e.target.value)} /></div>
@@ -171,11 +168,8 @@ function SettingsPage() {
                   type="url"
                   value={s.mapUrl}
                   onChange={(e) => update("mapUrl", e.target.value)}
-                  placeholder="https://www.google.com/maps/place/… or embed URL from Share → Embed a map"
+                  placeholder="Google Maps URL"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Paste a Google Maps link or embed URL. The Contact page map updates after you save.
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -185,7 +179,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Logo & cover</CardTitle>
-              <CardDescription>Upload your logo and cover image. PNG or JPG recommended.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -224,9 +217,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Website brand colors</CardTitle>
-              <CardDescription>
-                Updates buttons, links, and gradients on the public website after you save. Dashboard colors are configured separately.
-              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -269,9 +259,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Dashboard theme</CardTitle>
-              <CardDescription>
-                Primary and accent colors for this admin panel — buttons, sidebar highlights, focus rings, and charts. Save to apply across the dashboard.
-              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -330,7 +317,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Preview</CardTitle>
-              <CardDescription>How your chosen colors will look on key dashboard elements.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
               <button
@@ -361,7 +347,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Social & web</CardTitle>
-              <CardDescription>Links shown in your footer and contact pages.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5 sm:col-span-2">
@@ -369,11 +354,8 @@ function SettingsPage() {
                 <Input
                   value={s.whatsapp ?? ""}
                   onChange={(e) => update("whatsapp", e.target.value)}
-                  placeholder="+92 331 0008196 or 923310008196"
+                  placeholder="+92 331 0008196"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Shown in the website footer and contact page. Leave blank to use the property phone number.
-                </p>
               </div>
               <div className="grid gap-1.5 sm:col-span-2">
                 <Label>Website</Label>
@@ -411,20 +393,12 @@ function SettingsPage() {
           <Card className="border-border/60 border-primary/20 bg-primary/5">
             <CardHeader>
               <CardTitle className="text-base">Public booking rules page</CardTitle>
-              <CardDescription>
-                Everything in this tab is shown on the website at{" "}
-                <span className="font-semibold text-foreground">/booking-rules</span> after you save settings.
-              </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Rooms page price filter</CardTitle>
-              <CardDescription>
-                Min and max shown on the public{" "}
-                <span className="font-semibold text-foreground">/rooms</span> price slider (PKR per seat / month).
-              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -447,16 +421,12 @@ function SettingsPage() {
                   onChange={(e) => update("roomsFilterMaxPrice", Number(e.target.value))}
                 />
               </div>
-              <p className="text-xs text-muted-foreground sm:col-span-2">
-                Guests can drag the slider between these values. Max must be greater than min.
-              </p>
             </CardContent>
           </Card>
 
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">Check-in & check-out</CardTitle>
-              <CardDescription>Default times shown on bookings, emails, and the booking rules page.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5"><Label>Check-in time</Label><Input type="time" value={s.checkInTime} onChange={(e) => update("checkInTime", e.target.value)} /></div>
@@ -498,15 +468,15 @@ function SettingsPage() {
             <CardHeader><CardTitle className="text-base">Guest preferences</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Allow children</p><p className="text-xs text-muted-foreground">Guests under 18 are welcome</p></div>
+                <div><p className="font-semibold">Allow children</p></div>
                 <Switch checked={s.allowChildren} onCheckedChange={(v) => update("allowChildren", v)} />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Allow pets</p><p className="text-xs text-muted-foreground">Pets permitted on the property</p></div>
+                <div><p className="font-semibold">Allow pets</p></div>
                 <Switch checked={s.allowPets} onCheckedChange={(v) => update("allowPets", v)} />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Smoking allowed</p><p className="text-xs text-muted-foreground">Smoking permitted in designated areas</p></div>
+                <div><p className="font-semibold">Smoking allowed</p></div>
                 <Switch checked={s.smokingAllowed} onCheckedChange={(v) => update("smokingAllowed", v)} />
               </div>
             </CardContent>
@@ -515,7 +485,6 @@ function SettingsPage() {
           <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-base">House rules</CardTitle>
-              <CardDescription>Shown on booking confirmation and check-in. One per line.</CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea rows={6} value={s.houseRules} onChange={(e) => update("houseRules", e.target.value)} className="font-mono text-sm" />

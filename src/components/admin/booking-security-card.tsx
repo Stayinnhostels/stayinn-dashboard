@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Banknote, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -89,11 +89,6 @@ export function BookingSecurityCard({ booking }: Props) {
           <Shield className="h-4 w-4 text-primary" />
           Security deposit
         </CardTitle>
-        <CardDescription>
-          Refundable deposit for monthly stays — standard {money(securityPerSeat(cur))} per seat (
-          {money(listSecurity)} for {booking.seats_booked} seat(s)). Negotiate below if the guest
-          pays less.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSave} className="space-y-4">

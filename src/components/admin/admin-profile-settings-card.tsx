@@ -3,7 +3,7 @@ import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
@@ -83,9 +83,6 @@ export function AdminProfileSettingsCard() {
     <Card className="border-border/60">
       <CardHeader>
         <CardTitle className="text-base">Admin profile</CardTitle>
-        <CardDescription>
-          Upload your photo and display name. This appears in the top bar of the dashboard.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -120,7 +117,6 @@ export function AdminProfileSettingsCard() {
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">JPG or PNG, cropped square works best.</p>
             <input
               ref={fileRef}
               type="file"

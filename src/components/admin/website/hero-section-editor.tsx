@@ -1,6 +1,6 @@
 import { Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -22,7 +22,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Headline & intro</CardTitle>
-          <CardDescription>Main title, gradient tagline, and paragraph under the hero heading.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-1.5">
@@ -40,7 +39,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
               onChange={(e) => onChange("tagline", e.target.value)}
               placeholder="Live your journey, stay with us"
             />
-            <p className="text-xs text-muted-foreground">Shown in the gradient accent color next to the hostel name.</p>
           </div>
           <div className="grid gap-1.5">
             <Label>Description</Label>
@@ -52,13 +50,11 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Promo badge</CardTitle>
-          <CardDescription>Optional pill above the headline (e.g. &quot;Now booking for 2026&quot;).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-semibold">Show promo badge</p>
-              <p className="text-xs text-muted-foreground">Hide if you prefer a cleaner hero.</p>
             </div>
             <Switch checked={value.heroShowBadge} onCheckedChange={(v) => onChange("heroShowBadge", v)} />
           </div>
@@ -78,9 +74,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Call-to-action buttons</CardTitle>
-          <CardDescription>
-            Use site paths like <code className="text-xs">/booking</code> or <code className="text-xs">/rooms</code>.
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -121,7 +114,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Hero image</CardTitle>
-          <CardDescription>Large photo on the right side of the hero. Leave empty to use the default hostel image.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -137,7 +129,7 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
                   <div className="flex h-full min-h-48 w-full flex-col items-center justify-center gap-2 p-6 text-center text-muted-foreground">
                     <ImageIcon className="h-10 w-10 opacity-40" />
                     <p className="text-sm font-medium text-foreground">No custom hero image</p>
-                    <p className="text-xs">Upload a photo here. Until then, the website uses its default hero image.</p>
+                    
                   </div>
                 )}
               </div>
@@ -156,7 +148,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
                     <X className="h-3 w-3" /> Use default image
                   </Button>
                 ) : null}
-                <p className="text-xs text-muted-foreground">PNG or JPG. Wide landscape works best.</p>
               </div>
             </div>
           </div>
@@ -174,13 +165,11 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Stats row</CardTitle>
-          <CardDescription>Three metrics shown under the buttons (residents, locations, rating).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-semibold">Show stats</p>
-              <p className="text-xs text-muted-foreground">Hide the numbers row under the hero CTAs.</p>
             </div>
             <Switch checked={value.heroShowStats} onCheckedChange={(v) => onChange("heroShowStats", v)} />
           </div>
@@ -233,13 +222,11 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Trust badge overlay</CardTitle>
-          <CardDescription>Small card on the hero image (e.g. security / verification message).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-semibold">Show trust badge</p>
-              <p className="text-xs text-muted-foreground">Floating card on the bottom-left of the hero image.</p>
             </div>
             <Switch checked={value.heroShowTrustBadge} onCheckedChange={(v) => onChange("heroShowTrustBadge", v)} />
           </div>

@@ -131,17 +131,15 @@ export function BookingRefundDialog({
       securityReturnText.trim() !== "");
   const valid = rentValid && securityValid;
 
-  const title = mode === "cancel" ? "Cancel booking" : "Check out guest";
+  const title = mode === "cancel" ? "Cancel booking" : "Check out";
   const description =
     mode === "cancel"
       ? requiresRefund
-        ? "Enter how much money you returned to the guest. The rest stays in your revenue."
-        : "This booking was not paid yet. No refund is recorded."
+        ? "Enter refund amount."
+        : "Cancel this booking."
       : requiresRefund
-        ? rentCollected > 0 && rentCollected < contractTotal
-          ? "Guest is leaving early. Refund is based on rent collected so far — not the full booking total. Enter how much rent you returned; the rest stays as your revenue."
-          : "Guest is leaving early. Enter how much rent you returned. The rest counts as your revenue in Monthly Expenses and Payments."
-        : "Mark this stay as completed. No payment was collected.";
+        ? "Enter rent returned."
+        : "Complete this stay.";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -163,9 +161,7 @@ export function BookingRefundDialog({
                   </p>
                   {contractTotal > rentCollected ? (
                     <p className="text-xs text-muted-foreground">
-                      Booking total {formatMoney(contractTotal, cur)} ({booking.months} month
-                      {booking.months === 1 ? "" : "s"}) — unpaid months are not part of checkout
-                      refund.
+                      Total {formatMoney(contractTotal, cur)}
                     </p>
                   ) : null}
                 </>
@@ -193,9 +189,7 @@ export function BookingRefundDialog({
                     onChange={(e) => setRefundText(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {mode === "checkout" && rentCollected > 0
-                      ? `Enter 0 to keep all ${formatMoney(rentCollected, cur)} collected rent. Max refund ${formatMoney(rentBasis, cur)}.`
-                      : "Enter 0 if you are keeping the full amount (no refund)."}
+                    Max {formatMoney(rentBasis, cur)}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
@@ -211,9 +205,7 @@ export function BookingRefundDialog({
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {mode === "cancel"
-                  ? "Cancelling will free the seat(s). No payment was collected."
-                  : "The seat(s) will be freed. No refund is recorded."}
+                {mode === "cancel" ? "No payment collected." : "No refund."}
               </p>
             )}
 

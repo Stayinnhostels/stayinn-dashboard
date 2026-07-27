@@ -82,7 +82,6 @@ function ContactMessagesPage() {
           <CardContent className="py-16 text-center">
             <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
             <p className="mt-2 font-bold">No messages</p>
-            <p className="text-sm text-muted-foreground">Submissions from the website contact form appear here.</p>
           </CardContent>
         </Card>
       ) : (

@@ -138,10 +138,7 @@ function FacilitiesPage() {
       {missingDefaultCount > 0 ? (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              {missingDefaultCount} standard facilit{missingDefaultCount === 1 ? "y is" : "ies are"} not in your list
-              yet. The website only shows what is saved here — add them to align with the full set.
-            </p>
+            <p className="text-sm text-muted-foreground">{missingDefaultCount} missing</p>
             <Button
               variant="outline"
               className="shrink-0 rounded-full font-semibold"
@@ -258,9 +255,7 @@ function FacilitiesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete facility?</AlertDialogTitle>
-            <AlertDialogDescription>
-              &ldquo;{deleteTarget?.title}&rdquo; will be removed from the dashboard and the public website.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Delete “{deleteTarget?.title}”?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

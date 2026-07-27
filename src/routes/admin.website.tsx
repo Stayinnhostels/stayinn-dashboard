@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useMatch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Globe, LayoutTemplate, Loader2, Megaphone } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HeroSectionEditor } from "@/components/admin/website/hero-section-editor";
@@ -105,11 +105,8 @@ function HomepageEditor() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            Public website — Homepage
+            Homepage
           </CardTitle>
-          <CardDescription>
-            Edit each section of your marketing homepage. Pick a section tab, make changes, then save.
-          </CardDescription>
         </CardHeader>
       </Card>
 

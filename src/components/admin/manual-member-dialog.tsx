@@ -316,9 +316,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
             <UserPlus className="h-5 w-5 text-primary" />
             Add walk-in member
           </DialogTitle>
-          <DialogDescription>
-            Register a guest in <strong>{room.title}</strong>. Creates a booking and reduces available seats.
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -446,7 +444,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         onChange={(e) => setMonths(e.target.value)}
                         required
                       />
-                      <p className="text-xs text-muted-foreground">How long they stay — not how much they pay.</p>
                     </div>
                     {isMidMonthArrival ? (
                       <div className="grid gap-1.5 sm:col-span-2">
@@ -468,10 +465,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Guest arrives on day {moveInDay}. Choose full {monthShortLabel(moveIn)} rent, or
-                          only the remaining days in the month.
-                        </p>
                         {firstMonthBilling === "prorate" ? (
                           <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
                             <input
@@ -515,11 +508,6 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         onChange={(e) => setMonthsToPay(e.target.value)}
                         required
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {isMidMonthArrival && firstMonthBilling === "prorate"
-                          ? `Marks ${monthsToPayNum || 1} ledger month(s) paid: ${monthShortLabel(moveIn)} at days rate, then full months after — plus security once.`
-                          : "Collect this many months of rent now (at the monthly rate), plus security once."}
-                      </p>
                     </div>
                   </>
                 )}

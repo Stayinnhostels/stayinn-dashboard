@@ -75,9 +75,7 @@ export function CnicCropDialog({
       <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <DialogHeader className="shrink-0 border-b border-border/60 px-5 py-4 text-left">
           <DialogTitle>Crop ID card — {sideLabel}</DialogTitle>
-          <DialogDescription>
-            Fit the card inside the frame. Drag to move, scroll or use the slider to zoom.
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         <div className="relative min-h-[min(68vh,28rem)] flex-1 bg-zinc-950">

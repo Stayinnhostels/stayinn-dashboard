@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Banknote, CalendarCheck, Loader2, Percent, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -220,7 +220,6 @@ export function BookingPricingCard({ booking }: Props) {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Pricing</CardTitle>
-          <CardDescription>Cancelled bookings cannot be repriced.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -233,9 +232,6 @@ export function BookingPricingCard({ booking }: Props) {
           <Banknote className="h-4 w-4" />
           Check-in collection
         </CardTitle>
-        <CardDescription>Adjust rent if negotiated at the desk.
-          
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {monthlyStay && (
@@ -244,10 +240,6 @@ export function BookingPricingCard({ booking }: Props) {
               <Shield className="h-4 w-4 text-primary" />
               Security deposit
             </div>
-            <p className="text-sm text-muted-foreground">
-              Standard {money(securityPerSeat(cur))} per seat — {money(listSecurity)} for{" "}
-              {booking.seats_booked} seat(s).
-            </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -291,7 +283,7 @@ export function BookingPricingCard({ booking }: Props) {
                   if (e.target.checked) setSecurityInput(String(storedSecurityAmount));
                 }}
               />
-              <span>Negotiated security (lower or higher than standard)</span>
+              <span>Custom security</span>
             </label>
 
             {useCustomSecurity && Number.isFinite(parsedSecurity) && parsedSecurity !== listSecurity ? (
@@ -320,13 +312,9 @@ export function BookingPricingCard({ booking }: Props) {
               <CalendarCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
               Rent collection
             </div>
-            <p className="text-sm text-muted-foreground">
-              Mark each month here or
-              collect several months at once.
-            </p>
             {booking.months_paid_upfront != null && booking.months > 1 && (
               <p className="text-xs text-muted-foreground">
-                Online commitment: {booking.months_paid_upfront} of {booking.months} month(s) upfront.
+                Upfront: {booking.months_paid_upfront}/{booking.months}
               </p>
             )}
             <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-sm">

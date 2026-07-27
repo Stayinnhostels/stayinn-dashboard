@@ -18,45 +18,27 @@ function AdminNotFoundPage() {
 }
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
-  "/admin": { title: "Dashboard Overview", subtitle: "High-level performance at a glance" },
-  "/admin/rooms": { title: "Room Management", subtitle: "Inventory, pricing & availability" },
-  "/admin/bookings": { title: "Booking Management", subtitle: "All reservations across the property" },
-  "/admin/users": { title: "User Management", subtitle: "Registered guests and staff" },
-  "/admin/payments": {
-    title: "Payments",
-    subtitle: "Month-by-month rent collected, unpaid, and payment status",
-  },
-  "/admin/security-payments": {
-    title: "Security deposits",
-    subtitle: "Held deposits, returns, and remaining balances by guest",
-  },
-  "/admin/financials": { title: "Revenue & Analytics", subtitle: "Deep financial insights" },
-  "/admin/expenses": {
-    title: "Monthly Expenses",
-    subtitle: "Log expenses by month, then see revenue, costs, and profit side by side",
-  },
-  "/admin/profit-loss": {
-    title: "Monthly Expenses",
-    subtitle: "Log expenses by month, then see revenue, costs, and profit side by side",
-  },
-  "/admin/monthly-rent": { title: "Monthly Rent Register", subtitle: "Resident-by-resident rent & details" },
-  "/admin/residents": {
-    title: "Residents",
-    subtitle: "Complete resident directory — profiles, stay history, and PDF records",
-  },
-  "/admin/residents-by-room": {
-    title: "Residents by Room",
-    subtitle: "See who is living in each room — occupancy at a glance",
-  },
-  "/admin/facilities": { title: "Facilities", subtitle: "Website amenities and feature cards" },
-  "/admin/website": { title: "Website", subtitle: "Homepage sections on the public marketing site" },
-  "/admin/website/about": { title: "Website", subtitle: "About page on the public marketing site" },
-  "/admin/reviews": { title: "Reviews", subtitle: "Moderate guest feedback" },
-  "/admin/staff": { title: "Staff Management", subtitle: "Roles and permissions" },
-  "/admin/maintenance": { title: "Maintenance", subtitle: "Tickets and room issues" },
-  "/admin/coupons": { title: "Coupons & Discounts", subtitle: "Promotional codes" },
-  "/admin/notifications": { title: "Notifications", subtitle: "All system alerts" },
-  "/admin/settings": { title: "Settings", subtitle: "Property and platform configuration" },
+  "/admin": { title: "Dashboard", subtitle: "" },
+  "/admin/rooms": { title: "Rooms", subtitle: "" },
+  "/admin/bookings": { title: "Bookings", subtitle: "" },
+  "/admin/users": { title: "Users", subtitle: "" },
+  "/admin/payments": { title: "Payments", subtitle: "" },
+  "/admin/security-payments": { title: "Security", subtitle: "" },
+  "/admin/financials": { title: "Revenue", subtitle: "" },
+  "/admin/expenses": { title: "Expenses", subtitle: "" },
+  "/admin/profit-loss": { title: "Expenses", subtitle: "" },
+  "/admin/monthly-rent": { title: "Monthly Rent", subtitle: "" },
+  "/admin/residents": { title: "Residents", subtitle: "" },
+  "/admin/residents-by-room": { title: "Residents by Room", subtitle: "" },
+  "/admin/facilities": { title: "Facilities", subtitle: "" },
+  "/admin/website": { title: "Website", subtitle: "" },
+  "/admin/website/about": { title: "About", subtitle: "" },
+  "/admin/reviews": { title: "Reviews", subtitle: "" },
+  "/admin/staff": { title: "Staff", subtitle: "" },
+  "/admin/maintenance": { title: "Maintenance", subtitle: "" },
+  "/admin/coupons": { title: "Coupons", subtitle: "" },
+  "/admin/notifications": { title: "Notifications", subtitle: "" },
+  "/admin/settings": { title: "Settings", subtitle: "" },
 };
 
 function resolveMeta(pathname: string) {
@@ -67,7 +49,7 @@ function resolveMeta(pathname: string) {
     const base = `/admin/${seg[1]}`;
     if (TITLES[base]) return { title: `${TITLES[base].title} · Details`, subtitle: "" };
   }
-  return { title: "Page not found", subtitle: "This admin page doesn't exist" };
+  return { title: "Not found", subtitle: "" };
 }
 
 function AdminLayout() {

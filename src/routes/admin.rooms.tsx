@@ -491,7 +491,6 @@ function RoomsListPage() {
           <CardContent className="py-20 text-center">
             <BedDouble className="mx-auto h-12 w-12 text-muted-foreground/50" />
             <p className="mt-3 font-bold">No rooms found</p>
-            <p className="text-xs text-muted-foreground">Try clearing filters or add your first room.</p>
             <Button onClick={() => setCreating(true)} className="mt-4 rounded-full">
               <Plus className="h-4 w-4" /> Add room
             </Button>

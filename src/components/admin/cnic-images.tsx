@@ -69,7 +69,6 @@ function CnicUploadSlot({
             <>
               <ImagePlus className="h-5 w-5" />
               <span>Upload {label.toLowerCase()}</span>
-              <span className="text-[10px] text-muted-foreground/80">Then crop to card</span>
             </>
           )}
           <input
@@ -120,9 +119,6 @@ export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: E
     <div className="space-y-3 sm:col-span-2">
       <div>
         <Label>CNIC images</Label>
-        <p className="text-xs text-muted-foreground">
-          Upload each side, then crop to the ID card frame. Crop applies only to ID cards.
-        </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CnicUploadSlot

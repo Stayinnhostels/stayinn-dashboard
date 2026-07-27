@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -92,7 +92,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Page intro</CardTitle>
-          <CardDescription>Top hero area with badge, headline, and opening paragraph.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-1.5 sm:max-w-xs">
@@ -131,11 +130,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Mission</CardTitle>
-          <CardDescription>
-            Mission copy on the left. The first three stat tiles come from the homepage hero — edit them under{" "}
-            <span className="font-medium text-foreground">Website → Homepage → Hero</span>. The brokerage tile is
-            edited below.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-1.5">
@@ -166,7 +160,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold">Brokerage stat</p>
-                <p className="text-xs text-muted-foreground">Fourth tile on the about page only (e.g. 0 / Brokerage).</p>
               </div>
               <Switch
                 checked={value.aboutShowBrokerage}
@@ -200,7 +193,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Values section</CardTitle>
-          <CardDescription>Add, edit, or remove value cards shown on the about page.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -241,7 +233,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Bottom call-to-action</CardTitle>
-          <CardDescription>Closing section with browse and contact buttons.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-1.5">
@@ -281,7 +272,6 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-semibold">Show secondary button</p>
-              <p className="text-xs text-muted-foreground">e.g. Contact Us</p>
             </div>
             <Switch checked={value.aboutCtaShowSecondary} onCheckedChange={(v) => onChange("aboutCtaShowSecondary", v)} />
           </div>

@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield } from "lucide-react";
 import { StaffTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import { useUsersQuery } from "@/queries/users";
 
@@ -20,21 +19,6 @@ function StaffPage() {
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/60">
-        <CardContent className="p-5">
-          <div className="flex items-start gap-3">
-            <Shield className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-bold">Super admin accounts</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Live data from your user database. New super admins are created through the backend seed
-                endpoint, not demo profiles.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {isLoading ? (
         <StaffTableSkeleton />
       ) : isError ? (

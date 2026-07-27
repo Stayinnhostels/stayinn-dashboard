@@ -202,7 +202,7 @@ export function RoomFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit room" : "Add room"}</DialogTitle>
-          <DialogDescription>Set room details, pricing, capacity and photos.</DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
@@ -232,10 +232,6 @@ export function RoomFormDialog({
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground -mt-2">
-            Room numbers start at <span className="font-semibold">101</span> and must be unique
-            (102, 103, …). Leave blank only if you do not want a number yet.
-          </p>
           <div className="grid gap-2">
             <Label>Description</Label>
             <Textarea
@@ -255,7 +251,6 @@ export function RoomFormDialog({
                 onChange={(e) => setPriceUsdText(e.target.value)}
                 placeholder="e.g. 120"
               />
-              <p className="text-[10px] text-muted-foreground">Shown to international guests</p>
             </div>
             <div className="grid gap-2">
               <Label>Price / seat / month (PKR)</Label>
@@ -266,7 +261,6 @@ export function RoomFormDialog({
                 onChange={(e) => setPricePkrText(e.target.value)}
                 placeholder="e.g. 35000"
               />
-              <p className="text-[10px] text-muted-foreground">Shown to Pakistan region</p>
             </div>
             <div className="grid gap-2">
               <Label>Category</Label>
@@ -331,13 +325,12 @@ export function RoomFormDialog({
 
           {!canSave && (
             <p className="text-xs text-destructive">
-              Check room number (101+), USD & PKR prices, capacity, and beds (available cannot exceed
-              total).
+              Check required fields.
             </p>
           )}
 
           <div className="grid gap-2">
-            <Label>Website display order</Label>
+            <Label>Display order</Label>
             <Input
               type="text"
               inputMode="numeric"
@@ -345,13 +338,10 @@ export function RoomFormDialog({
               onChange={(e) => setDisplayOrderText(e.target.value)}
               placeholder="e.g. 1"
             />
-            <p className="text-xs text-muted-foreground">
-              1 = shown first on the website, 2 = second, and so on. Use 100 for rooms that should appear later.
-            </p>
           </div>
 
           <div className="grid gap-2">
-            <Label>Badge (optional)</Label>
+            <Label>Badge</Label>
             <Input
               type="text"
               value={draft.badge ?? ""}
@@ -362,7 +352,6 @@ export function RoomFormDialog({
 
           <div className="grid gap-2">
             <Label>Amenities</Label>
-            <p className="text-xs text-muted-foreground">Select amenities for this room.</p>
             <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
               {amenityOptions.map((a) => (
                 <label key={a} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -375,9 +364,6 @@ export function RoomFormDialog({
 
           <div className="grid gap-2">
             <Label>Images</Label>
-            <p className="text-xs text-muted-foreground">
-              Uploads are compressed automatically. For many large photos, paste HTTPS image URLs below.
-            </p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {draft.images.map((src, i) => (
                 <div key={src + i} className="relative aspect-square overflow-hidden rounded-lg border">
@@ -399,7 +385,7 @@ export function RoomFormDialog({
             </div>
             <Input
               type="text"
-              placeholder="Paste image URL and press Enter"
+              placeholder="Image URL"
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
                 e.preventDefault();

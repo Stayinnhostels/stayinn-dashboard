@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AboutPageEditor } from "@/components/admin/website/about-page-editor";
 import { WebsitePageNav } from "@/components/admin/website/website-page-nav";
@@ -36,7 +36,7 @@ function AboutWebsitePage() {
 
   function resetAboutPage() {
     setAbout(ABOUT_PAGE_FORM_DEFAULTS);
-    toast.info("Reset about page to defaults — click Save to apply on the server");
+    toast.info("Reset to defaults — click Save to apply on the server");
   }
 
   if (isLoading && !data) {
@@ -59,11 +59,8 @@ function AboutWebsitePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Public website — About page
+            About
           </CardTitle>
-          <CardDescription>
-            Edit the /about page: intro, mission, values, and bottom call-to-action.
-          </CardDescription>
         </CardHeader>
       </Card>
 
@@ -71,7 +68,7 @@ function AboutWebsitePage() {
 
       <div className="sticky bottom-4 flex justify-end gap-2">
         <Button variant="outline" onClick={resetAboutPage}>
-          Reset about page
+          Reset
         </Button>
         <Button onClick={saveAboutPage} disabled={saveMutation.isPending} className="rounded-full font-semibold shadow-lg">
           {saveMutation.isPending ? (
@@ -79,7 +76,7 @@ function AboutWebsitePage() {
               <Loader2 className="h-4 w-4 animate-spin" /> Saving…
             </>
           ) : (
-            "Save about page"
+            "Save"
           )}
         </Button>
       </div>

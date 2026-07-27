@@ -124,13 +124,8 @@ export function ResidentDetailSheet({
             <p className="py-12 text-center text-sm text-destructive">Could not load resident details.</p>
           ) : (
             <>
-              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-                <p className="text-xs font-medium text-primary">Official resident record</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Full dossier: personal details, CNIC / ID card images, stay dates, room, every month of
-                  rent, and totals. Use this for verification or government records.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+              <div className="rounded-xl border border-border/60 px-4 py-3">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="default"
@@ -143,7 +138,7 @@ export function ResidentDetailSheet({
                     ) : (
                       <FileText className="mr-2 h-4 w-4" />
                     )}
-                    Full record PDF
+                    PDF
                   </Button>
                   <Button
                     type="button"
@@ -157,7 +152,7 @@ export function ResidentDetailSheet({
                     ) : (
                       <FileSpreadsheet className="mr-2 h-4 w-4" />
                     )}
-                    Full record Excel
+                    Excel
                   </Button>
                   <Button
                     type="button"

@@ -265,12 +265,10 @@ function RoomDetailPage() {
         <Card className="border-border/60">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Room details</CardTitle>
-            <p className="text-xs text-muted-foreground">Edit pricing, capacity, beds and amenities.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2 border-b border-border/60 pb-4">
               <Label>Status</Label>
-              <p className="text-xs text-muted-foreground">Click the status to choose another.</p>
               <RoomStatusPicker
                 status={room.status}
                 onChange={handleStatusChange}
@@ -340,7 +338,6 @@ function RoomDetailPage() {
 
             <div className="space-y-2 pt-1">
               <Label>Amenities</Label>
-              <p className="text-xs text-muted-foreground">Select amenities to include on this room.</p>
               <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
                 {amenityOptions.map((a) => (
                   <label key={a} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -397,10 +394,7 @@ function RoomDetailPage() {
       <Card className="border-border/60">
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
           <div>
-            <CardTitle className="text-base">Booking history</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Walk-in guests and online bookings. Add members manually when someone takes a seat at the desk.
-            </p>
+            <CardTitle className="text-base">Bookings</CardTitle>
           </div>
           <Button
             type="button"

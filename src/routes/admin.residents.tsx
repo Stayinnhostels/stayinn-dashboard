@@ -117,10 +117,6 @@ function ResidentsDirectoryPage() {
         <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base">Residents directory</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Full profiles for every monthly resident — open a row for details, or download the complete
-              PDF (including ID card images).
-            </p>
           </div>
           <Tabs
             value={scope}

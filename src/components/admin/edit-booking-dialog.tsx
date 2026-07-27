@@ -181,10 +181,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-4 w-4" /> Edit booking
           </DialogTitle>
-          <DialogDescription>
-            Update guest details, move-in date, stay length, seats, and pricing. Check-out and rent
-            months update automatically when you change move-in or duration.
-          </DialogDescription>
+          <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -228,12 +225,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
             </div>
           </div>
 
-          {isCancelled ? (
-            <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              This booking is cancelled. You can still update guest contact details. Re-activate the
-              booking first to change stay dates or seats.
-            </p>
-          ) : (
+          {!isCancelled && (
             <div className="space-y-3 rounded-md border border-border/60 p-3">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Stay
