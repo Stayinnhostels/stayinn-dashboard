@@ -65,7 +65,7 @@ const DEFAULTS: SettingsForm = {
   allowPets: false,
   smokingAllowed: false,
   houseRules:
-    "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in",
+    "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in\n• Minimum stay of 3 months — leave earlier and security is not refundable\n• After 3 months, give at least 1 month written notice before vacating",
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
   roomsFilterMinPrice: 3000,
