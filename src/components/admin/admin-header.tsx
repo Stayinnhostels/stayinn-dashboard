@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronDown, LogOut, Menu, Shield } from "lucide-react";
+import { ChevronDown, CircleHelp, LogOut, Menu, Shield } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth-context";
+import { useOnboardingTourStore } from "@/stores/tour/onboarding-tour.store";
 import { LiveNotificationAlerts } from "./live-notification-alerts";
 import { NotificationsBell } from "./notifications-bell";
 import type { AuthUser } from "@/types/domain/auth.types";
@@ -49,6 +51,7 @@ export function AdminHeader({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const bellAnchorRef = useRef<HTMLDivElement>(null);
+  const startTour = useOnboardingTourStore((s) => s.start);
 
   const displayName = user?.fullName ?? "Admin";
   const initials = useMemo(() => initialsFromName(displayName), [displayName]);
@@ -68,6 +71,7 @@ export function AdminHeader({
           className="md:hidden"
           onClick={onOpenMobileNav}
           aria-label="Open menu"
+          data-tour="mobile-menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -78,7 +82,26 @@ export function AdminHeader({
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <div ref={bellAnchorRef} className="relative flex items-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-10 w-10 rounded-full border-none bg-linear-to-br from-primary to-primary/70 text-primary-foreground shadow-md shadow-primary/30 transition-transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40"
+                aria-label="Show dashboard tour"
+                data-tour="header-help"
+                onClick={() => startTour()}
+              >
+                <span className="pointer-events-none absolute -inset-1.5 rounded-full bg-primary/40 animate-ping-from-center" />
+                <CircleHelp className="relative z-10 h-4.75 w-4.75 stroke-2" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Show tour</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <div ref={bellAnchorRef} className="relative flex items-center" data-tour="header-notifications">
           <LiveNotificationAlerts anchorRef={bellAnchorRef} />
           <NotificationsBell />
         </div>
@@ -89,6 +112,7 @@ export function AdminHeader({
               variant="ghost"
               className="h-auto gap-2.5 rounded-full px-1.5 py-1 hover:bg-muted/60 data-[state=open]:bg-muted/60"
               aria-label="Open account menu"
+              data-tour="header-account"
             >
               <Avatar className="h-9 w-9">
                 {photoUrl ? <AvatarImage src={photoUrl} alt={displayName} className="object-cover" /> : null}

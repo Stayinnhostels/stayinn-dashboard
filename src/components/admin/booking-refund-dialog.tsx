@@ -176,7 +176,7 @@ export function BookingRefundDialog({
             {requiresRefund ? (
               <>
                 <div className="grid gap-2">
-                  <Label htmlFor="amount-refunded">
+                  <Label htmlFor="amount-refunded" required>
                     {mode === "checkout" && rentCollected > 0
                       ? "Rent returned to guest"
                       : "Amount returned to guest"}
@@ -232,7 +232,7 @@ export function BookingRefundDialog({
                 {securityPaid ? (
                   <>
                     <div className="grid gap-2">
-                      <Label htmlFor="security-returned">Security returned to guest now</Label>
+                      <Label htmlFor="security-returned" required>Security returned to guest now</Label>
                       <Input
                         id="security-returned"
                         type="text"

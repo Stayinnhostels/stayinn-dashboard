@@ -325,7 +325,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5 sm:col-span-2">
-                  <Label htmlFor="manual-name">Full name *</Label>
+                  <Label htmlFor="manual-name" required>Full name</Label>
                   <Input
                     id="manual-name"
                     value={guestName}
@@ -335,7 +335,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="manual-phone">Phone *</Label>
+                  <Label htmlFor="manual-phone" required>Phone</Label>
                   <Input
                     id="manual-phone"
                     value={guestPhone}
@@ -370,7 +370,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stay</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label>Stay type *</Label>
+                  <Label required>Stay type</Label>
                   <Select value={stayUnit} onValueChange={(v) => setStayUnit(v as "month" | "night")}>
                     <SelectTrigger>
                       <SelectValue />
@@ -382,7 +382,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                   </Select>
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="manual-move-in">{isNightStay ? "Check-in *" : "Move-in *"}</Label>
+                  <Label htmlFor="manual-move-in" required>{isNightStay ? "Check-in" : "Move-in"}</Label>
                   <Input
                     id="manual-move-in"
                     type="date"
@@ -392,7 +392,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="manual-seats">Seats *</Label>
+                  <Label htmlFor="manual-seats" required>Seats</Label>
                   <Input
                     id="manual-seats"
                     type="number"
@@ -407,7 +407,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 {isNightStay ? (
                   <>
                     <div className="grid gap-1.5">
-                      <Label htmlFor="manual-nights">Nights *</Label>
+                      <Label htmlFor="manual-nights" required>Nights</Label>
                       <Input
                         id="manual-nights"
                         type="number"
@@ -419,7 +419,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                       />
                     </div>
                     <div className="grid gap-1.5 sm:col-span-2">
-                      <Label htmlFor="manual-nightly-rate">Rate / night *</Label>
+                      <Label htmlFor="manual-nightly-rate" required>Rate / night</Label>
                       <Input
                         id="manual-nightly-rate"
                         type="number"
@@ -434,7 +434,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 ) : (
                   <>
                     <div className="grid gap-1.5">
-                      <Label htmlFor="manual-months">Stay length (months) *</Label>
+                      <Label htmlFor="manual-months" required>Stay length (months)</Label>
                       <Input
                         id="manual-months"
                         type="number"
@@ -447,7 +447,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     </div>
                     {isMidMonthArrival ? (
                       <div className="grid gap-1.5 sm:col-span-2">
-                        <Label>Arrival month ({monthShortLabel(moveIn)}) charge *</Label>
+                        <Label required>Arrival month ({monthShortLabel(moveIn)}) charge</Label>
                         <Select
                           value={firstMonthBilling}
                           onValueChange={(v) => setFirstMonthBilling(v as "full" | "prorate")}
@@ -483,7 +483,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         ) : null}
                         {firstMonthBilling === "prorate" && useCustomFirstMonth ? (
                           <div className="grid gap-1.5">
-                            <Label htmlFor="manual-first-month-amount">Days amount *</Label>
+                            <Label htmlFor="manual-first-month-amount" required>Days amount</Label>
                             <Input
                               id="manual-first-month-amount"
                               type="number"
@@ -498,7 +498,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                       </div>
                     ) : null}
                     <div className="grid gap-1.5 sm:col-span-2">
-                      <Label htmlFor="manual-months-pay">Paying now (months of rent) *</Label>
+                      <Label htmlFor="manual-months-pay" required>Paying now (months of rent)</Label>
                       <Input
                         id="manual-months-pay"
                         type="number"
@@ -614,9 +614,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
                 {useCustomPrice ? (
                   <div className="grid gap-1.5">
-                    <Label htmlFor="manual-total" className="flex items-center gap-1.5">
+                    <Label htmlFor="manual-total" className="flex items-center gap-1.5" required>
                       <Banknote className="h-3.5 w-3.5" />
-                      {isNightStay ? "Amount to charge *" : "Rent per month *"}
+                      {isNightStay ? "Amount to charge" : "Rent per month"}
                     </Label>
                     <Input
                       id="manual-total"
@@ -678,9 +678,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
                     {useCustomSecurity ? (
                       <div className="grid gap-1.5">
-                        <Label htmlFor="manual-security" className="flex items-center gap-1.5">
+                        <Label htmlFor="manual-security" className="flex items-center gap-1.5" required>
                           <Banknote className="h-3.5 w-3.5" />
-                          Security to collect *
+                          Security to collect
                         </Label>
                         <Input
                           id="manual-security"

@@ -36,9 +36,23 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function rotatedBoundingBox(width: number, height: number, rotation: number) {
+  const rotRad = (rotation * Math.PI) / 180;
+  return {
+    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
 /**
  * Crop using pixel area from react-easy-crop (supports rotation).
  * Compresses for API storage — ID card uploads only.
+ *
+ * `pixelCrop` is relative to the *rotated* bounding box react-easy-crop
+ * reports, so the rotated image must first be drawn onto a canvas sized to
+ * that exact bounding box (not a padded/worst-case square) before cropping —
+ * otherwise the crop rect lands on the wrong region whenever rotation isn't
+ * a multiple of 180°.
  */
 export async function cropCnicImageToDataUrl(
   imageSrc: string,
@@ -46,41 +60,43 @@ export async function cropCnicImageToDataUrl(
   rotation = 0,
 ): Promise<string> {
   const image = await loadImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not process image");
+  const { width: bBoxWidth, height: bBoxHeight } = rotatedBoundingBox(
+    image.width,
+    image.height,
+    rotation,
+  );
 
-  const maxSize = Math.max(image.width, image.height);
-  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+  const rotatedCanvas = document.createElement("canvas");
+  rotatedCanvas.width = Math.round(bBoxWidth);
+  rotatedCanvas.height = Math.round(bBoxHeight);
+  const rotatedCtx = rotatedCanvas.getContext("2d");
+  if (!rotatedCtx) throw new Error("Could not process image");
 
-  canvas.width = safeArea;
-  canvas.height = safeArea;
-
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate((rotation * Math.PI) / 180);
-  ctx.translate(-safeArea / 2, -safeArea / 2);
-  ctx.drawImage(image, safeArea / 2 - image.width * 0.5, safeArea / 2 - image.height * 0.5);
-
-  const data = ctx.getImageData(0, 0, safeArea, safeArea);
+  rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+  rotatedCtx.rotate((rotation * Math.PI) / 180);
+  rotatedCtx.translate(-image.width / 2, -image.height / 2);
+  rotatedCtx.drawImage(image, 0, 0);
 
   const scale = Math.min(1, MAX_WIDTH / Math.max(pixelCrop.width, 1));
   const outW = Math.max(1, Math.round(pixelCrop.width * scale));
   const outH = Math.max(1, Math.round(pixelCrop.height * scale));
-
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-  ctx.putImageData(
-    data,
-    Math.round(-safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-    Math.round(-safeArea / 2 + image.height * 0.5 - pixelCrop.y),
-  );
 
   const output = document.createElement("canvas");
   output.width = outW;
   output.height = outH;
   const outCtx = output.getContext("2d");
   if (!outCtx) throw new Error("Could not process image");
-  outCtx.drawImage(canvas, 0, 0, outW, outH);
+  outCtx.drawImage(
+    rotatedCanvas,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    outW,
+    outH,
+  );
 
   let quality = 0.82;
   let dataUrl = output.toDataURL("image/jpeg", quality);

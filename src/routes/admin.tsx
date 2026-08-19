@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
+import { OnboardingTour } from "@/components/admin/onboarding-tour";
 import { NotFoundView } from "@/components/not-found-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
@@ -79,6 +80,7 @@ function AdminLayout() {
     <DashboardThemeProvider>
       <NotificationSocketProvider>
       <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
+        <OnboardingTour />
         <AdminSidebar />
         <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

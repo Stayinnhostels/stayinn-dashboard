@@ -409,7 +409,7 @@ export function BookingPricingCard({ booking }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="booking-total">Final rent total *</Label>
+              <Label htmlFor="booking-total" required>Final rent total</Label>
               <Input
                 id="booking-total"
                 type="number"

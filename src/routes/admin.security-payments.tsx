@@ -357,7 +357,7 @@ function ReturnSecurityDialog({
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="sec-return-amount">Amount to return *</Label>
+              <Label htmlFor="sec-return-amount" required>Amount to return</Label>
               <Input
                 id="sec-return-amount"
                 type="number"

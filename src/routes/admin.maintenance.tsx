@@ -274,7 +274,7 @@ function MaintenancePage() {
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label>Title</Label>
+              <Label required>Title</Label>
               <Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
             </div>
             <div className="grid gap-1.5">

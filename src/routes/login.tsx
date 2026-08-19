@@ -115,7 +115,7 @@ function LoginPage() {
           className="space-y-5 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-[0_18px_50px_-28px_rgba(0,64,120,0.45)] backdrop-blur-sm sm:p-8"
         >
           <div className="space-y-2">
-            <Label htmlFor="email" className="font-semibold">
+            <Label htmlFor="email" className="font-semibold" required>
               Email
             </Label>
             <div className="relative">
@@ -134,7 +134,7 @@ function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="font-semibold">
+            <Label htmlFor="password" className="font-semibold" required>
               Password
             </Label>
             <div className="relative">

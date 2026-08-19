@@ -129,7 +129,7 @@ export function AdminProfileSettingsCard() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="admin-profile-name">Display name</Label>
+            <Label htmlFor="admin-profile-name" required>Display name</Label>
             <Input
               id="admin-profile-name"
               value={name}

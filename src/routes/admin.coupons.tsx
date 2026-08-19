@@ -256,7 +256,7 @@ function CouponsPage() {
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label>Code</Label>
+              <Label required>Code</Label>
               <Input
                 value={draft.code}
                 onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}

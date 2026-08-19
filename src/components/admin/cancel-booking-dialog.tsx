@@ -73,7 +73,7 @@ export function CancelBookingDialog({
             {requiresRefund ? (
               <>
                 <div className="grid gap-2">
-                  <Label htmlFor="amount-refunded">Amount returned to guest</Label>
+                  <Label htmlFor="amount-refunded" required>Amount returned to guest</Label>
                   <Input
                     id="amount-refunded"
                     type="text"

@@ -255,7 +255,7 @@ function SidebarBody({
       </div>
 
       <nav className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto py-4", compact ? "px-2" : "px-3")}>
-        <div className="space-y-1">
+        <div className="space-y-1" data-tour="nav-dashboard">
           <NavLink
             item={overviewItem}
             active={isItemActive(pathname, overviewItem)}
@@ -269,7 +269,7 @@ function SidebarBody({
           const sectionActive = sectionHasActive(pathname, section);
 
           return (
-            <div key={section.id} className="space-y-1">
+            <div key={section.id} className="space-y-1" data-tour={`nav-section-${section.id}`}>
               {!compact ? (
                 <button
                   type="button"

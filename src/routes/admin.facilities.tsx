@@ -285,7 +285,7 @@ function FacilitiesPage() {
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label>Title</Label>
+              <Label required>Title</Label>
               <Input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -293,7 +293,7 @@ function FacilitiesPage() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Description</Label>
+              <Label required>Description</Label>
               <Textarea
                 rows={3}
                 value={draft.description}

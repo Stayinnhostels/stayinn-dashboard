@@ -276,7 +276,7 @@ function RoomDetailPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-price-usd">Price / seat / month (USD)</Label>
+              <Label htmlFor="room-price-usd" required>Price / seat / month (USD)</Label>
               <Input
                 id="room-price-usd"
                 type="text"
@@ -287,7 +287,7 @@ function RoomDetailPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-price-pkr">Price / seat / month (PKR)</Label>
+              <Label htmlFor="room-price-pkr" required>Price / seat / month (PKR)</Label>
               <Input
                 id="room-price-pkr"
                 type="text"
@@ -298,7 +298,7 @@ function RoomDetailPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-capacity">Capacity (guests)</Label>
+              <Label htmlFor="room-capacity" required>Capacity (guests)</Label>
               <Input
                 id="room-capacity"
                 type="text"
@@ -309,7 +309,7 @@ function RoomDetailPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-beds-total">Total beds</Label>
+              <Label htmlFor="room-beds-total" required>Total beds</Label>
               <Input
                 id="room-beds-total"
                 type="text"

@@ -187,7 +187,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label htmlFor="edit-guest-name">Guest name *</Label>
+              <Label htmlFor="edit-guest-name" required>Guest name</Label>
               <Input
                 id="edit-guest-name"
                 value={guestName}
@@ -196,7 +196,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               />
             </div>
             <div>
-              <Label htmlFor="edit-guest-email">Email *</Label>
+              <Label htmlFor="edit-guest-email" required>Email</Label>
               <Input
                 id="edit-guest-email"
                 type="email"
@@ -206,7 +206,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               />
             </div>
             <div>
-              <Label htmlFor="edit-guest-phone">Phone *</Label>
+              <Label htmlFor="edit-guest-phone" required>Phone</Label>
               <Input
                 id="edit-guest-phone"
                 value={guestPhone}
@@ -232,7 +232,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="edit-move-in">Move-in *</Label>
+                  <Label htmlFor="edit-move-in" required>Move-in</Label>
                   <Input
                     id="edit-move-in"
                     type="date"
@@ -242,8 +242,8 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-duration">
-                    {isNightStay ? "Nights *" : "Months *"}
+                  <Label htmlFor="edit-duration" required>
+                    {isNightStay ? "Nights" : "Months"}
                   </Label>
                   <Input
                     id="edit-duration"
@@ -258,7 +258,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-seats">Seats *</Label>
+                  <Label htmlFor="edit-seats" required>Seats</Label>
                   <Input
                     id="edit-seats"
                     type="number"
@@ -270,8 +270,8 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-check-out">
-                    Check-out {overrideCheckOut ? "*" : "(auto)"}
+                  <Label htmlFor="edit-check-out" required={overrideCheckOut}>
+                    Check-out {overrideCheckOut ? "" : "(auto)"}
                   </Label>
                   <Input
                     id="edit-check-out"

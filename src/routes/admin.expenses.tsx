@@ -671,7 +671,7 @@ function MonthlyExpensesPage() {
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="exp-title">What did you buy / pay for?</Label>
+              <Label htmlFor="exp-title" required>What did you buy / pay for?</Label>
               <Input
                 id="exp-title"
                 value={draft.title}
@@ -681,7 +681,7 @@ function MonthlyExpensesPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="exp-amount">Amount</Label>
+                <Label htmlFor="exp-amount" required>Amount</Label>
                 <Input
                   id="exp-amount"
                   type="number"

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { IdCard, ImagePlus, Loader2, X } from "lucide-react";
+import { useEffect, useState, type ChangeEvent } from "react";
+import { IdCard, ImagePlus, Loader2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,19 +14,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
 import { readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
+import { useUpdateResidentMutation } from "@/queries/residents";
 import { cn } from "@/lib/utils";
 
 type CnicImages = {
   front: string;
   back: string;
+  bForm?: string;
 };
 
 export function hasAnyCnicImage(images: CnicImages) {
-  return Boolean(images.front || images.back);
+  return Boolean(images.front || images.back || images.bForm);
 }
 
 export function cnicUploadCount(images: CnicImages) {
   return Number(Boolean(images.front)) + Number(Boolean(images.back));
+}
+
+/** CNIC (front+back) or a single B-Form image both count as a complete ID on file. */
+function idDocStatus({ front, back, bForm }: CnicImages) {
+  const complete = Boolean(bForm) || Boolean(front && back);
+  const partial = !complete && Boolean(front || back);
+  return { complete, partial };
 }
 
 type UploadSlotProps = {
@@ -102,15 +111,27 @@ type EditorProps = {
   back: string;
   onFrontChange: (value: string) => void;
   onBackChange: (value: string) => void;
+  bForm: string;
+  onBFormChange: (value: string) => void;
 };
 
-export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: EditorProps) {
+type CropSide = "Front" | "Back" | "B-Form";
+
+export function CnicImagesEditor({
+  front,
+  back,
+  onFrontChange,
+  onBackChange,
+  bForm,
+  onBFormChange,
+}: EditorProps) {
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
-  const [cropSide, setCropSide] = useState<"Front" | "Back" | null>(null);
+  const [uploadingBForm, setUploadingBForm] = useState(false);
+  const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
-  function openCrop(side: "Front" | "Back", src: string) {
+  function openCrop(side: CropSide, src: string) {
     setCropSide(side);
     setCropSrc(src);
   }
@@ -139,6 +160,25 @@ export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: E
         />
       </div>
 
+      <div className="flex items-center gap-2 pt-1">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          No CNIC? Use B-Form instead
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CnicUploadSlot
+          label="B-Form"
+          value={bForm}
+          uploading={uploadingBForm}
+          onChange={onBFormChange}
+          onUploading={setUploadingBForm}
+          onPickForCrop={(src) => openCrop("B-Form", src)}
+        />
+      </div>
+
       <CnicCropDialog
         open={Boolean(cropSide && cropSrc)}
         imageSrc={cropSrc}
@@ -152,8 +192,115 @@ export function CnicImagesEditor({ front, back, onFrontChange, onBackChange }: E
         onCropped={(dataUrl) => {
           if (cropSide === "Front") onFrontChange(dataUrl);
           else if (cropSide === "Back") onBackChange(dataUrl);
+          else if (cropSide === "B-Form") onBFormChange(dataUrl);
         }}
       />
+    </div>
+  );
+}
+
+type ViewerSlotProps = {
+  label: string;
+  value: string;
+  busy: boolean;
+  disabled: boolean;
+  onPick: (file: File) => void;
+};
+
+function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProps) {
+  function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (file) onPick(file);
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      {value ? (
+        <div className="relative overflow-hidden rounded-xl border">
+          <a href={value} target="_blank" rel="noopener noreferrer" className="block">
+            <img
+              src={value}
+              alt={`CNIC ${label.toLowerCase()}`}
+              className="h-56 w-full object-contain bg-muted/30"
+            />
+          </a>
+          <label
+            className={cn(
+              "absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1.5 text-xs font-medium shadow hover:bg-background",
+              disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+            )}
+          >
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Pencil className="h-3.5 w-3.5" />
+            )}
+            Replace
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={disabled}
+              onChange={handleFile}
+            />
+          </label>
+        </div>
+      ) : (
+        <label
+          className={cn(
+            "flex h-56 w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted/40",
+            disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+          )}
+        >
+          {busy ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              <ImagePlus className="h-5 w-5" />
+              <span>{label} not uploaded — click to upload</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={disabled}
+            onChange={handleFile}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function ReadOnlyIdSlot({
+  label,
+  value,
+  altText,
+}: {
+  label: string;
+  value: string;
+  altText: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      {value ? (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block overflow-hidden rounded-xl border"
+        >
+          <img src={value} alt={altText} className="h-56 w-full object-contain bg-muted/30" />
+        </a>
+      ) : (
+        <div className="flex h-56 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+          {label} not uploaded
+        </div>
+      )}
     </div>
   );
 }
@@ -164,61 +311,178 @@ type ViewerProps = {
   name?: string;
   front: string;
   back: string;
+  bForm: string;
+  /** When provided (with `month`), missing/existing images can be uploaded and are saved immediately. */
+  bookingId?: string;
+  month?: string;
 };
 
-export function CnicImagesViewerModal({ open, onOpenChange, name, front, back }: ViewerProps) {
+export function CnicImagesViewerModal({
+  open,
+  onOpenChange,
+  name,
+  front,
+  back,
+  bForm,
+  bookingId,
+  month,
+}: ViewerProps) {
+  const update = useUpdateResidentMutation();
+  const canUpload = Boolean(bookingId && month);
+
+  const [localFront, setLocalFront] = useState(front);
+  const [localBack, setLocalBack] = useState(back);
+  const [localBForm, setLocalBForm] = useState(bForm);
+  const [pickingFront, setPickingFront] = useState(false);
+  const [pickingBack, setPickingBack] = useState(false);
+  const [pickingBForm, setPickingBForm] = useState(false);
+  const [cropSide, setCropSide] = useState<CropSide | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const anyPicking = pickingFront || pickingBack || pickingBForm;
+
+  useEffect(() => {
+    if (open) {
+      setLocalFront(front);
+      setLocalBack(back);
+      setLocalBForm(bForm);
+    }
+  }, [open, front, back, bForm]);
+
+  async function handlePick(side: CropSide, file: File) {
+    const setPicking =
+      side === "Front" ? setPickingFront : side === "Back" ? setPickingBack : setPickingBForm;
+    setPicking(true);
+    try {
+      const src = await readImageFileAsDataUrl(file);
+      setCropSide(side);
+      setCropSrc(src);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not process image");
+    } finally {
+      setPicking(false);
+    }
+  }
+
+  function handleCropped(dataUrl: string) {
+    if (!cropSide) return;
+    const side = cropSide;
+    if (!bookingId || !month) {
+      if (side === "Front") setLocalFront(dataUrl);
+      else if (side === "Back") setLocalBack(dataUrl);
+      else setLocalBForm(dataUrl);
+      return;
+    }
+    const input =
+      side === "Front"
+        ? { month, guest_cnic_image_front: dataUrl }
+        : side === "Back"
+          ? { month, guest_cnic_image_back: dataUrl }
+          : { month, guest_b_form_image: dataUrl };
+    update.mutate(
+      { bookingId, input },
+      {
+        onSuccess: () => {
+          if (side === "Front") setLocalFront(dataUrl);
+          else if (side === "Back") setLocalBack(dataUrl);
+          else setLocalBForm(dataUrl);
+          toast.success(`${side} image saved`);
+        },
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save image"),
+      },
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Front</p>
-            {front ? (
-              <a href={front} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border">
-                <img src={front} alt="CNIC front" className="h-56 w-full object-contain bg-muted/30" />
-              </a>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {canUpload ? (
+              <>
+                <CnicViewerSlot
+                  label="Front"
+                  value={localFront}
+                  busy={pickingFront || (update.isPending && cropSide === "Front")}
+                  disabled={update.isPending || anyPicking}
+                  onPick={(file) => void handlePick("Front", file)}
+                />
+                <CnicViewerSlot
+                  label="Back"
+                  value={localBack}
+                  busy={pickingBack || (update.isPending && cropSide === "Back")}
+                  disabled={update.isPending || anyPicking}
+                  onPick={(file) => void handlePick("Back", file)}
+                />
+              </>
             ) : (
-              <div className="flex h-56 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
-                Front not uploaded
-              </div>
+              <>
+                <ReadOnlyIdSlot label="Front" value={front} altText="CNIC front" />
+                <ReadOnlyIdSlot label="Back" value={back} altText="CNIC back" />
+              </>
             )}
           </div>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Back</p>
-            {back ? (
-              <a href={back} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border">
-                <img src={back} alt="CNIC back" className="h-56 w-full object-contain bg-muted/30" />
-              </a>
+
+          <div className="flex items-center gap-2 pt-1">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              No CNIC? B-Form (single image)
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {canUpload ? (
+              <CnicViewerSlot
+                label="B-Form"
+                value={localBForm}
+                busy={pickingBForm || (update.isPending && cropSide === "B-Form")}
+                disabled={update.isPending || anyPicking}
+                onPick={(file) => void handlePick("B-Form", file)}
+              />
             ) : (
-              <div className="flex h-56 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
-                Back not uploaded
-              </div>
+              <ReadOnlyIdSlot label="B-Form" value={bForm} altText="B-Form" />
             )}
           </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {canUpload ? (
+        <CnicCropDialog
+          open={Boolean(cropSide && cropSrc)}
+          imageSrc={cropSrc}
+          sideLabel={cropSide ?? "Front"}
+          onOpenChange={(o) => {
+            if (!o) {
+              setCropSide(null);
+              setCropSrc(null);
+            }
+          }}
+          onCropped={handleCropped}
+        />
+      ) : null}
+    </>
   );
 }
 
 type StatusIconProps = {
   front: string;
   back: string;
+  bForm?: string;
   onClick: () => void;
 };
 
-export function CnicImagesStatusIcon({ front, back, onClick }: StatusIconProps) {
+export function CnicImagesStatusIcon({ front, back, bForm = "", onClick }: StatusIconProps) {
   const count = cnicUploadCount({ front, back });
-  const complete = count === 2;
-  const partial = count === 1;
+  const { complete, partial } = idDocStatus({ front, back, bForm });
 
   return (
     <button
@@ -228,11 +492,13 @@ export function CnicImagesStatusIcon({ front, back, onClick }: StatusIconProps) 
         onClick();
       }}
       title={
-        complete
-          ? "Front & back uploaded — view"
-          : partial
-            ? `${count}/2 uploaded — view`
-            : "No CNIC images — click to view"
+        bForm && !(front && back)
+          ? "B-Form uploaded — view"
+          : complete
+            ? "Front & back uploaded — view"
+            : partial
+              ? `${count}/2 uploaded — view`
+              : "No ID on file — click to upload"
       }
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
@@ -245,7 +511,7 @@ export function CnicImagesStatusIcon({ front, back, onClick }: StatusIconProps) 
     >
       <IdCard className="h-4 w-4" />
       <span className="sr-only">
-        {complete ? "CNIC complete" : partial ? "CNIC partial" : "CNIC missing"}
+        {complete ? "ID complete" : partial ? "ID partial" : "ID missing"}
       </span>
     </button>
   );

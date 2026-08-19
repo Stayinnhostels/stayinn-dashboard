@@ -35,7 +35,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, FileSpreadsheet, FileText, Loader2, LogOut, Pencil, Receipt, Search, Users } from "lucide-react";
+import {
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  LogOut,
+  Pencil,
+  Receipt,
+  Search,
+  Users,
+} from "lucide-react";
 import { MonthlyRentTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import {
   CnicImagesEditor,
@@ -50,10 +60,7 @@ import {
   downloadMonthRentRegisterPdfApi,
   downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
-import {
-  useResidentsRegisterQuery,
-  useUpdateResidentMutation,
-} from "@/queries/residents";
+import { useResidentsRegisterQuery, useUpdateResidentMutation } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
@@ -261,6 +268,7 @@ function EditResidentDialog({
   const [cnic, setCnic] = useState("");
   const [cnicFront, setCnicFront] = useState("");
   const [cnicBack, setCnicBack] = useState("");
+  const [bFormImage, setBFormImage] = useState("");
   const [guardian, setGuardian] = useState("");
   const [address, setAddress] = useState("");
   const [seatLabel, setSeatLabel] = useState("");
@@ -273,7 +281,7 @@ function EditResidentDialog({
 
   useEffect(() => {
     if (!row || !open) return;
-    setEmail(row.email?.endsWith("@stayinn.internal") ? "" : row.email ?? "");
+    setEmail(row.email?.endsWith("@stayinn.internal") ? "" : (row.email ?? ""));
     setPhone(row.contact_number ?? "");
     setChannel(row.channel ?? "");
     setFatherName(row.father_name);
@@ -281,6 +289,7 @@ function EditResidentDialog({
     setCnic(row.cnic);
     setCnicFront(row.cnic_image_front ?? "");
     setCnicBack(row.cnic_image_back ?? "");
+    setBFormImage(row.b_form_image ?? "");
     setGuardian(row.guardian_contact);
     setAddress(row.permanent_address);
     setSeatLabel(row.seat_label);
@@ -303,6 +312,7 @@ function EditResidentDialog({
       guest_cnic: cnic.trim(),
       guest_cnic_image_front: cnicFront,
       guest_cnic_image_back: cnicBack,
+      guest_b_form_image: bFormImage,
       guest_guardian_contact: guardian.trim(),
       guest_permanent_address: address.trim(),
       seat_label: seatLabel.trim(),
@@ -390,6 +400,8 @@ function EditResidentDialog({
               back={cnicBack}
               onFrontChange={setCnicFront}
               onBackChange={setCnicBack}
+              bForm={bFormImage}
+              onBFormChange={setBFormImage}
             />
             <div className="space-y-2 sm:col-span-2">
               <Label>Permanent address</Label>
@@ -477,7 +489,9 @@ function EditResidentDialog({
                 </div>
               </>
             ) : (
-              <div className="sm:col-span-2 text-xs text-muted-foreground">Security: check-in month only</div>
+              <div className="sm:col-span-2 text-xs text-muted-foreground">
+                Security: check-in month only
+              </div>
             )}
             <div className="space-y-2">
               <Label>Monthly rent ({month})</Label>
@@ -555,7 +569,8 @@ function MonthlyRentPage() {
   const residents = data?.residents ?? [];
   const pagination = data?.pagination;
 
-  const showingFrom = pagination && pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0;
+  const showingFrom =
+    pagination && pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0;
   const showingTo =
     pagination && pagination.total > 0
       ? Math.min(pagination.page * pagination.limit, pagination.total)
@@ -627,8 +642,7 @@ function MonthlyRentPage() {
           <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-2 sm:gap-3">
             <Badge variant="secondary" className="h-9 gap-1.5 px-3 whitespace-nowrap">
               <Users className="h-3.5 w-3.5" />
-              {pagination?.total ?? 0}{" "}
-              {cohort === "checkouts" ? "checkouts" : "active"}
+              {pagination?.total ?? 0} {cohort === "checkouts" ? "checkouts" : "active"}
             </Badge>
             <Button
               type="button"
@@ -736,7 +750,6 @@ function MonthlyRentPage() {
             </Tabs>
           </div>
           <div className="text-xs text-muted-foreground space-y-1">
-           
             {pagination && pagination.total > 0 ? (
               <p>
                 Showing {showingFrom}–{showingTo} of {pagination.total}{" "}
@@ -816,9 +829,7 @@ function MonthlyRentPage() {
                         <span
                           className="block truncate"
                           title={
-                            r.email && !r.email.endsWith("@stayinn.internal")
-                              ? r.email
-                              : undefined
+                            r.email && !r.email.endsWith("@stayinn.internal") ? r.email : undefined
                           }
                         >
                           {r.email && !r.email.endsWith("@stayinn.internal") ? r.email : "—"}
@@ -836,6 +847,7 @@ function MonthlyRentPage() {
                         <CnicImagesStatusIcon
                           front={r.cnic_image_front ?? ""}
                           back={r.cnic_image_back ?? ""}
+                          bForm={r.b_form_image ?? ""}
                           onClick={() => setCnicViewer(r)}
                         />
                       </TableCell>
@@ -850,7 +862,10 @@ function MonthlyRentPage() {
                         </span>
                       </TableCell>
                       <TableCell className="max-w-[9rem]">
-                        <span className="block truncate text-xs" title={r.room_title || r.room_seat}>
+                        <span
+                          className="block truncate text-xs"
+                          title={r.room_title || r.room_seat}
+                        >
                           {r.room_title || "Room"}
                         </span>
                       </TableCell>
@@ -864,7 +879,10 @@ function MonthlyRentPage() {
                         {r.check_out ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn("whitespace-nowrap text-xs", statusBadgeClass(r.status))}>
+                        <Badge
+                          variant="outline"
+                          className={cn("whitespace-nowrap text-xs", statusBadgeClass(r.status))}
+                        >
                           {r.status.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
@@ -962,6 +980,9 @@ function MonthlyRentPage() {
         name={cnicViewer?.name}
         front={cnicViewer?.cnic_image_front ?? ""}
         back={cnicViewer?.cnic_image_back ?? ""}
+        bForm={cnicViewer?.b_form_image ?? ""}
+        bookingId={cnicViewer?.booking_id}
+        month={month}
       />
 
       <ResidentDetailSheet

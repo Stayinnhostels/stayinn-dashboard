@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,22 @@ export function NotificationsBell({ className }: Props) {
   const items = data?.notifications ?? [];
   const unread = data?.unread_count ?? items.filter((i) => !i.read).length;
 
+  const [shaking, setShaking] = useState(false);
+
+  useEffect(() => {
+    if (unread === 0) return;
+    let shakeTimeout: number | undefined;
+    const interval = window.setInterval(() => {
+      setShaking(true);
+      shakeTimeout = window.setTimeout(() => setShaking(false), 1500);
+    }, 10_000);
+    return () => {
+      window.clearInterval(interval);
+      if (shakeTimeout) window.clearTimeout(shakeTimeout);
+      setShaking(false);
+    };
+  }, [unread]);
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -36,7 +53,7 @@ export function NotificationsBell({ className }: Props) {
           )}
           aria-label="Notifications"
         >
-          <Bell className="h-[18px] w-[18px] stroke-[1.5]" />
+          <Bell className={cn("h-[18px] w-[18px] stroke-[1.5]", shaking && "animate-bell-shake")} />
           {unread > 0 ? (
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
           ) : null}

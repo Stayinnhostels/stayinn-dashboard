@@ -221,7 +221,7 @@ export function RoomFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="room-title">Title</Label>
+              <Label htmlFor="room-title" required>Title</Label>
               <Input
                 id="room-title"
                 name="room-title"
@@ -243,7 +243,7 @@ export function RoomFormDialog({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="grid gap-2">
-              <Label>Price / seat / month (USD)</Label>
+              <Label required>Price / seat / month (USD)</Label>
               <Input
                 type="text"
                 inputMode="decimal"
@@ -253,7 +253,7 @@ export function RoomFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label>Price / seat / month (PKR)</Label>
+              <Label required>Price / seat / month (PKR)</Label>
               <Input
                 type="text"
                 inputMode="decimal"
@@ -263,7 +263,7 @@ export function RoomFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label>Category</Label>
+              <Label required>Category</Label>
               <Select value={draft.category} onValueChange={(v) => setDraft({ ...draft, category: v })}>
                 <SelectTrigger>
                   <SelectValue />
@@ -278,7 +278,7 @@ export function RoomFormDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Capacity</Label>
+              <Label required>Capacity</Label>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -288,7 +288,7 @@ export function RoomFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label>Beds total</Label>
+              <Label required>Beds total</Label>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -330,7 +330,7 @@ export function RoomFormDialog({
           )}
 
           <div className="grid gap-2">
-            <Label>Display order</Label>
+            <Label required>Display order</Label>
             <Input
               type="text"
               inputMode="numeric"
