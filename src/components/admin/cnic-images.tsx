@@ -397,7 +397,7 @@ export function CnicImagesViewerModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
           </DialogHeader>
