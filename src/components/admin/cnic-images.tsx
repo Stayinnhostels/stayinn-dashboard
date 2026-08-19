@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
-import { readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
+import { FULL_PAGE_ASPECT_RATIO, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
 import { useUpdateResidentMutation } from "@/queries/residents";
 import { cn } from "@/lib/utils";
 
@@ -183,6 +183,8 @@ export function CnicImagesEditor({
         open={Boolean(cropSide && cropSrc)}
         imageSrc={cropSrc}
         sideLabel={cropSide ?? "Front"}
+        aspect={cropSide === "B-Form" ? FULL_PAGE_ASPECT_RATIO : undefined}
+        documentLabel={cropSide === "B-Form" ? "document" : "ID card"}
         onOpenChange={(open) => {
           if (!open) {
             setCropSide(null);
@@ -460,6 +462,8 @@ export function CnicImagesViewerModal({
           open={Boolean(cropSide && cropSrc)}
           imageSrc={cropSrc}
           sideLabel={cropSide ?? "Front"}
+          aspect={cropSide === "B-Form" ? FULL_PAGE_ASPECT_RATIO : undefined}
+          documentLabel={cropSide === "B-Form" ? "document" : "ID card"}
           onOpenChange={(o) => {
             if (!o) {
               setCropSide(null);

@@ -1,6 +1,9 @@
 /** ISO ID-1 / CNIC card ratio (width ÷ height). Used only for ID card crop. */
 export const CNIC_ASPECT_RATIO = 85.6 / 53.98;
 
+/** ISO A4 portrait ratio (width ÷ height) — B-Form is a full page, not a short card. */
+export const FULL_PAGE_ASPECT_RATIO = 210 / 297;
+
 export type CnicCropArea = {
   x: number;
   y: number;

@@ -12,10 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  CNIC_ASPECT_RATIO,
-  cropCnicImageToDataUrl,
-} from "@/lib/crop-cnic-image";
+import { CNIC_ASPECT_RATIO, cropCnicImageToDataUrl } from "@/lib/crop-cnic-image";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -23,6 +21,10 @@ type Props = {
   sideLabel: string;
   onOpenChange: (open: boolean) => void;
   onCropped: (dataUrl: string) => void;
+  /** Crop frame aspect ratio (width ÷ height). Defaults to the ID card ratio. */
+  aspect?: number;
+  /** Label for the dialog heading, e.g. "ID card" or "document". */
+  documentLabel?: string;
 };
 
 export function CnicCropDialog({
@@ -31,6 +33,8 @@ export function CnicCropDialog({
   sideLabel,
   onOpenChange,
   onCropped,
+  aspect = CNIC_ASPECT_RATIO,
+  documentLabel = "ID card",
 }: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -54,7 +58,7 @@ export function CnicCropDialog({
 
   async function handleSave() {
     if (!imageSrc || !croppedAreaPixels) {
-      toast.error("Adjust the frame to cover the ID card");
+      toast.error(`Adjust the frame to cover the ${documentLabel}`);
       return;
     }
     setSaving(true);
@@ -74,18 +78,25 @@ export function CnicCropDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <DialogHeader className="shrink-0 border-b border-border/60 px-5 py-4 text-left">
-          <DialogTitle>Crop ID card — {sideLabel}</DialogTitle>
+          <DialogTitle>
+            Crop {documentLabel} — {sideLabel}
+          </DialogTitle>
           <DialogDescription className="sr-only">Details</DialogDescription>
         </DialogHeader>
 
-        <div className="relative min-h-[min(68vh,28rem)] flex-1 bg-zinc-950">
+        <div
+          className={cn(
+            "relative flex-1 bg-zinc-950",
+            aspect < 1 ? "min-h-[min(80vh,40rem)]" : "min-h-[min(68vh,28rem)]",
+          )}
+        >
           {imageSrc ? (
             <Cropper
               image={imageSrc}
               crop={crop}
               zoom={zoom}
               rotation={rotation}
-              aspect={CNIC_ASPECT_RATIO}
+              aspect={aspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onRotationChange={setRotation}
@@ -125,7 +136,12 @@ export function CnicCropDialog({
         </div>
 
         <DialogFooter className="border-t border-border/60 px-5 py-3">
-          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={saving}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
           <Button type="button" onClick={() => void handleSave()} disabled={saving || !imageSrc}>
