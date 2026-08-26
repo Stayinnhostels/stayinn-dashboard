@@ -34,6 +34,7 @@ import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminBookingRequestsRouteImport } from './routes/admin.booking-requests'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AdminWebsiteAboutRouteImport } from './routes/admin.website.about'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
@@ -164,6 +165,11 @@ const AdminBookingsRoute = AdminBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBookingRequestsRoute = AdminBookingRequestsRouteImport.update({
+  id: '/booking-requests',
+  path: '/booking-requests',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/expenses': typeof AdminExpensesRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/expenses': typeof AdminExpensesRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/expenses': typeof AdminExpensesRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/dashboard'
+    | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
     | '/admin/expenses'
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/dashboard'
+    | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
     | '/admin/expenses'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/_authenticated/dashboard'
+    | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
     | '/admin/expenses'
@@ -564,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBookingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/booking-requests': {
+      id: '/admin/booking-requests'
+      path: '/booking-requests'
+      fullPath: '/admin/booking-requests'
+      preLoaderRoute: typeof AdminBookingRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -663,6 +682,7 @@ const AdminWebsiteRouteWithChildren = AdminWebsiteRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminBookingRequestsRoute: typeof AdminBookingRequestsRoute
   AdminBookingsRoute: typeof AdminBookingsRouteWithChildren
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
@@ -687,6 +707,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBookingRequestsRoute: AdminBookingRequestsRoute,
   AdminBookingsRoute: AdminBookingsRouteWithChildren,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminExpensesRoute: AdminExpensesRoute,

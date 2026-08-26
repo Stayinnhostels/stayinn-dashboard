@@ -149,20 +149,19 @@
   }
 }
 
-@keyframes ping-from-center {
+@keyframes help-ring {
   0% {
-    transform: scale(0);
-    opacity: 0.6;
-  }
-  70%,
-  100% {
     transform: scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.4);
     opacity: 0;
   }
 }
 
-.animate-ping-from-center {
-  animation: ping-from-center 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+.animate-help-ring {
+  animation: help-ring 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 @keyframes bell-shake {
@@ -197,6 +196,6 @@
 }
 
 .animate-bell-shake {
-  animation: bell-shake 1.5s ease-in-out;
+  animation: bell-shake 1.5s ease-in-out 2;
   transform-origin: top center;
 }

@@ -58,6 +58,7 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
       { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
+      { to: "/admin/booking-requests", label: "Guest Requests", icon: ClipboardList },
       { to: "/admin/residents", label: "Residents", icon: ContactRound, exact: true },
       { to: "/admin/residents-by-room", label: "Residents by Room", icon: Building2 },
       { to: "/admin/monthly-rent", label: "Monthly Rent", icon: ClipboardList },

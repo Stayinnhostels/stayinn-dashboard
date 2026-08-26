@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
-import { IdCard, ImagePlus, Loader2, Pencil, X } from "lucide-react";
+import { FileText, IdCard, ImagePlus, Loader2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
 import { FULL_PAGE_ASPECT_RATIO, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
+import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
 import { useUpdateResidentMutation } from "@/queries/residents";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +118,40 @@ type EditorProps = {
 
 type CropSide = "Front" | "Back" | "B-Form";
 
+function CnicPdfUploadControl({
+  busy,
+  disabled,
+  onPick,
+}: {
+  busy: boolean;
+  disabled?: boolean;
+  onPick: (file: File) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90",
+        busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+      )}
+      title="Page 1 = front, page 2 = back"
+    >
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+      Upload PDF
+      <input
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        disabled={busy || disabled}
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null;
+          e.target.value = "";
+          if (file) onPick(file);
+        }}
+      />
+    </label>
+  );
+}
+
 export function CnicImagesEditor({
   front,
   back,
@@ -128,6 +163,7 @@ export function CnicImagesEditor({
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
   const [uploadingBForm, setUploadingBForm] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
@@ -136,16 +172,31 @@ export function CnicImagesEditor({
     setCropSrc(src);
   }
 
+  async function handlePdfPick(file: File) {
+    setUploadingPdf(true);
+    try {
+      const pages = await extractCnicPagesFromPdf(file);
+      onFrontChange(pages.front);
+      onBackChange(pages.back);
+      toast.success("PDF applied — page 1 → front, page 2 → back");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read CNIC PDF");
+    } finally {
+      setUploadingPdf(false);
+    }
+  }
+
   return (
     <div className="space-y-3 sm:col-span-2">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Label>CNIC images</Label>
+        <CnicPdfUploadControl busy={uploadingPdf} onPick={(file) => void handlePdfPick(file)} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CnicUploadSlot
           label="Front"
           value={front}
-          uploading={uploadingFront}
+          uploading={uploadingFront || uploadingPdf}
           onChange={onFrontChange}
           onUploading={setUploadingFront}
           onPickForCrop={(src) => openCrop("Front", src)}
@@ -153,7 +204,7 @@ export function CnicImagesEditor({
         <CnicUploadSlot
           label="Back"
           value={back}
-          uploading={uploadingBack}
+          uploading={uploadingBack || uploadingPdf}
           onChange={onBackChange}
           onUploading={setUploadingBack}
           onPickForCrop={(src) => openCrop("Back", src)}
@@ -338,9 +389,10 @@ export function CnicImagesViewerModal({
   const [pickingFront, setPickingFront] = useState(false);
   const [pickingBack, setPickingBack] = useState(false);
   const [pickingBForm, setPickingBForm] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const anyPicking = pickingFront || pickingBack || pickingBForm;
+  const anyPicking = pickingFront || pickingBack || pickingBForm || uploadingPdf;
 
   useEffect(() => {
     if (open) {
@@ -362,6 +414,47 @@ export function CnicImagesViewerModal({
       toast.error(err instanceof Error ? err.message : "Could not process image");
     } finally {
       setPicking(false);
+    }
+  }
+
+  function persistBothSides(nextFront: string, nextBack: string) {
+    if (!bookingId || !month) {
+      setLocalFront(nextFront);
+      setLocalBack(nextBack);
+      return;
+    }
+    update.mutate(
+      {
+        bookingId,
+        input: {
+          month,
+          guest_cnic_image_front: nextFront,
+          guest_cnic_image_back: nextBack,
+        },
+      },
+      {
+        onSuccess: () => {
+          setLocalFront(nextFront);
+          setLocalBack(nextBack);
+          toast.success("CNIC PDF saved — page 1 → front, page 2 → back");
+        },
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save PDF images"),
+      },
+    );
+  }
+
+  async function handlePdfPick(file: File) {
+    setUploadingPdf(true);
+    try {
+      const pages = await extractCnicPagesFromPdf(file);
+      persistBothSides(pages.front, pages.back);
+      if (!bookingId || !month) {
+        toast.success("PDF applied — page 1 → front, page 2 → back");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read CNIC PDF");
+    } finally {
+      setUploadingPdf(false);
     }
   }
 
@@ -401,20 +494,29 @@ export function CnicImagesViewerModal({
           <DialogHeader>
             <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
           </DialogHeader>
+          {canUpload ? (
+            <div className="flex flex-wrap items-center justify-end">
+              <CnicPdfUploadControl
+                busy={uploadingPdf || (update.isPending && !cropSide)}
+                disabled={anyPicking || update.isPending}
+                onPick={(file) => void handlePdfPick(file)}
+              />
+            </div>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             {canUpload ? (
               <>
                 <CnicViewerSlot
                   label="Front"
                   value={localFront}
-                  busy={pickingFront || (update.isPending && cropSide === "Front")}
+                  busy={pickingFront || uploadingPdf || (update.isPending && cropSide === "Front")}
                   disabled={update.isPending || anyPicking}
                   onPick={(file) => void handlePick("Front", file)}
                 />
                 <CnicViewerSlot
                   label="Back"
                   value={localBack}
-                  busy={pickingBack || (update.isPending && cropSide === "Back")}
+                  busy={pickingBack || uploadingPdf || (update.isPending && cropSide === "Back")}
                   disabled={update.isPending || anyPicking}
                   onPick={(file) => void handlePick("Back", file)}
                 />

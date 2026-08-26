@@ -63,7 +63,7 @@ export function AdminHeader({
   }
 
   return (
-    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border/50 bg-background px-4 md:px-8">
+    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-4 overflow-visible border-b border-border/50 bg-background px-4 md:px-8">
       <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
@@ -81,19 +81,26 @@ export function AdminHeader({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 overflow-visible">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-10 w-10 rounded-full border-none bg-linear-to-br from-primary to-primary/70 text-primary-foreground shadow-md shadow-primary/30 transition-transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40"
+                className="relative h-10 w-10 overflow-visible rounded-full border-none bg-linear-to-br from-primary to-primary/70 text-primary-foreground shadow-md shadow-primary/30 transition-transform hover:scale-105 hover:shadow-lg hover:shadow-primary/40"
                 aria-label="Show dashboard tour"
                 data-tour="header-help"
                 onClick={() => startTour()}
               >
-                <span className="pointer-events-none absolute -inset-1.5 rounded-full bg-primary/40 animate-ping-from-center" />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-[3px] rounded-full border-2 border-primary animate-help-ring"
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-[3px] rounded-full border-2 border-primary/60 animate-help-ring [animation-delay:0.9s]"
+                />
                 <CircleHelp className="relative z-10 h-4.75 w-4.75 stroke-2" />
               </Button>
             </TooltipTrigger>

@@ -293,7 +293,11 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
       },
       {
         onSuccess: () => {
-          toast.success("Member added — room seats updated");
+          toast.success(
+            guestEmail.trim()
+              ? "Member added. We emailed them a link to create a password and track their stay."
+              : "Member added — room seats updated",
+          );
           resetForm();
           onOpenChange(false);
         },
@@ -353,6 +357,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="guest@email.com"
                   />
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    We’ll email them a website link to create a password and track their stay. If the address is
+                    wrong, they won’t receive it.
+                  </p>
                 </div>
                 <div className="grid gap-1.5 sm:col-span-2">
                   <Label htmlFor="manual-channel">Channel</Label>

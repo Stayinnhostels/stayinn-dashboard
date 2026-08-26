@@ -3,7 +3,11 @@ import { Joyride, EVENTS, type EventData, type Step, type TooltipRenderProps } f
 import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { hasSeenOnboardingTour, markOnboardingTourSeen } from "@/lib/onboarding-tour-storage";
+import {
+  hasSeenOnboardingTour,
+  markOnboardingTourSeen,
+  onboardingTourStorageKey,
+} from "@/lib/onboarding-tour-storage";
 import { useOnboardingTourStore } from "@/stores/tour/onboarding-tour.store";
 import { cn } from "@/lib/utils";
 
@@ -184,18 +188,22 @@ export function OnboardingTour() {
   const start = useOnboardingTourStore((s) => s.start);
   const stop = useOnboardingTourStore((s) => s.stop);
   const isDesktop = useIsDesktopViewport();
+  const tourKey = user ? onboardingTourStorageKey(user) : "";
 
   useEffect(() => {
-    if (!user) return;
-    if (hasSeenOnboardingTour(user.id)) return;
-    const timer = window.setTimeout(() => start(), 700);
+    if (!user || !tourKey) return;
+    if (hasSeenOnboardingTour(tourKey)) return;
+    const timer = window.setTimeout(() => {
+      markOnboardingTourSeen(tourKey);
+      start();
+    }, 700);
     return () => window.clearTimeout(timer);
-  }, [user, start]);
+  }, [user, tourKey, start]);
 
   function handleEvent(data: EventData) {
     if (data.type === EVENTS.TOUR_END) {
       stop();
-      if (user) markOnboardingTourSeen(user.id);
+      if (tourKey) markOnboardingTourSeen(tourKey);
     }
   }
 

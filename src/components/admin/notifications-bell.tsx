@@ -31,7 +31,7 @@ export function NotificationsBell({ className }: Props) {
     let shakeTimeout: number | undefined;
     const interval = window.setInterval(() => {
       setShaking(true);
-      shakeTimeout = window.setTimeout(() => setShaking(false), 1500);
+      shakeTimeout = window.setTimeout(() => setShaking(false), 3000);
     }, 10_000);
     return () => {
       window.clearInterval(interval);
