@@ -30,6 +30,40 @@ export async function readImageFileAsDataUrl(file: File): Promise<string> {
   return readFileAsDataUrl(file);
 }
 
+/** Higher-contrast grayscale copy used only for OCR — preview stays the original photo. */
+export async function prepareCnicImageForOcr(dataUrl: string): Promise<string> {
+  const image = await loadImage(dataUrl);
+  const minW = 1200;
+  const scale = Math.min(2.2, Math.max(1, minW / Math.max(image.width, 1)));
+  const w = Math.max(1, Math.round(image.width * scale));
+  const h = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, w, h);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, 0, 0, w, h);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const c = Math.max(0, Math.min(255, (y - 128) * 1.3 + 140));
+    d[i] = d[i + 1] = d[i + 2] = c;
+  }
+  ctx.putImageData(img, 0, 0);
+  let quality = 0.88;
+  let out = canvas.toDataURL("image/jpeg", quality);
+  while (out.length > 900_000 && quality > 0.5) {
+    quality -= 0.08;
+    out = canvas.toDataURL("image/jpeg", quality);
+  }
+  return out;
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

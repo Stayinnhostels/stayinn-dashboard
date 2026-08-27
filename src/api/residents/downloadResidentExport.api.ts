@@ -87,11 +87,21 @@ export async function downloadResidentDossierExcelApi(
 export async function downloadResidentMonthInvoiceApi(
   token: string,
   bookingId: string,
-  month: string,
+  months: string | string[],
 ) {
+  const list = (Array.isArray(months) ? months : [months])
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const params = new URLSearchParams();
+  if (list.length <= 1) {
+    params.set("month", list[0] ?? "");
+  } else {
+    params.set("months", list.join(","));
+  }
+  const range = list.length <= 1 ? list[0] : `${list[0]}-to-${list[list.length - 1]}`;
   await downloadBinary(
     token,
-    `/api/v1/residents/${bookingId}/export/month-invoice?month=${encodeURIComponent(month)}`,
-    `rent-invoice-${month}.pdf`,
+    `/api/v1/residents/${bookingId}/export/month-invoice?${params.toString()}`,
+    `rent-invoice-${range}.pdf`,
   );
 }

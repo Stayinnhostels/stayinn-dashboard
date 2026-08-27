@@ -13,9 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpdateBookingDetailsMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking } from "@/types/domain/booking.types";
+import type { ResidentType } from "@/types/domain/resident.types";
 
 type Props = {
   booking: Booking;
@@ -55,6 +57,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
   const [guestEmail, setGuestEmail] = useState(booking.guest_email);
   const [guestPhone, setGuestPhone] = useState(booking.guest_phone);
   const [source, setSource] = useState(booking.source ?? "");
+  const [residentType, setResidentType] = useState<ResidentType>(booking.resident_type || "employee");
+  const [company, setCompany] = useState(booking.guest_company ?? "");
+  const [institution, setInstitution] = useState(booking.guest_institution ?? "");
   const [notes, setNotes] = useState(booking.notes ?? "");
   const [moveIn, setMoveIn] = useState(booking.move_in?.slice(0, 10) ?? "");
   const [checkOut, setCheckOut] = useState(booking.check_out?.slice(0, 10) ?? "");
@@ -72,6 +77,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
     setGuestEmail(booking.guest_email);
     setGuestPhone(booking.guest_phone);
     setSource(booking.source ?? "");
+    setResidentType(booking.resident_type || "employee");
+    setCompany(booking.guest_company ?? "");
+    setInstitution(booking.guest_institution ?? "");
     setNotes(booking.notes ?? "");
     setMoveIn(booking.move_in?.slice(0, 10) ?? "");
     setCheckOut(booking.check_out?.slice(0, 10) ?? "");
@@ -132,7 +140,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
     Number.isFinite(priceNum) &&
     priceNum >= 0 &&
     Number.isFinite(Number(totalAmount)) &&
-    Number(totalAmount) >= 0;
+    Number(totalAmount) >= 0 &&
+    (residentType !== "employee" || company.trim().length > 0) &&
+    (residentType !== "student" || institution.trim().length > 0);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -143,6 +153,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
       guest_email: guestEmail.trim(),
       guest_phone: guestPhone.trim(),
       source: source.trim() || undefined,
+      resident_type: residentType,
+      guest_company: company.trim(),
+      guest_institution: institution.trim(),
       notes: notes.trim(),
     };
 
@@ -220,9 +233,49 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
                 id="edit-source"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                placeholder="website, walk_in, company…"
+                placeholder="website, walk_in…"
               />
             </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="edit-type">Type</Label>
+              <Select
+                value={residentType || "employee"}
+                onValueChange={(v) => setResidentType(v as ResidentType)}
+              >
+                <SelectTrigger id="edit-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {residentType === "employee" ? (
+              <div className="sm:col-span-2">
+                <Label htmlFor="edit-company" required>Company name</Label>
+                <Input
+                  id="edit-company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Employer or company"
+                  required
+                />
+              </div>
+            ) : null}
+            {residentType === "student" ? (
+              <div className="sm:col-span-2">
+                <Label htmlFor="edit-institution" required>Institution name</Label>
+                <Input
+                  id="edit-institution"
+                  value={institution}
+                  onChange={(e) => setInstitution(e.target.value)}
+                  placeholder="College, university, or institute"
+                  required
+                />
+              </div>
+            ) : null}
           </div>
 
           {!isCancelled && (

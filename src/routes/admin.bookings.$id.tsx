@@ -10,7 +10,7 @@ import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
 import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
-import { SECURITY_STATUS_LABELS } from "@/types/domain/resident.types";
+import { SECURITY_STATUS_LABELS, RESIDENT_TYPE_LABELS, affiliationForResident } from "@/types/domain/resident.types";
 import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
 import type { CheckoutConfirmExtras } from "@/components/admin/booking-refund-dialog";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
@@ -130,6 +130,8 @@ function BookingDetailPage() {
     );
   }
 
+  const affiliation = affiliationForResident(booking);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -218,6 +220,10 @@ function BookingDetailPage() {
               value={formatMoney(booking.price_per_seat, normalizeMoneyCurrency(booking.currency))}
             />
             <Field label="Source" value={booking.source} />
+            <Field label="Type" value={RESIDENT_TYPE_LABELS[booking.resident_type || ""]} />
+            {affiliation ? (
+              <Field label={affiliation.label} value={affiliation.value || "—"} />
+            ) : null}
             <Field
               label="Rent total"
               value={formatMoney(booking.total_amount, normalizeMoneyCurrency(booking.currency))}

@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { usePaymentsQuery } from "@/queries/payments";
 import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
+import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
 import {
   chartTooltipMoney,
   formatMoney,
@@ -104,6 +105,13 @@ function FinancialsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ExtrasCollectedCharts
+        extras={overviewStats?.extras}
+        loading={statsLoading}
+        error={false}
+        errorMessage="Could not load extra facilities stats"
+      />
 
       <Card className="border-border/60">
         <CardHeader>

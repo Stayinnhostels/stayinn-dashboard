@@ -1,4 +1,4 @@
-export type BookingRequestType = "cancel" | "room_change" | "additional_seat";
+export type BookingRequestType = "cancel" | "room_change" | "additional_seat" | "extend_stay";
 export type BookingRequestStatus = "pending" | "approved" | "rejected" | "withdrawn";
 
 export type BookingRequest = {
@@ -15,6 +15,13 @@ export type BookingRequest = {
     additional_seats?: number;
     current_seats?: number;
     target_seats?: number;
+    requested_check_out?: string;
+    current_check_out?: string;
+    current_months?: number;
+    target_months?: number;
+    current_nights?: number;
+    target_nights?: number;
+    stay_unit?: "month" | "night";
   };
   admin_note: string;
   amount_refunded: number | null;

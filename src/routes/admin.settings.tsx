@@ -14,12 +14,15 @@ import { AdminProfileSettingsCard } from "@/components/admin/admin-profile-setti
 import { toast } from "sonner";
 import { usePropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 import { useUpdatePropertySettingsMutation } from "@/queries/settings/useUpdatePropertySettingsMutation";
+import { postRunRentReminders } from "@/api/settings/postRunRentReminders.api";
+import { useAuthStore } from "@/stores/auth/auth.store";
 import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from "@/lib/brand-colors";
 import {
   DEFAULT_DASHBOARD_ACCENT_COLOR,
   DEFAULT_DASHBOARD_PRIMARY_COLOR,
 } from "@/lib/dashboard-theme";
 import type { PropertySettings } from "@/types/domain/property-settings.types";
+import { DEFAULT_EXTRA_FACILITY_PRESETS } from "@/types/domain/resident.types";
 import { HOMEPAGE_HERO_DEFAULTS } from "@/lib/homepage-hero-defaults";
 import { HOMEPAGE_CTA_DEFAULTS } from "@/lib/homepage-cta-defaults";
 import { ABOUT_PAGE_DEFAULTS } from "@/lib/about-page-defaults";
@@ -41,11 +44,16 @@ const DEFAULTS: SettingsForm = {
   mapUrl: "",
   logoUrl: "",
   coverImageUrl: "",
+  emailLogoUrl: "",
+  emailLogoMaxHeight: 48,
+  emailLogoMaxWidth: 180,
   primaryColor: DEFAULT_PRIMARY_COLOR,
   accentColor: DEFAULT_ACCENT_COLOR,
   dashboardPrimaryColor: DEFAULT_DASHBOARD_PRIMARY_COLOR,
   dashboardAccentColor: DEFAULT_DASHBOARD_ACCENT_COLOR,
   whatsapp: "923310008196",
+  emergencyPhone: "",
+  emergencyLabel: "Emergency / front desk",
   website: "https://stayinnhostels.com",
   instagram: "",
   facebook: "",
@@ -64,6 +72,9 @@ const DEFAULTS: SettingsForm = {
   allowChildren: true,
   allowPets: false,
   smokingAllowed: false,
+  rentRemindersEnabled: true,
+  rentReminderDays: [1, 5],
+  extraFacilityPresets: [...DEFAULT_EXTRA_FACILITY_PRESETS],
   houseRules:
     "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in\n• Minimum stay of 3 months — leave earlier and security is not refundable\n• After 3 months, give at least 1 month written notice before vacating",
   quietHoursStart: "22:00",
@@ -74,6 +85,8 @@ const DEFAULTS: SettingsForm = {
   ...HOMEPAGE_CTA_DEFAULTS,
   ...ABOUT_PAGE_DEFAULTS,
 };
+
+const REMINDER_DAY_OPTIONS = [1, 5, 10] as const;
 
 function toFormSettings(data: PropertySettings): SettingsForm {
   const { whatsapp_url: _u, fullAddress: _f, ...rest } = data;
@@ -90,7 +103,9 @@ function toFormSettings(data: PropertySettings): SettingsForm {
 function SettingsPage() {
   const { data, isLoading, isError } = usePropertySettingsQuery();
   const saveMutation = useUpdatePropertySettingsMutation();
+  const token = useAuthStore((state) => state.token);
   const [s, setS] = useState<SettingsForm>(DEFAULTS);
+  const [runningReminders, setRunningReminders] = useState(false);
 
   useEffect(() => {
     if (data) setS(toFormSettings(data));
@@ -98,6 +113,42 @@ function SettingsPage() {
 
   function update<K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) {
     setS((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleReminderDay(day: number, enabled: boolean) {
+    setS((prev) => {
+      const next = new Set(prev.rentReminderDays ?? []);
+      if (enabled) next.add(day);
+      else next.delete(day);
+      const days = [...next].filter((d) => d >= 1 && d <= 28).sort((a, b) => a - b);
+      return { ...prev, rentReminderDays: days.length > 0 ? days : [1, 5] };
+    });
+  }
+
+  async function runRemindersNow() {
+    if (!token) {
+      toast.error("Sign in again to run reminders");
+      return;
+    }
+    setRunningReminders(true);
+    try {
+      const result = await postRunRentReminders(token);
+      if (result.skipped) {
+        toast.message(
+          result.reason === "not_reminder_day"
+            ? `Skipped — today (day ${result.day}) is not a reminder day`
+            : `Skipped — ${result.reason ?? "not run"}`,
+        );
+      } else {
+        toast.success(
+          `Reminders: ${result.sent} sent · ${result.failed} failed · ${result.skippedAlreadySent} already sent`,
+        );
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not run rent reminders");
+    } finally {
+      setRunningReminders(false);
+    }
   }
 
   function save() {
@@ -159,6 +210,22 @@ function SettingsPage() {
               <div className="grid gap-1.5 sm:col-span-2"><Label>Short description</Label><Textarea rows={3} value={s.description} onChange={(e) => update("description", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Contact email</Label><Input type="email" value={s.email} onChange={(e) => update("email", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Phone</Label><Input value={s.phone} onChange={(e) => update("phone", e.target.value)} /></div>
+              <div className="grid gap-1.5">
+                <Label>Emergency phone</Label>
+                <Input
+                  value={s.emergencyPhone}
+                  onChange={(e) => update("emergencyPhone", e.target.value)}
+                  placeholder="Leave blank to use main phone"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Emergency label</Label>
+                <Input
+                  value={s.emergencyLabel}
+                  onChange={(e) => update("emergencyLabel", e.target.value)}
+                  placeholder="Emergency / front desk"
+                />
+              </div>
               <div className="grid gap-1.5 sm:col-span-2"><Label>Street address</Label><Input value={s.address} onChange={(e) => update("address", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>City</Label><Input value={s.city} onChange={(e) => update("city", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label>Country</Label><Input value={s.country} onChange={(e) => update("country", e.target.value)} /></div>
@@ -210,6 +277,47 @@ function SettingsPage() {
                     {s.coverImageUrl && <Button variant="ghost" size="sm" onClick={() => update("coverImageUrl", "")}><X className="h-3 w-3" /> Remove</Button>}
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Email logo</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>Email logo URL (https)</Label>
+                <Input
+                  type="url"
+                  value={s.emailLogoUrl}
+                  onChange={(e) => update("emailLogoUrl", e.target.value)}
+                  placeholder="https://stayinnhostels.com/logos/navlogo.png"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional public https logo override. If blank, emails embed the Stay Inn logo
+                  file so it works even on localhost (Gmail cannot load localhost images).
+                </p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Logo height (px)</Label>
+                <Input
+                  type="number"
+                  min={24}
+                  max={96}
+                  value={s.emailLogoMaxHeight}
+                  onChange={(e) => update("emailLogoMaxHeight", Number(e.target.value))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Logo max width (px)</Label>
+                <Input
+                  type="number"
+                  min={80}
+                  max={320}
+                  value={s.emailLogoMaxWidth}
+                  onChange={(e) => update("emailLogoMaxWidth", Number(e.target.value))}
+                />
               </div>
             </CardContent>
           </Card>
@@ -479,6 +587,61 @@ function SettingsPage() {
                 <div><p className="font-semibold">Smoking allowed</p></div>
                 <Switch checked={s.smokingAllowed} onCheckedChange={(v) => update("smokingAllowed", v)} />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Monthly rent reminders</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="font-semibold">Email unpaid guests</p>
+                  <p className="text-xs text-muted-foreground">
+                    Only the current month · skips paid / returned · Asia/Karachi 9:00 AM
+                  </p>
+                </div>
+                <Switch
+                  checked={s.rentRemindersEnabled}
+                  onCheckedChange={(v) => update("rentRemindersEnabled", v)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Reminder days of the month</Label>
+                <div className="flex flex-wrap gap-2">
+                  {REMINDER_DAY_OPTIONS.map((day) => {
+                    const checked = (s.rentReminderDays ?? []).includes(day);
+                    return (
+                      <label
+                        key={day}
+                        className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-primary"
+                          checked={checked}
+                          onChange={(e) => toggleReminderDay(day, e.target.checked)}
+                        />
+                        Day {day}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Day 1 = due notice · Day 5 = follow-up · Day 10 = optional overdue nudge
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={runningReminders}
+                onClick={() => void runRemindersNow()}
+                className="rounded-full"
+              >
+                {runningReminders ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Run reminders now
+              </Button>
             </CardContent>
           </Card>
 

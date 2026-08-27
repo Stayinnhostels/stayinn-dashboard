@@ -72,14 +72,14 @@ function PaymentsPage() {
             value={formatMoney(monthStats?.pkr.collected ?? 0, "pkr")}
             icon={Wallet}
             accent="success"
-            delta={`Due ${formatMoney(monthStats?.pkr.due ?? 0, "pkr")}`}
+            delta={`Rent ${formatMoney(monthStats?.pkr.rent_collected ?? 0, "pkr")} · extras ${formatMoney(monthStats?.pkr.extras_collected ?? 0, "pkr")}`}
           />
           <StatCard
             label={`Unpaid · ${monthLabel} (PKR)`}
             value={formatMoney(monthStats?.pkr.unpaid ?? 0, "pkr")}
             icon={Clock}
             accent="warning"
-            delta={`${monthStats?.pkr.unpaid_count ?? 0} resident(s) unpaid`}
+            delta={`Due ${formatMoney(monthStats?.pkr.due ?? 0, "pkr")} · ${monthStats?.pkr.unpaid_count ?? 0} rent unpaid`}
           />
           <StatCard
             label={`Residents · ${monthLabel}`}
@@ -95,14 +95,14 @@ function PaymentsPage() {
             value={formatMoney(monthStats?.usd.collected ?? 0, "usd")}
             icon={Wallet}
             accent="info"
-            delta={`Due ${formatMoney(monthStats?.usd.due ?? 0, "usd")}`}
+            delta={`Rent ${formatMoney(monthStats?.usd.rent_collected ?? 0, "usd")} · extras ${formatMoney(monthStats?.usd.extras_collected ?? 0, "usd")}`}
           />
           <StatCard
             label={`Unpaid · ${monthLabel} (USD)`}
             value={formatMoney(monthStats?.usd.unpaid ?? 0, "usd")}
             icon={Clock}
             accent="warning"
-            delta={`${monthStats?.usd.unpaid_count ?? 0} resident(s) unpaid`}
+            delta={`Due ${formatMoney(monthStats?.usd.due ?? 0, "usd")} · ${monthStats?.usd.unpaid_count ?? 0} rent unpaid`}
           />
           <StatCard
             label={`Net revenue · ${monthLabel}`}
@@ -167,7 +167,7 @@ function PaymentsPage() {
                   <TableHead>Guest</TableHead>
                   <TableHead>Room</TableHead>
                   <TableHead>Month</TableHead>
-                  <TableHead>Rent due</TableHead>
+                  <TableHead>Due</TableHead>
                   <TableHead>Collected</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -252,9 +252,21 @@ function PaymentRow({
         </span>
       </TableCell>
       <TableCell className="text-xs whitespace-nowrap">{p.month_label ?? p.month ?? "—"}</TableCell>
-      <TableCell className="font-bold tabular-nums">{formatMoney(p.amount, cur)}</TableCell>
+      <TableCell className="font-bold tabular-nums">
+        {formatMoney(p.amount, cur)}
+        {(p.extras_due ?? 0) > 0 ? (
+          <div className="text-[11px] font-normal text-muted-foreground">
+            extras {formatMoney(p.extras_due ?? 0, cur)}
+          </div>
+        ) : null}
+      </TableCell>
       <TableCell className="tabular-nums text-emerald-700">
         {formatMoney(p.collected_rent ?? 0, cur)}
+        {(p.extras_collected ?? 0) > 0 ? (
+          <div className="text-[11px] text-muted-foreground">
+            extras {formatMoney(p.extras_collected ?? 0, cur)}
+          </div>
+        ) : null}
       </TableCell>
       <TableCell>
         <Badge variant="outline" className={`whitespace-nowrap ${statusBadgeClass[p.status] ?? ""}`}>

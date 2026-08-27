@@ -128,7 +128,15 @@ function RequestCard({
       ? `Preferred room: ${request.payload.requested_room_title ?? request.payload.requested_room_id ?? "—"}`
       : request.type === "additional_seat"
         ? `Add ${request.payload.additional_seats ?? 1} seat(s) → total ${request.payload.target_seats ?? "—"}`
-        : request.reason || "Cancellation request";
+        : request.type === "extend_stay"
+          ? `Checkout ${request.payload.current_check_out ?? "—"} → ${request.payload.requested_check_out ?? "—"}${
+              request.payload.target_months
+                ? ` (${request.payload.current_months ?? "?"} → ${request.payload.target_months} months)`
+                : request.payload.target_nights
+                  ? ` (${request.payload.current_nights ?? "?"} → ${request.payload.target_nights} nights)`
+                  : ""
+            }`
+          : request.reason || "Cancellation request";
 
   return (
     <Card className="border-border/60">

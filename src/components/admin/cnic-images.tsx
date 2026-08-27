@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
-import { FULL_PAGE_ASPECT_RATIO, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
+import { FULL_PAGE_ASPECT_RATIO, prepareCnicImageForOcr, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
 import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
+import { ocrCnicApi, type CnicOcrFields } from "@/api/residents";
+import { useAuthStore } from "@/stores/auth/auth.store";
 import { useUpdateResidentMutation } from "@/queries/residents";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +116,7 @@ type EditorProps = {
   onBackChange: (value: string) => void;
   bForm: string;
   onBFormChange: (value: string) => void;
+  onExtracted?: (fields: CnicOcrFields) => void;
 };
 
 type CropSide = "Front" | "Back" | "B-Form";
@@ -133,7 +136,7 @@ function CnicPdfUploadControl({
         "inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90",
         busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
       )}
-      title="Page 1 = front, page 2 = back"
+      title="Front and back of the CNIC (1 or 2 pages)"
     >
       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
       Upload PDF
@@ -159,11 +162,14 @@ export function CnicImagesEditor({
   onBackChange,
   bForm,
   onBFormChange,
+  onExtracted,
 }: EditorProps) {
+  const token = useAuthStore((s) => s.token);
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
   const [uploadingBForm, setUploadingBForm] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [readingCard, setReadingCard] = useState(false);
   const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
@@ -172,13 +178,63 @@ export function CnicImagesEditor({
     setCropSrc(src);
   }
 
+  async function readCard(input: {
+    front?: string;
+    back?: string;
+    front_text?: string;
+    back_text?: string;
+  }) {
+    if (!onExtracted) return;
+    if (!token) {
+      toast.error("You must be signed in to read the ID card");
+      return;
+    }
+    setReadingCard(true);
+    try {
+      const [front, back] = await Promise.all([
+        input.front ? prepareCnicImageForOcr(input.front) : Promise.resolve(undefined),
+        input.back ? prepareCnicImageForOcr(input.back) : Promise.resolve(undefined),
+      ]);
+      const fields = await ocrCnicApi(token, {
+        front,
+        back,
+        front_text: input.front_text,
+        back_text: input.back_text,
+      });
+      onExtracted(fields);
+      const labels: string[] = [];
+      if (fields.cnic) labels.push("CNIC number");
+      if (fields.name) labels.push("name");
+      if (fields.father_name) labels.push("father name");
+      if (fields.address) labels.push("address");
+      if (fields.gender) labels.push("gender");
+      toast.success(
+        labels.length ? `Filled from ID card: ${labels.join(", ")}` : "ID card read — check the fields",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read ID card");
+    } finally {
+      setReadingCard(false);
+    }
+  }
+
   async function handlePdfPick(file: File) {
     setUploadingPdf(true);
     try {
       const pages = await extractCnicPagesFromPdf(file);
       onFrontChange(pages.front);
       onBackChange(pages.back);
-      toast.success("PDF applied — page 1 → front, page 2 → back");
+      toast.success(
+        pages.back
+          ? "PDF applied — reading name, father name, CNIC, and address…"
+          : "PDF applied — reading the front of the card…",
+      );
+      await readCard({
+        front: pages.front,
+        back: pages.back || undefined,
+        front_text: pages.front_text || undefined,
+        back_text: pages.back_text || undefined,
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not read CNIC PDF");
     } finally {
@@ -189,8 +245,21 @@ export function CnicImagesEditor({
   return (
     <div className="space-y-3 sm:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label>CNIC images</Label>
-        <CnicPdfUploadControl busy={uploadingPdf} onPick={(file) => void handlePdfPick(file)} />
+        <div>
+          <Label>CNIC images</Label>
+          <p className="text-[11px] text-muted-foreground">
+            {readingCard
+              ? "Reading name, father name, CNIC number, and address…"
+              : "Upload front (and back for address) — details fill in automatically."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {readingCard ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
+          <CnicPdfUploadControl
+            busy={uploadingPdf || readingCard}
+            onPick={(file) => void handlePdfPick(file)}
+          />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CnicUploadSlot
@@ -243,9 +312,15 @@ export function CnicImagesEditor({
           }
         }}
         onCropped={(dataUrl) => {
-          if (cropSide === "Front") onFrontChange(dataUrl);
-          else if (cropSide === "Back") onBackChange(dataUrl);
-          else if (cropSide === "B-Form") onBFormChange(dataUrl);
+          if (cropSide === "Front") {
+            onFrontChange(dataUrl);
+            void readCard({ front: dataUrl, back: back || undefined });
+          } else if (cropSide === "Back") {
+            onBackChange(dataUrl);
+            void readCard({ front: front || undefined, back: dataUrl });
+          } else if (cropSide === "B-Form") {
+            onBFormChange(dataUrl);
+          }
         }}
       />
     </div>

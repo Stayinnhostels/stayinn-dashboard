@@ -5,6 +5,9 @@ export type UpdateBookingDetailsInput = {
   guest_name?: string;
   guest_email?: string;
   guest_phone?: string;
+  guest_company?: string;
+  guest_institution?: string;
+  resident_type?: "student" | "employee" | "other" | "";
   source?: string;
   notes?: string;
   move_in?: string;

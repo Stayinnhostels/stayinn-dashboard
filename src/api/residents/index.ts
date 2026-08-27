@@ -118,6 +118,43 @@ export async function getResidentDetailApi(token: string, bookingId: string, mon
     stay: data.stay,
     rent_timeline: data.rent_timeline ?? [],
     rent_summary: data.rent_summary,
+    extras: data.extras ?? [],
+    extras_summary: data.extras_summary,
+  };
+}
+
+export type CnicOcrFields = {
+  cnic: string;
+  name: string;
+  father_name: string;
+  gender: "" | "male" | "female";
+  address: string;
+  filled?: string[];
+};
+
+type OcrCnicResponse = { success: boolean; message?: string } & CnicOcrFields;
+
+export async function ocrCnicApi(
+  token: string,
+  input: { front?: string; back?: string; front_text?: string; back_text?: string },
+): Promise<CnicOcrFields> {
+  const data = await apiFetch<OcrCnicResponse>("/api/v1/residents/ocr-cnic", {
+    method: "POST",
+    token,
+    body: JSON.stringify({
+      front: input.front,
+      back: input.back,
+      front_text: input.front_text || undefined,
+      back_text: input.back_text || undefined,
+    }),
+  });
+  return {
+    cnic: data.cnic ?? "",
+    name: data.name ?? "",
+    father_name: data.father_name ?? "",
+    gender: data.gender === "female" ? "female" : data.gender === "male" ? "male" : "",
+    address: data.address ?? "",
+    filled: data.filled ?? [],
   };
 }
 

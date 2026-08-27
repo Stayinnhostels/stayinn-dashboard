@@ -25,12 +25,27 @@ export type MonthlyBookingStatPoint = {
   revenue_usd: number;
 };
 
+export type ExtrasCollectedPoint = {
+  key: string | number;
+  label: string;
+  week_start?: string;
+  week_end?: string;
+  collected_pkr: number;
+  collected_usd: number;
+  due_pkr: number;
+  due_usd: number;
+};
+
 export type BookingOverviewStats = {
   daily: { days: number; series: DailyBookingStatPoint[] };
   weekly: { weeks: number; series: WeeklyBookingStatPoint[] };
   status: { total: number; breakdown: BookingStatusStatPoint[] };
   monthly: { months: number; series: MonthlyBookingStatPoint[] };
   revenue: RevenueSummary;
+  extras?: {
+    monthly: { months: number; series: ExtrasCollectedPoint[] };
+    weekly: { weeks: number; series: ExtrasCollectedPoint[] };
+  };
 };
 
 type GetBookingOverviewStatsResponse = {
@@ -64,5 +79,9 @@ export async function getBookingOverviewStatsApi(
     status: data.status,
     monthly: data.monthly,
     revenue: data.revenue,
+    extras: data.extras ?? {
+      monthly: { months: 0, series: [] },
+      weekly: { weeks: 0, series: [] },
+    },
   };
 }

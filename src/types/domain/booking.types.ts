@@ -1,4 +1,4 @@
-import type { SecurityStatus } from "@/types/domain/resident.types";
+import type { ResidentExtra, ResidentType, SecurityStatus } from "@/types/domain/resident.types";
 
 export type BookingStatus = "pending" | "confirmed" | "checked_in" | "checked_out" | "cancelled";
 
@@ -26,6 +26,9 @@ export type Booking = {
   guest_name: string;
   guest_email: string;
   guest_phone: string;
+  guest_company?: string;
+  guest_institution?: string;
+  resident_type?: ResidentType;
   seats_booked: number;
   stay_unit?: "month" | "night";
   nights?: number | null;
@@ -47,6 +50,7 @@ export type Booking = {
   amount_refunded?: number | null;
   amount_retained?: number | null;
   rent_ledger?: BookingRentLedgerEntry[];
+  resident_extras?: ResidentExtra[];
   status: BookingStatus;
   source: string;
   notes: string | null;

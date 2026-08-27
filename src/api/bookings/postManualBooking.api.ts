@@ -9,9 +9,15 @@ export type CreateManualBookingInput = {
   guest_cnic?: string;
   guest_cnic_image_front?: string;
   guest_cnic_image_back?: string;
+  guest_b_form_image?: string;
+  guest_father_name?: string;
+  guest_gender?: "male" | "female" | "other" | "";
   guest_guardian_contact?: string;
   guest_permanent_address?: string;
-  /** Channel / company */
+  guest_company?: string;
+  guest_institution?: string;
+  resident_type?: "student" | "employee" | "other" | "";
+  /** Channel */
   source?: string;
   seats_booked: number;
   stay_unit?: "month" | "night";

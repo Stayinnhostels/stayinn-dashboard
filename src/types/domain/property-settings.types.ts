@@ -12,9 +12,17 @@ export type PropertySettings = {
   mapUrl: string;
   whatsapp: string | null;
   whatsapp_url: string | null;
+  emergencyPhone: string;
+  emergencyLabel: string;
   fullAddress: string;
   logoUrl: string;
   coverImageUrl: string;
+  /** Public https URL used in guest email headers (optional override). */
+  emailLogoUrl: string;
+  /** Email header logo height in px. */
+  emailLogoMaxHeight: number;
+  /** Email header logo max width in px. */
+  emailLogoMaxWidth: number;
   primaryColor: string;
   accentColor: string;
   dashboardPrimaryColor: string;
@@ -89,6 +97,12 @@ export type PropertySettings = {
   aboutCtaSecondaryLabel: string;
   aboutCtaSecondaryHref: string;
   aboutCtaShowSecondary: boolean;
+  /** Email unpaid guests for the current calendar month on configured days. */
+  rentRemindersEnabled: boolean;
+  /** Calendar days of the month to send reminders (1–28). */
+  rentReminderDays: number[];
+  /** Names shown when adding extra charges on a resident. */
+  extraFacilityPresets: string[];
 };
 
 export type PublicPropertySettings = Pick<
@@ -104,6 +118,8 @@ export type PublicPropertySettings = Pick<
   | "mapUrl"
   | "whatsapp"
   | "whatsapp_url"
+  | "emergencyPhone"
+  | "emergencyLabel"
   | "fullAddress"
   | "logoUrl"
   | "primaryColor"

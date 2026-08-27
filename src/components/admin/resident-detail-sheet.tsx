@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { FileSpreadsheet, FileText, Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -11,10 +12,13 @@ import {
   downloadResidentDossierPdfApi,
   downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
+import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
 import { useResidentDetailQuery } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
 import {
+  affiliationForResident,
+  EXTRA_BILLING_CYCLE_LABELS,
   GENDER_LABELS,
   RENT_PAYMENT_STATUS_LABELS,
   RESIDENT_TYPE_LABELS,
@@ -48,12 +52,25 @@ export function ResidentDetailSheet({
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [invoiceMonth, setInvoiceMonth] = useState<string | null>(null);
+  const [invoiceMonths, setInvoiceMonths] = useState<string[]>([]);
+  const [downloadingCombined, setDownloadingCombined] = useState(false);
 
   const r = data?.resident;
   const stay = data?.stay;
   const summary = data?.rent_summary;
   const timeline = data?.rent_timeline ?? [];
+  const extras = data?.extras ?? [];
+  const extrasSummary = data?.extras_summary;
+  const affiliation = r ? affiliationForResident(r) : null;
+  const monthKeysJoined = `${bookingId ?? ""}|${timeline.map((m) => m.month).join(",")}`;
   const totalCollected = summary?.total_rent_collected ?? summary?.total_rent_paid ?? 0;
+  const selectedSet = useMemo(() => new Set(invoiceMonths), [invoiceMonths]);
+  const allMonthsSelected = timeline.length > 0 && invoiceMonths.length === timeline.length;
+
+  useEffect(() => {
+    const keys = monthKeysJoined.split("|")[1]?.split(",").filter(Boolean) ?? [];
+    setInvoiceMonths(keys.includes(month) ? [month] : keys.slice(0, 1));
+  }, [monthKeysJoined, month]);
 
   async function handleDownloadPdf() {
     if (!token || !bookingId) {
@@ -101,6 +118,37 @@ export function ResidentDetailSheet({
     } finally {
       setInvoiceMonth(null);
     }
+  }
+
+  async function handleDownloadSelectedInvoices() {
+    if (!token || !bookingId) {
+      toast.error("You must be signed in to download");
+      return;
+    }
+    if (invoiceMonths.length === 0) {
+      toast.error("Select at least one month");
+      return;
+    }
+    setDownloadingCombined(true);
+    try {
+      await downloadResidentMonthInvoiceApi(token, bookingId, invoiceMonths);
+      toast.success(
+        invoiceMonths.length === 1
+          ? `Rent invoice for ${invoiceMonths[0]} downloaded`
+          : `Combined invoice for ${invoiceMonths.length} months downloaded`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invoice download failed");
+    } finally {
+      setDownloadingCombined(false);
+    }
+  }
+
+  function toggleInvoiceMonth(monthKey: string, checked: boolean) {
+    setInvoiceMonths((prev) => {
+      if (checked) return [...new Set([...prev, monthKey])].sort();
+      return prev.filter((m) => m !== monthKey);
+    });
   }
 
   return (
@@ -167,6 +215,22 @@ export function ResidentDetailSheet({
                       <Receipt className="mr-2 h-4 w-4" />
                     )}
                     This month invoice
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={downloadingCombined || invoiceMonths.length === 0}
+                    onClick={() => void handleDownloadSelectedInvoices()}
+                  >
+                    {downloadingCombined ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Receipt className="mr-2 h-4 w-4" />
+                    )}
+                    {invoiceMonths.length > 1
+                      ? `Invoice ${invoiceMonths.length} months`
+                      : "Invoice selected"}
                   </Button>
                 </div>
               </div>
@@ -249,7 +313,10 @@ export function ResidentDetailSheet({
                   <DetailField label="Contact number" value={r.contact_number} />
                   <DetailField label="Guardian contact number" value={r.guardian_contact} />
                   <DetailField label="Permanent address" value={r.permanent_address} />
-                  <DetailField label="Channel / company" value={r.channel} />
+                  <DetailField label="Channel" value={r.channel} />
+                  {affiliation ? (
+                    <DetailField label={affiliation.label} value={affiliation.value || "—"} />
+                  ) : null}
                 </div>
               </div>
 
@@ -311,11 +378,25 @@ export function ResidentDetailSheet({
               </div>
 
               <div>
-                <h3 className="mb-3 text-sm font-semibold">Monthly rent history</h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Monthly rent history</h3>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() =>
+                      setInvoiceMonths(allMonthsSelected ? [] : timeline.map((m) => m.month))
+                    }
+                  >
+                    {allMonthsSelected ? "Clear invoice months" : "Select all months"}
+                  </button>
+                </div>
                 <div className="overflow-x-auto rounded-xl border border-border/60">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <span className="sr-only">Select</span>
+                        </TableHead>
                         <TableHead>Month</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Rent</TableHead>
@@ -326,6 +407,13 @@ export function ResidentDetailSheet({
                     <TableBody>
                       {timeline.map((m) => (
                         <TableRow key={m.month} className={m.month === month ? "bg-primary/5" : undefined}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedSet.has(m.month)}
+                              onCheckedChange={(v) => toggleInvoiceMonth(m.month, v === true)}
+                              aria-label={`Include ${m.label} in combined invoice`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{m.label}</TableCell>
                           <TableCell>{RENT_PAYMENT_STATUS_LABELS[m.payment_status]}</TableCell>
                           <TableCell className="text-right tabular-nums">
@@ -357,8 +445,65 @@ export function ResidentDetailSheet({
                   </Table>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
+                  Tick two or more months, then use Invoice selected to download them as one PDF.
                   Highlighted row is the month selected in the register filter.
                 </p>
+              </div>
+
+              <div>
+                <h3 className="mb-3 text-sm font-semibold">Extra facilities</h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Charged separately from rent, with their own paid / unpaid cycle.
+                </p>
+                {bookingId ? (
+                  <ResidentExtrasEditor
+                    bookingId={bookingId}
+                    month={month}
+                    extras={r.extras ?? []}
+                    currency={r.currency}
+                  />
+                ) : null}
+                {extrasSummary && extras.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    <Badge variant="secondary">
+                      Due: {formatMoney(extrasSummary.total_due, extrasSummary.currency)}
+                    </Badge>
+                    <Badge variant="secondary">
+                      Collected: {formatMoney(extrasSummary.total_collected, extrasSummary.currency)}
+                    </Badge>
+                  </div>
+                ) : null}
+                {extras.map((extra) => (
+                  <div key={extra.id} className="mt-3 overflow-x-auto rounded-xl border border-border/60">
+                    <div className="border-b border-border/60 px-3 py-2 text-sm font-medium">
+                      {extra.label} · {EXTRA_BILLING_CYCLE_LABELS[extra.billing_cycle]}
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Period</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Charge</TableHead>
+                          <TableHead className="text-right">Collected</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(extra.timeline ?? []).map((m) => (
+                          <TableRow key={`${extra.id}-${m.month}`}>
+                            <TableCell>{m.label ?? m.month}</TableCell>
+                            <TableCell>{RENT_PAYMENT_STATUS_LABELS[m.payment_status]}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {formatMoney(m.amount, summary.currency)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {formatMoney(m.collected_amount ?? 0, summary.currency)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ))}
               </div>
 
               <div className="flex flex-wrap gap-2 pb-4">

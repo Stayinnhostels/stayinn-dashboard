@@ -54,11 +54,14 @@ import {
 } from "@/components/admin/cnic-images";
 import { toast } from "sonner";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
+import { RentInvoiceMonthsDialog } from "@/components/admin/rent-invoice-months-dialog";
+import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
 import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/month-filter-select";
 import {
   downloadMonthRentRegisterExcelApi,
   downloadMonthRentRegisterPdfApi,
   downloadResidentMonthInvoiceApi,
+  type CnicOcrFields,
 } from "@/api/residents";
 import { useResidentsRegisterQuery, useUpdateResidentMutation } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -72,8 +75,10 @@ import type {
   RentPaymentStatus,
   SecurityStatus,
   UpdateResidentInput,
+  ResidentExtra,
 } from "@/types/domain/resident.types";
 import {
+  affiliationForResident,
   GENDER_LABELS,
   RESIDENT_TYPE_LABELS,
   RENT_PAYMENT_STATUS_LABELS,
@@ -134,9 +139,21 @@ const RENT_STATUS_OPTIONS = Object.keys(RENT_PAYMENT_STATUS_LABELS) as RentPayme
 
 function InlineSecurityStatus({ row, month }: { row: ResidentRegisterRow; month: string }) {
   const update = useUpdateResidentMutation();
+  const canEdit = Boolean(row.security_due_this_month);
 
-  if (!row.security_due_this_month) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+  if (!canEdit) {
+    if (!row.security_status || row.security_status === "not_applicable") {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+    return (
+      <Badge
+        variant="outline"
+        className={cn("text-xs whitespace-nowrap", securityBadgeClass(row.security_status))}
+        title="Security is a one-time deposit — change it on the check-in month"
+      >
+        {SECURITY_STATUS_LABELS[row.security_status]}
+      </Badge>
+    );
   }
 
   const setStatus = (next: SecurityStatus) => {
@@ -248,23 +265,96 @@ function InlineRentStatus({ row, month }: { row: ResidentRegisterRow; month: str
   );
 }
 
+function InlineExtrasCell({ row, month }: { row: ResidentRegisterRow; month: string }) {
+  const update = useUpdateResidentMutation();
+  const billed = (row.extras ?? []).filter((extra): extra is ResidentExtra & { this_month: NonNullable<ResidentExtra["this_month"]> } =>
+    Boolean(extra.this_month),
+  );
+
+  if (billed.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  const setStatus = (extra: ResidentExtra, next: RentPaymentStatus) => {
+    if (!extra.this_month || next === extra.this_month.payment_status) return;
+    update.mutate(
+      {
+        bookingId: row.booking_id,
+        input: { month, update_extra: { extra_id: extra.id, payment_status: next, month } },
+      },
+      {
+        onSuccess: () =>
+          toast.success(`${extra.label} (${month}): ${RENT_PAYMENT_STATUS_LABELS[next]}`),
+        onError: () => toast.error("Could not update extra payment"),
+      },
+    );
+  };
+
+  return (
+    <div className="flex min-w-[9rem] flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+      {billed.map((extra) => (
+        <DropdownMenu key={extra.id}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={update.isPending}
+            >
+              <Badge
+                variant="outline"
+                className={cn(
+                  "max-w-full cursor-pointer gap-0.5 pr-1 text-[11px] whitespace-nowrap",
+                  rentBadgeClass(extra.this_month.payment_status),
+                )}
+              >
+                <span className="truncate">{extra.label}</span>
+                <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+              </Badge>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+            <div className="px-2 py-1.5 text-[11px] text-muted-foreground">
+              {formatMoney(extra.this_month.amount, row.currency)} ·{" "}
+              {extra.billing_cycle === "one_time" ? "one-time" : "monthly"}
+            </div>
+            {RENT_STATUS_OPTIONS.map((key) => (
+              <DropdownMenuItem
+                key={key}
+                disabled={update.isPending || key === extra.this_month.payment_status}
+                onSelect={() => setStatus(extra, key)}
+              >
+                {RENT_PAYMENT_STATUS_LABELS[key]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ))}
+    </div>
+  );
+}
+
 function EditResidentDialog({
   row,
   month,
   open,
   onOpenChange,
+  onInvoiceMonths,
 }: {
   row: ResidentRegisterRow | null;
   month: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onInvoiceMonths?: () => void;
 }) {
   const update = useUpdateResidentMutation();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [channel, setChannel] = useState("");
+  const [company, setCompany] = useState("");
+  const [institution, setInstitution] = useState("");
   const [fatherName, setFatherName] = useState("");
-  const [gender, setGender] = useState<ResidentGender>("");
+  const [gender, setGender] = useState<ResidentGender>("male");
   const [cnic, setCnic] = useState("");
   const [cnicFront, setCnicFront] = useState("");
   const [cnicBack, setCnicBack] = useState("");
@@ -272,7 +362,7 @@ function EditResidentDialog({
   const [guardian, setGuardian] = useState("");
   const [address, setAddress] = useState("");
   const [seatLabel, setSeatLabel] = useState("");
-  const [residentType, setResidentType] = useState<ResidentType>("");
+  const [residentType, setResidentType] = useState<ResidentType>("employee");
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus>("not_applicable");
   const [securityAmount, setSecurityAmount] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
@@ -283,9 +373,12 @@ function EditResidentDialog({
     if (!row || !open) return;
     setEmail(row.email?.endsWith("@stayinn.internal") ? "" : (row.email ?? ""));
     setPhone(row.contact_number ?? "");
+    setGuestName(row.name ?? "");
     setChannel(row.channel ?? "");
+    setCompany(row.company ?? "");
+    setInstitution(row.institution ?? "");
     setFatherName(row.father_name);
-    setGender(row.gender || "");
+    setGender(row.gender || "male");
     setCnic(row.cnic);
     setCnicFront(row.cnic_image_front ?? "");
     setCnicBack(row.cnic_image_back ?? "");
@@ -293,7 +386,7 @@ function EditResidentDialog({
     setGuardian(row.guardian_contact);
     setAddress(row.permanent_address);
     setSeatLabel(row.seat_label);
-    setResidentType(row.resident_type || "");
+    setResidentType(row.resident_type || "employee");
     setSecurityStatus(row.security_status);
     setSecurityAmount(row.security_amount != null ? String(row.security_amount) : "");
     setMonthlyRent(String(row.monthly_rent));
@@ -301,12 +394,31 @@ function EditResidentDialog({
     setApplyRentForward(false);
   }, [row, open]);
 
+  function applyCnicOcr(fields: CnicOcrFields) {
+    if (fields.cnic) setCnic(fields.cnic);
+    if (fields.name) setGuestName(fields.name);
+    if (fields.father_name) setFatherName(fields.father_name);
+    if (fields.address) setAddress(fields.address);
+    if (fields.gender) setGender(fields.gender);
+  }
+
   function handleSave() {
     if (!row) return;
+    if (residentType === "employee" && !company.trim()) {
+      toast.error("Enter the company name");
+      return;
+    }
+    if (residentType === "student" && !institution.trim()) {
+      toast.error("Enter the institution name");
+      return;
+    }
     const input: UpdateResidentInput = {
+      guest_name: guestName.trim(),
       guest_email: email.trim(),
       guest_phone: phone.trim(),
       source: channel.trim(),
+      guest_company: company.trim(),
+      guest_institution: institution.trim(),
       guest_father_name: fatherName.trim(),
       guest_gender: gender,
       guest_cnic: cnic.trim(),
@@ -355,13 +467,43 @@ function EditResidentDialog({
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label>Channel </Label>
+              <Label>Full name</Label>
+              <Input
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="As on ID card"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Channel</Label>
               <Input
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                placeholder="Walk-in, Website, or company name"
+                placeholder="Walk-in or Website"
               />
             </div>
+            <div className="space-y-2 sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
+              <Label>Rent invoice</Label>
+              <p className="text-xs text-muted-foreground">
+                Download one month, or combine two or more months into a single invoice.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                onClick={() => onInvoiceMonths?.()}
+              >
+                <Receipt className="mr-2 h-4 w-4" />
+                Choose months
+              </Button>
+            </div>
+            <ResidentExtrasEditor
+              bookingId={row.booking_id}
+              month={month}
+              extras={row.extras ?? []}
+              currency={row.currency}
+            />
             <div className="space-y-2">
               <Label>Email</Label>
               <Input
@@ -402,6 +544,7 @@ function EditResidentDialog({
               onBackChange={setCnicBack}
               bForm={bFormImage}
               onBFormChange={setBFormImage}
+              onExtracted={applyCnicOcr}
             />
             <div className="space-y-2 sm:col-span-2">
               <Label>Permanent address</Label>
@@ -419,14 +562,13 @@ function EditResidentDialog({
             <div className="space-y-2">
               <Label>Gender</Label>
               <Select
-                value={gender || "unset"}
-                onValueChange={(v) => setGender(v === "unset" ? "" : (v as ResidentGender))}
+                value={gender || "male"}
+                onValueChange={(v) => setGender(v as ResidentGender)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unset">—</SelectItem>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
@@ -444,20 +586,41 @@ function EditResidentDialog({
             <div className="space-y-2">
               <Label>Type</Label>
               <Select
-                value={residentType || "unset"}
-                onValueChange={(v) => setResidentType(v === "unset" ? "" : (v as ResidentType))}
+                value={residentType || "employee"}
+                onValueChange={(v) => setResidentType(v as ResidentType)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unset">—</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {residentType === "employee" ? (
+              <div className="space-y-2 sm:col-span-2">
+                <Label required>Company name</Label>
+                <Input
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Employer or company"
+                  required
+                />
+              </div>
+            ) : null}
+            {residentType === "student" ? (
+              <div className="space-y-2 sm:col-span-2">
+                <Label required>Institution name</Label>
+                <Input
+                  value={institution}
+                  onChange={(e) => setInstitution(e.target.value)}
+                  placeholder="College, university, or institute"
+                  required
+                />
+              </div>
+            ) : null}
             {row.security_due_this_month ? (
               <>
                 <div className="space-y-2">
@@ -559,6 +722,9 @@ function MonthlyRentPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [invoiceBookingId, setInvoiceBookingId] = useState<string | null>(null);
+  const [invoicePicker, setInvoicePicker] = useState<{ bookingId: string; name: string } | null>(
+    null,
+  );
 
   const params = useMemo(
     () => ({ month, cohort, page, limit: pageSize, ...(search ? { search } : {}) }),
@@ -778,6 +944,7 @@ function MonthlyRentPage() {
                     <TableHead className="min-w-[6rem]">Booking</TableHead>
                     <TableHead className="min-w-[8rem]">Name</TableHead>
                     <TableHead className="min-w-[7rem]">Channel</TableHead>
+                    <TableHead className="min-w-[8rem]">Company / Institution</TableHead>
                     <TableHead className="min-w-[9rem]">Email</TableHead>
                     <TableHead className="min-w-[7rem]">Contact</TableHead>
                     <TableHead className="min-w-[7.5rem]">CNIC number</TableHead>
@@ -792,6 +959,7 @@ function MonthlyRentPage() {
                     <TableHead className="min-w-[5.5rem]">Security</TableHead>
                     <TableHead className="min-w-[5.5rem]">Rent</TableHead>
                     <TableHead className="min-w-[5.5rem] text-right">Amount</TableHead>
+                    <TableHead className="min-w-[8rem]">Extras</TableHead>
                     <TableHead className="w-10 sticky right-0 z-10 bg-card" />
                   </TableRow>
                 </TableHeader>
@@ -823,6 +991,14 @@ function MonthlyRentPage() {
                       <TableCell className="max-w-[8rem] text-xs">
                         <span className="block truncate" title={r.channel || undefined}>
                           {r.channel || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[9rem] text-xs">
+                        <span
+                          className="block truncate"
+                          title={affiliationForResident(r)?.value || undefined}
+                        >
+                          {affiliationForResident(r)?.value || "—"}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-[10rem] text-xs">
@@ -895,25 +1071,47 @@ function MonthlyRentPage() {
                       <TableCell className="text-right font-semibold tabular-nums whitespace-nowrap text-sm">
                         {formatMoney(r.monthly_rent, r.currency)}
                       </TableCell>
+                      <TableCell>
+                        <InlineExtrasCell row={r} month={month} />
+                      </TableCell>
                       <TableCell className="sticky right-0 z-10 bg-card">
                         <div className="flex items-center justify-end gap-0.5">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title={`Download ${monthLabel} invoice`}
-                            disabled={invoiceBookingId === r.booking_id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDownloadRowInvoice(r.booking_id);
-                            }}
-                          >
-                            {invoiceBookingId === r.booking_id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Receipt className="h-4 w-4" />
-                            )}
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Download rent invoice"
+                                disabled={invoiceBookingId === r.booking_id}
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                              >
+                                {invoiceBookingId === r.booking_id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Receipt className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenuItem
+                                onClick={() => void handleDownloadRowInvoice(r.booking_id)}
+                              >
+                                This month ({monthLabel})
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setInvoicePicker({ bookingId: r.booking_id, name: r.name })
+                                }
+                              >
+                                Multiple months…
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             type="button"
                             variant="ghost"
@@ -972,6 +1170,10 @@ function MonthlyRentPage() {
         month={month}
         open={Boolean(editRow)}
         onOpenChange={(v) => !v && setEditRow(null)}
+        onInvoiceMonths={() => {
+          if (!editRow) return;
+          setInvoicePicker({ bookingId: editRow.booking_id, name: editRow.name });
+        }}
       />
 
       <CnicImagesViewerModal
@@ -997,6 +1199,14 @@ function MonthlyRentPage() {
             setEditRow(row);
           }
         }}
+      />
+
+      <RentInvoiceMonthsDialog
+        bookingId={invoicePicker?.bookingId ?? null}
+        residentName={invoicePicker?.name}
+        defaultMonths={[month]}
+        open={Boolean(invoicePicker)}
+        onOpenChange={(v) => !v && setInvoicePicker(null)}
       />
     </div>
   );

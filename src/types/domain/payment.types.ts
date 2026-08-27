@@ -14,6 +14,10 @@ export type Payment = {
   amount: number;
   total_amount?: number;
   collected_rent?: number;
+  extras_due?: number;
+  extras_collected?: number;
+  rent_due?: number;
+  rent_collected?: number;
   amount_refunded?: number;
   amount_retained?: number;
   currency: string;
@@ -71,6 +75,10 @@ export type MonthPaymentCurrencyStats = {
   due: number;
   collected: number;
   unpaid: number;
+  rent_due?: number;
+  rent_collected?: number;
+  extras_due?: number;
+  extras_collected?: number;
   paid_count: number;
   unpaid_count: number;
   partial_count: number;

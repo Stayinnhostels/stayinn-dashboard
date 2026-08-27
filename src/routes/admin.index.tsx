@@ -14,11 +14,81 @@ import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomsQuery } from "@/queries/rooms";
 import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 import type { Room } from "@/types/domain/room.types";
+import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
 const PIE_COLORS = ["#0066B2", "#0ea5e9", "#facc15", "#22c55e", "#a855f7", "#ec4899"];
 const chartCard = "border-border/60 bg-card/60 backdrop-blur";
+
+function topNamedSlices(items: { name: string; value: number }[], limit = 6) {
+  const sorted = [...items]
+    .map((row) => ({
+      name: (row.name || "Unknown").trim() || "Unknown",
+      value: row.value,
+    }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value);
+  if (sorted.length <= limit) return sorted;
+  const head = sorted.slice(0, limit);
+  const rest = sorted.slice(limit).reduce((sum, row) => sum + row.value, 0);
+  return [...head, { name: "Other", value: rest }];
+}
+
+function OverviewPie({
+  data,
+  valueFormatter,
+}: {
+  data: { name: string; value: number }[];
+  valueFormatter?: (value: number, name: string) => [string, string];
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius="38%"
+              outerRadius="68%"
+              paddingAngle={2}
+            >
+              {data.map((row, i) => (
+                <Cell key={`${row.name}-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={
+                valueFormatter ??
+                ((value, name) => [`${value}`, String(name)] as [string, string])
+              }
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="mt-2 flex max-h-[4.75rem] flex-wrap content-start justify-center gap-x-3 gap-y-1 overflow-y-auto px-1">
+        {data.map((row, i) => (
+          <li
+            key={`${row.name}-${i}`}
+            className="flex max-w-[9.5rem] items-center gap-1.5 text-[11px] leading-tight text-foreground"
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+            />
+            <span className="truncate" title={row.name}>
+              {row.name}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function ChartState({
   loading,
@@ -50,7 +120,7 @@ function ChartState({
       </div>
     );
   }
-  return <>{children}</>;
+  return <div className="h-full min-h-0">{children}</div>;
 }
 
 function OverviewPage() {
@@ -117,8 +187,13 @@ function OverviewPage() {
     })) ?? [];
 
   const sourceMap: Record<string, number> = {};
-  bookings.forEach((b) => { sourceMap[b.source] = (sourceMap[b.source] ?? 0) + 1; });
-  const sourceData = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
+  bookings.forEach((b) => {
+    const name = (b.source || "Unknown").trim() || "Unknown";
+    sourceMap[name] = (sourceMap[name] ?? 0) + 1;
+  });
+  const sourceData = topNamedSlices(
+    Object.entries(sourceMap).map(([name, value]) => ({ name, value })),
+  );
 
   const revByCategory: Record<string, number> = {};
   succeededBookings.forEach((b) => {
@@ -225,17 +300,10 @@ function OverviewPage() {
                 empty={!overviewLoading && !overviewError && statusData.length === 0}
                 emptyMessage="No bookings yet"
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={85} paddingAngle={3}>
-                      {statusData.map((row, i) => (
-                        <Cell key={row.status} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name) => [`${value}`, name]} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <OverviewPie
+                  data={statusData}
+                  valueFormatter={(value, name) => [`${value}`, String(name)]}
+                />
               </ChartState>
             </CardContent>
           </Card>
@@ -303,15 +371,16 @@ function OverviewPage() {
 
           <Card className={chartCard}>
             <CardHeader><CardTitle className="text-base">Booking sources</CardTitle></CardHeader>
-            <CardContent className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={sourceData} dataKey="value" nameKey="name" outerRadius={85}>
-                    {sourceData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip /><Legend wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[280px]">
+              <ChartState
+                loading={bookingsLoading}
+                error={false}
+                errorMessage=""
+                empty={!bookingsLoading && sourceData.length === 0}
+                emptyMessage="No booking sources yet"
+              >
+                <OverviewPie data={sourceData} />
+              </ChartState>
             </CardContent>
           </Card>
         </div>
@@ -359,15 +428,10 @@ function OverviewPage() {
           <Card className={chartCard}>
             <CardHeader><CardTitle className="text-base">Revenue by room type</CardTitle></CardHeader>
             <CardContent className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={revCategoryData} dataKey="value" nameKey="name" outerRadius={95}>
-                    {revCategoryData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => formatMoney(Number(v), "pkr")} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <OverviewPie
+                data={revCategoryData}
+                valueFormatter={(value, name) => [formatMoney(Number(value), "pkr"), String(name)]}
+              />
             </CardContent>
           </Card>
 
@@ -399,6 +463,13 @@ function OverviewPage() {
           </Card>
         </div>
       </div>
+
+      <ExtrasCollectedCharts
+        extras={overviewStats?.extras}
+        loading={overviewLoading}
+        error={overviewError}
+        errorMessage={chartErrorMessage}
+      />
     </div>
   );
 }

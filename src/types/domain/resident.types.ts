@@ -9,6 +9,8 @@ export type ResidentRegisterRow = {
   booking_ref: string;
   booking_date: string | null;
   channel: string;
+  company: string;
+  institution: string;
   name: string;
   father_name: string;
   gender: ResidentGender;
@@ -34,9 +36,44 @@ export type ResidentRegisterRow = {
   security_due_this_month?: boolean;
   payment_status: RentPaymentStatus;
   monthly_rent: number;
+  extras?: ResidentExtra[];
+  extras_due_this_month?: number;
+  extras_unpaid_this_month?: number;
   currency: "pkr" | "usd";
   amount_refunded?: number | null;
   amount_retained?: number | null;
+};
+
+export type ExtraBillingCycle = "monthly" | "one_time";
+
+export type ResidentExtraPeriod = {
+  month: string;
+  label?: string;
+  amount: number;
+  payment_status: RentPaymentStatus;
+  collected_amount?: number;
+};
+
+export type ResidentExtra = {
+  id: string;
+  label: string;
+  amount: number;
+  billing_cycle: ExtraBillingCycle;
+  start_month: string | null;
+  end_month: string | null;
+  status: "active" | "ended";
+  ledger?: ResidentExtraPeriod[];
+  this_month?: ResidentExtraPeriod | null;
+  timeline?: ResidentExtraPeriod[];
+  total_due?: number;
+  total_collected?: number;
+};
+
+export type ResidentExtrasSummary = {
+  count: number;
+  total_due: number;
+  total_collected: number;
+  currency: "pkr" | "usd";
 };
 
 export type RentTimelineMonth = {
@@ -87,6 +124,8 @@ export type ResidentDetail = {
   stay: ResidentStaySummary;
   rent_timeline: RentTimelineMonth[];
   rent_summary: ResidentRentSummary;
+  extras?: ResidentExtra[];
+  extras_summary?: ResidentExtrasSummary;
 };
 
 export type ResidentRegisterCohort = "active" | "checkouts";
@@ -123,6 +162,8 @@ export type ResidentByRoomPerson = {
   check_out: string | null;
   resident_type: string;
   channel: string;
+  company?: string;
+  institution?: string;
 };
 
 export type ResidentsByRoomGroup = {
@@ -170,7 +211,9 @@ export type UpdateResidentInput = {
   guest_b_form_image?: string;
   guest_guardian_contact?: string;
   guest_permanent_address?: string;
-  /** Channel / company — free text or walk_in / website */
+  guest_company?: string;
+  guest_institution?: string;
+  /** Channel — free text or walk_in / website */
   source?: string;
   seat_label?: string;
   resident_type?: ResidentType;
@@ -183,6 +226,24 @@ export type UpdateResidentInput = {
   collect_rent_months?: number;
   /** Apply monthly_rent to this month and all later months in the stay. */
   apply_rent_forward?: boolean;
+  add_extra?: {
+    label: string;
+    amount: number;
+    billing_cycle?: ExtraBillingCycle;
+    start_month?: string;
+    end_month?: string | null;
+  };
+  update_extra?: {
+    extra_id: string;
+    label?: string;
+    amount?: number;
+    billing_cycle?: ExtraBillingCycle;
+    end_month?: string | null;
+    status?: "active" | "ended";
+    payment_status?: RentPaymentStatus;
+    month?: string;
+  };
+  remove_extra?: string;
 };
 
 export const GENDER_LABELS: Record<ResidentGender, string> = {
@@ -199,6 +260,23 @@ export const RESIDENT_TYPE_LABELS: Record<ResidentType, string> = {
   "": "—",
 };
 
+/** Company for employees, institution for students. */
+export function affiliationForResident(r: {
+  resident_type?: string | null;
+  company?: string | null;
+  institution?: string | null;
+  guest_company?: string | null;
+  guest_institution?: string | null;
+}): { label: "Company" | "Institution"; value: string } | null {
+  const company = (r.company ?? r.guest_company ?? "").trim();
+  const institution = (r.institution ?? r.guest_institution ?? "").trim();
+  if (r.resident_type === "student") return { label: "Institution", value: institution };
+  if (r.resident_type === "employee") return { label: "Company", value: company };
+  if (company) return { label: "Company", value: company };
+  if (institution) return { label: "Institution", value: institution };
+  return null;
+}
+
 export const SECURITY_STATUS_LABELS: Record<SecurityStatus, string> = {
   paid: "Paid",
   returned: "Returned",
@@ -213,3 +291,22 @@ export const RENT_PAYMENT_STATUS_LABELS: Record<RentPaymentStatus, string> = {
   returned: "Returned",
   partial: "Partial",
 };
+
+export const EXTRA_BILLING_CYCLE_LABELS: Record<ExtraBillingCycle, string> = {
+  monthly: "Monthly",
+  one_time: "One-time",
+};
+
+export const DEFAULT_EXTRA_FACILITY_PRESETS = [
+  "AC",
+  "Cooler",
+  "Heater",
+  "Fan",
+  "Fridge",
+  "Parking",
+  "Washing machine",
+  "Extra mattress",
+] as const;
+
+/** @deprecated Use DEFAULT_EXTRA_FACILITY_PRESETS */
+export const EXTRA_FACILITY_PRESETS = DEFAULT_EXTRA_FACILITY_PRESETS;

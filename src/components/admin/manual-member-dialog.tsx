@@ -16,7 +16,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateManualBookingMutation } from "@/queries/bookings";
 import type { Room } from "@/types/domain/room.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatMoney } from "@/lib/payments";
+import { CnicImagesEditor } from "@/components/admin/cnic-images";
+import { type CnicOcrFields } from "@/api/residents";
+import type { ResidentGender, ResidentType } from "@/types/domain/resident.types";
 import { securityDepositForSeats, securityPerSeat } from "@/lib/security-deposit";
 
 type Props = {
@@ -66,7 +68,17 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestCnic, setGuestCnic] = useState("");
+  const [cnicFront, setCnicFront] = useState("");
+  const [cnicBack, setCnicBack] = useState("");
+  const [bFormImage, setBFormImage] = useState("");
+  const [fatherName, setFatherName] = useState("");
+  const [gender, setGender] = useState<ResidentGender>("male");
+  const [address, setAddress] = useState("");
   const [channel, setChannel] = useState("Walk-in");
+  const [residentType, setResidentType] = useState<ResidentType>("employee");
+  const [company, setCompany] = useState("");
+  const [institution, setInstitution] = useState("");
   const [stayUnit, setStayUnit] = useState<"month" | "night">("month");
   const [seats, setSeats] = useState("1");
   const [months, setMonths] = useState("1");
@@ -220,13 +232,25 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     (!useCustomPrice || (Number.isFinite(parsedTotal) && parsedTotal >= 0)) &&
     (isNightStay ||
       !useCustomSecurity ||
-      (Number.isFinite(parsedSecurity) && parsedSecurity >= 0));
+      (Number.isFinite(parsedSecurity) && parsedSecurity >= 0)) &&
+    (residentType !== "employee" || company.trim().length > 0) &&
+    (residentType !== "student" || institution.trim().length > 0);
 
   const resetForm = () => {
     setGuestName("");
     setGuestPhone("");
     setGuestEmail("");
+    setGuestCnic("");
+    setCnicFront("");
+    setCnicBack("");
+    setBFormImage("");
+    setFatherName("");
+    setGender("male");
+    setAddress("");
     setChannel("Walk-in");
+    setResidentType("employee");
+    setCompany("");
+    setInstitution("");
     setStayUnit("month");
     setSeats("1");
     setMonths("1");
@@ -260,7 +284,17 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         guest_name: guestName.trim(),
         guest_phone: guestPhone.trim(),
         guest_email: guestEmail.trim() || undefined,
+        guest_cnic: guestCnic.trim() || undefined,
+        guest_cnic_image_front: cnicFront || undefined,
+        guest_cnic_image_back: cnicBack || undefined,
+        guest_b_form_image: bFormImage || undefined,
+        guest_father_name: fatherName.trim() || undefined,
+        guest_gender: gender || "male",
+        guest_permanent_address: address.trim() || undefined,
         source: channel.trim() || "walk_in",
+        resident_type: residentType || "employee",
+        guest_company: company.trim() || undefined,
+        guest_institution: institution.trim() || undefined,
         seats_booked: seatsNum,
         stay_unit: stayUnit,
         ...(isNightStay
@@ -327,6 +361,21 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
             <section className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest</h3>
+              <CnicImagesEditor
+                front={cnicFront}
+                back={cnicBack}
+                onFrontChange={setCnicFront}
+                onBackChange={setCnicBack}
+                bForm={bFormImage}
+                onBFormChange={setBFormImage}
+                onExtracted={(fields: CnicOcrFields) => {
+                  if (fields.cnic) setGuestCnic(fields.cnic);
+                  if (fields.name) setGuestName(fields.name);
+                  if (fields.father_name) setFatherName(fields.father_name);
+                  if (fields.address) setAddress(fields.address);
+                  if (fields.gender) setGender(fields.gender);
+                }}
+              />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5 sm:col-span-2">
                   <Label htmlFor="manual-name" required>Full name</Label>
@@ -336,6 +385,50 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Guest name"
                     required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="manual-cnic">CNIC number</Label>
+                  <Input
+                    id="manual-cnic"
+                    value={guestCnic}
+                    onChange={(e) => setGuestCnic(e.target.value)}
+                    placeholder="Filled from ID card"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="manual-father">Father name</Label>
+                  <Input
+                    id="manual-father"
+                    value={fatherName}
+                    onChange={(e) => setFatherName(e.target.value)}
+                    placeholder="Filled from ID card"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="manual-gender">Gender</Label>
+                  <Select
+                    value={gender || "male"}
+                    onValueChange={(v) => setGender(v as ResidentGender)}
+                  >
+                    <SelectTrigger id="manual-gender">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="manual-address">Permanent address</Label>
+                  <Textarea
+                    id="manual-address"
+                    rows={2}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Filled from ID card back"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -368,9 +461,49 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     id="manual-channel"
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
-                    placeholder="Walk-in, Website, or company name"
+                    placeholder="Walk-in or Website"
                   />
                 </div>
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label htmlFor="manual-type">Type</Label>
+                  <Select
+                    value={residentType || "employee"}
+                    onValueChange={(v) => setResidentType(v as ResidentType)}
+                  >
+                    <SelectTrigger id="manual-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {residentType === "employee" ? (
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="manual-company" required>Company name</Label>
+                    <Input
+                      id="manual-company"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="Employer or company"
+                      required
+                    />
+                  </div>
+                ) : null}
+                {residentType === "student" ? (
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="manual-institution" required>Institution name</Label>
+                    <Input
+                      id="manual-institution"
+                      value={institution}
+                      onChange={(e) => setInstitution(e.target.value)}
+                      placeholder="College, university, or institute"
+                      required
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
 
