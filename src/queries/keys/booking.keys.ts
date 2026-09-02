@@ -7,7 +7,7 @@ export const bookingKeys = {
   details: () => [...bookingKeys.all, "detail"] as const,
   detail: (id: string) => [...bookingKeys.details(), id] as const,
   dailyStats: (days: number) => [...bookingKeys.all, "daily-stats", days] as const,
-  overview: (days: number, weeks: number, months: number) =>
-    [...bookingKeys.all, "overview", days, weeks, months] as const,
+  overview: (days: number, weeks: number, months: number, hostel?: string) =>
+    [...bookingKeys.all, "overview", days, weeks, months, hostel ?? "all"] as const,
   revenue: () => [...bookingKeys.all, "revenue"] as const,
 };

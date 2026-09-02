@@ -28,6 +28,7 @@ export type MaintenanceStats = {
 
 export type MaintenanceListParams = {
   status?: MaintenanceStatus;
+  hostel?: string;
 };
 
 export type MaintenanceDraft = {

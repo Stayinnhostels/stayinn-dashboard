@@ -22,6 +22,7 @@ import { useResidentsDirectoryQuery } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import type {
   ResidentDirectoryRow,
   ResidentDirectoryScope,
@@ -47,6 +48,7 @@ function statusBadgeClass(status: string) {
 }
 
 function ResidentsDirectoryPage() {
+  const { hostelId } = useHostelScope();
   const token = useAuthStore((s) => s.token);
   const [scope, setScope] = useState<ResidentDirectoryScope>("active");
   const [searchInput, setSearchInput] = useState("");
@@ -60,12 +62,15 @@ function ResidentsDirectoryPage() {
       scope,
       page,
       limit: PAGE_SIZE,
+      ...(hostelId ? { hostel: hostelId } : {}),
       ...(search ? { search } : {}),
     }),
-    [scope, page, search],
+    [hostelId, scope, page, search],
   );
 
-  const { data, isLoading, isError } = useResidentsDirectoryQuery(params);
+  const { data, isLoading, isError } = useResidentsDirectoryQuery(params, {
+    enabled: Boolean(hostelId),
+  });
   const residents = data?.residents ?? [];
   const pagination = data?.pagination;
 

@@ -25,6 +25,7 @@ export async function getProfitLossApi(token: string, params: ProfitLossParams =
   if (params.months != null) search.set("months", String(params.months));
   if (params.history_page != null) search.set("history_page", String(params.history_page));
   if (params.history_limit != null) search.set("history_limit", String(params.history_limit));
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<ProfitLossResponse>(

@@ -8,7 +8,10 @@ export const paymentKeys = {
   list: (params: PaymentsListParams) => [...paymentKeys.all, "list", params] as const,
 };
 
-export function usePaymentsQuery(params: PaymentsListParams) {
+export function usePaymentsQuery(
+  params: PaymentsListParams,
+  options: { enabled?: boolean } = {},
+) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
@@ -17,7 +20,7 @@ export function usePaymentsQuery(params: PaymentsListParams) {
       if (!token) throw new Error("You must be signed in to view payments");
       return getPaymentsApi(token, params);
     },
-    enabled: Boolean(token),
+    enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 0,
   });
 }

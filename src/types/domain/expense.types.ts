@@ -71,6 +71,7 @@ export type ProfitLossParams = {
   months?: number;
   history_page?: number;
   history_limit?: number;
+  hostel?: string;
 };
 
 export type ExpenseListParams = {

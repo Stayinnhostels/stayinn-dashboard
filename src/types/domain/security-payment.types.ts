@@ -41,6 +41,7 @@ export type SecurityPaymentsListParams = {
   limit?: number;
   status?: SecurityStatus;
   search?: string;
+  hostel?: string;
 };
 
 export type SecurityPaymentsPagination = {

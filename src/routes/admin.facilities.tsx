@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatCard } from "@/components/admin/stat-card";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { Plus, Sparkles, Trash2, Pencil, Eye, EyeOff } from "lucide-react";
 import { AdminCardGridSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -210,6 +211,13 @@ function FacilitiesPage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-extrabold leading-tight">{f.title}</h3>
+                        <div className="mt-1.5">
+                          <HostelPropertyBadge
+                            hostelId={f.hostel_id}
+                            hostelName={f.hostel_name}
+                            showAllProperties={false}
+                          />
+                        </div>
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>
                       </div>
                     </div>

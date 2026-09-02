@@ -11,7 +11,7 @@ export function roomPricesToApi(draft: Pick<RoomDraft, "price_per_night" | "pric
   };
 }
 
-export function roomDraftToApiBody(draft: RoomDraft): Record<string, unknown> {
+export function roomDraftToApiBody(draft: RoomDraft, hostelId?: string): Record<string, unknown> {
   const prices = roomPricesToApi(draft);
   const body: Record<string, unknown> = {
     title: draft.title.trim(),
@@ -27,6 +27,7 @@ export function roomDraftToApiBody(draft: RoomDraft): Record<string, unknown> {
     display_order: draft.display_order,
   };
   body.room_number = draft.room_number ?? null;
+  if (hostelId) body.hostel = hostelId;
   if (draft.badge?.trim()) body.badge = draft.badge.trim();
   return body;
 }

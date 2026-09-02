@@ -22,7 +22,9 @@ import { toast } from "sonner";
 import { ManualMemberDialog } from "@/components/admin/manual-member-dialog";
 import { RoomDetailSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
+import { RoomThumbnail } from "@/components/admin/room-thumbnail";
 import { RoomStatusPicker } from "@/components/admin/room-status-picker";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
@@ -220,13 +222,11 @@ function RoomDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="overflow-hidden border-border/60 lg:col-span-2">
           <div className="aspect-video bg-muted">
-            {room.images?.[activeImage] ? (
-              <img src={room.images[activeImage]} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <BedDouble className="h-16 w-16 text-muted-foreground/40" />
-              </div>
-            )}
+            <RoomThumbnail
+              src={room.images?.[activeImage]}
+              className="h-full w-full"
+              iconClassName="h-16 w-16"
+            />
           </div>
           {room.images?.length > 1 && (
             <div className="flex gap-2 overflow-x-auto p-3">
@@ -237,7 +237,7 @@ function RoomDetailPage() {
                   onClick={() => setActiveImage(i)}
                   className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 ${i === activeImage ? "border-primary" : "border-transparent"}`}
                 >
-                  <img src={src} alt="" className="h-full w-full object-cover" />
+                  <RoomThumbnail src={src} className="h-full w-full" iconClassName="h-6 w-6" />
                 </button>
               ))}
             </div>
@@ -246,6 +246,9 @@ function RoomDetailPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-extrabold tracking-tight">{formatRoomLabel(room)}</h2>
+                <div className="mt-1.5">
+                  <HostelPropertyBadge hostelId={room.hostel_id} hostelName={room.hostel_name} showAllProperties={false} />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {room.room_number != null ? `Room ${room.room_number} · ` : ""}
                   {room.category}

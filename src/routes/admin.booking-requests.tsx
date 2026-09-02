@@ -16,6 +16,7 @@ import {
   useBookingRequestsQuery,
   useResolveBookingRequestMutation,
 } from "@/queries/booking-requests";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import type {
   BookingRequest,
   BookingRequestStatus,
@@ -33,9 +34,15 @@ const statusBadge: Record<BookingRequestStatus, string> = {
 };
 
 function BookingRequestsPage() {
+  const { hostelId } = useHostelScope();
   const [filter, setFilter] = useState<"all" | BookingRequestStatus>("pending");
-  const listParams = filter === "all" ? { limit: 100 } : { status: filter, limit: 100 };
-  const { data, isLoading, isError } = useBookingRequestsQuery(listParams);
+  const listParams =
+    filter === "all"
+      ? { limit: 100, ...(hostelId ? { hostel: hostelId } : {}) }
+      : { status: filter, limit: 100, ...(hostelId ? { hostel: hostelId } : {}) };
+  const { data, isLoading, isError } = useBookingRequestsQuery(listParams, {
+    enabled: Boolean(hostelId),
+  });
   const resolveRequest = useResolveBookingRequestMutation();
 
   const requests = data?.requests ?? [];

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Pencil, Search, X } from "lucide-react";
 import { BookingsListSkeleton } from "@/components/admin/bookings-page-skeletons";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -351,6 +352,7 @@ function BookingsListPage() {
                 </Badge>
               </div>
               <CardContent className="space-y-2 p-4">
+                <HostelPropertyBadge hostelId={b.hostel_id} hostelName={b.hostel_name} showAllProperties={false} />
                 <div className="flex items-center justify-between">
                   <p className="truncate font-bold tracking-tight">{b.guest_name}</p>
                   <p className="font-mono text-[10px] text-muted-foreground">#{b.id.slice(-6)}</p>
@@ -400,6 +402,7 @@ function BookingsListPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Booking</TableHead>
+                  <TableHead>Property</TableHead>
                   <TableHead>Guest</TableHead>
                   <TableHead>Room</TableHead>
                   <TableHead>Dates</TableHead>
@@ -414,6 +417,9 @@ function BookingsListPage() {
                 {bookings.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono text-xs">#{b.id.slice(-6)}</TableCell>
+                    <TableCell>
+                      <HostelPropertyBadge hostelId={b.hostel_id} hostelName={b.hostel_name} showAllProperties={false} />
+                    </TableCell>
                     <TableCell>
                       <div className="font-semibold">{b.guest_name}</div>
                       <div className="text-xs text-muted-foreground">{b.guest_email}</div>

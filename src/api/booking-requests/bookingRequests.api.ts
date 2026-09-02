@@ -23,6 +23,7 @@ export async function getBookingRequestsApi(token: string, params: BookingReques
   if (params.status) search.set("status", params.status);
   if (params.limit) search.set("limit", String(params.limit));
   if (params.page) search.set("page", String(params.page));
+  if (params.hostel) search.set("hostel", params.hostel);
   const q = search.toString();
   const data = await apiFetch<ListResponse>(`/api/v1/booking-requests${q ? `?${q}` : ""}`, { token });
   if (!data.success || !Array.isArray(data.requests)) {

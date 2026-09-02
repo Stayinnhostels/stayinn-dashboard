@@ -13,11 +13,13 @@ import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/mont
 import { usePaymentsQuery } from "@/queries/payments";
 import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/payments";
 import { RENT_PAYMENT_STATUS_LABELS } from "@/types/domain/resident.types";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import type { Payment, PaymentStatus } from "@/types/domain/payment.types";
 
 export const Route = createFileRoute("/admin/payments")({ component: PaymentsPage });
 
 function PaymentsPage() {
+  const { hostelId } = useHostelScope();
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -31,7 +33,8 @@ function PaymentsPage() {
     status: paymentStatus,
     search: query.trim() || undefined,
     month,
-  });
+    ...(hostelId ? { hostel: hostelId } : {}),
+  }, { enabled: Boolean(hostelId) });
 
   const payments = data?.payments ?? [];
   const pagination = data?.pagination;

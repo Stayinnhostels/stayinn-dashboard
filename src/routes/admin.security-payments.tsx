@@ -32,6 +32,7 @@ import {
   useSecurityPaymentsQuery,
 } from "@/queries/security-payments";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import { SECURITY_STATUS_LABELS, type SecurityStatus } from "@/types/domain/resident.types";
 import type { SecurityPaymentRow } from "@/types/domain/security-payment.types";
 
@@ -55,6 +56,7 @@ function securityBadgeClass(status: SecurityStatus) {
 }
 
 function SecurityPaymentsPage() {
+  const { hostelId } = useHostelScope();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -64,12 +66,16 @@ function SecurityPaymentsPage() {
   const status =
     statusFilter === "all" ? undefined : (statusFilter as SecurityStatus);
 
-  const { data, isLoading, isError } = useSecurityPaymentsQuery({
-    page,
-    limit: 50,
-    status,
-    search: query.trim() || undefined,
-  });
+  const { data, isLoading, isError } = useSecurityPaymentsQuery(
+    {
+      page,
+      limit: 50,
+      status,
+      search: query.trim() || undefined,
+      ...(hostelId ? { hostel: hostelId } : {}),
+    },
+    { enabled: Boolean(hostelId) },
+  );
 
   const rows = data?.security_payments ?? [];
   const pagination = data?.pagination;

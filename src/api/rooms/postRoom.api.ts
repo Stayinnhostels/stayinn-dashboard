@@ -8,11 +8,11 @@ type PostRoomResponse = {
   room: Room;
 };
 
-export async function postRoomApi(token: string, draft: RoomDraft): Promise<Room> {
+export async function postRoomApi(token: string, draft: RoomDraft, hostelId?: string): Promise<Room> {
   const data = await apiFetch<PostRoomResponse>("/api/v1/rooms", {
     method: "POST",
     token,
-    body: JSON.stringify(roomDraftToApiBody(draft)),
+    body: JSON.stringify(roomDraftToApiBody(draft, hostelId)),
   });
   if (!data.success || !data.room) {
     throw new Error(data.message ?? "Failed to create room");

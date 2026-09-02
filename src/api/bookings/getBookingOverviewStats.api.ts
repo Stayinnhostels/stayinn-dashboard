@@ -54,13 +54,19 @@ type GetBookingOverviewStatsResponse = {
 
 export async function getBookingOverviewStatsApi(
   token: string,
-  params: { days?: number; weeks?: number; months?: number } = {},
+  params: { days?: number; weeks?: number; months?: number; hostel?: string } = {},
 ) {
   const days = params.days ?? 30;
   const weeks = params.weeks ?? 8;
   const months = params.months ?? 6;
+  const search = new URLSearchParams({
+    days: String(days),
+    weeks: String(weeks),
+    months: String(months),
+  });
+  if (params.hostel) search.set("hostel", params.hostel);
   const data = await apiFetch<GetBookingOverviewStatsResponse>(
-    `/api/v1/bookings/stats/overview?days=${days}&weeks=${weeks}&months=${months}`,
+    `/api/v1/bookings/stats/overview?${search.toString()}`,
     { token },
   );
   if (

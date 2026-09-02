@@ -41,6 +41,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/maintenance": { title: "Maintenance", subtitle: "" },
   "/admin/coupons": { title: "Coupons", subtitle: "" },
   "/admin/notifications": { title: "Notifications", subtitle: "" },
+  "/admin/hostels": { title: "Properties", subtitle: "Manage hostel locations" },
   "/admin/settings": { title: "Settings", subtitle: "" },
 };
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -50,6 +50,8 @@ import {
 import { toast } from "sonner";
 import { RoomsListSkeleton } from "@/components/admin/rooms-page-skeletons";
 import { RoomFormDialog } from "@/components/admin/room-form-dialog";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
+import { RoomThumbnail } from "@/components/admin/room-thumbnail";
 import { formatRoomLabel } from "@/types/domain/room.types";
 import type { Room, RoomDraft, RoomStatus } from "@/types/domain/room.types";
 import { roomStatusStyles } from "@/types/domain/room.types";
@@ -63,6 +65,7 @@ import {
   useReorderRoomsMutation,
 } from "@/queries/rooms";
 import { roomKeys } from "@/queries/keys/room.keys";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
@@ -109,13 +112,7 @@ function SortableRoomCard({
       className={`overflow-hidden border-border/60 transition-shadow hover:shadow-lg ${isDragging ? "shadow-xl ring-2 ring-primary/40" : ""}`}
     >
       <div className="relative aspect-[4/3] bg-muted">
-        {room.images?.[0] ? (
-          <img src={room.images[0]} alt={room.title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-          </div>
-        )}
+        <RoomThumbnail images={room.images} className="absolute inset-0 h-full w-full" />
         <div className="absolute left-2 top-2 flex items-center gap-1.5">
           <button
             {...attributes}
@@ -134,7 +131,13 @@ function SortableRoomCard({
           {room.status}
         </Badge>
       </div>
-      <CardContent className="p-4">
+      <CardContent className="space-y-2 p-4">
+        <HostelPropertyBadge
+          hostelId={room.hostel_id}
+          hostelName={room.hostel_name}
+          showAllProperties={false}
+          className="max-w-full"
+        />
         <p className="truncate font-bold tracking-tight" title={formatRoomLabel(room)}>
           {formatRoomLabel(room)}
         </p>
@@ -222,6 +225,9 @@ function SortableRoomRow({
           {room.title}
         </span>
       </TableCell>
+      <TableCell>
+        <HostelPropertyBadge hostelId={room.hostel_id} hostelName={room.hostel_name} showAllProperties={false} />
+      </TableCell>
       <TableCell>{room.category}</TableCell>
       <TableCell className="text-xs">
         <div>${Number(room.price_per_night_usd ?? room.price_per_night).toLocaleString()}</div>
@@ -265,6 +271,7 @@ function RoomsAdminPage() {
 function RoomsListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hostelId } = useHostelScope();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
@@ -274,6 +281,11 @@ function RoomsListPage() {
   const [bulkDelete, setBulkDelete] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [localRooms, setLocalRooms] = useState<Room[] | null>(null);
+
+  useEffect(() => {
+    setLocalRooms(null);
+    setSelected(new Set());
+  }, [statusFilter, query]);
 
   const listParams = useMemo(
     () => ({
@@ -295,7 +307,7 @@ function RoomsListPage() {
   }
   prevServerRoomsRef.current = serverRooms;
 
-  const createRoom = useCreateRoomMutation();
+  const createRoom = useCreateRoomMutation(hostelId);
   const updateRoom = useUpdateRoomMutation();
   const deleteRoom = useDeleteRoomMutation();
   const deleteRooms = useDeleteRoomsMutation();
@@ -525,6 +537,7 @@ function RoomsListPage() {
                       <TableHead>Order</TableHead>
                       <TableHead>No.</TableHead>
                       <TableHead>Title</TableHead>
+                      <TableHead>Property</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>USD / PKR</TableHead>
                       <TableHead>Beds</TableHead>

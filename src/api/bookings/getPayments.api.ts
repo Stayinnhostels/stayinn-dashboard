@@ -23,6 +23,7 @@ export async function getPaymentsApi(token: string, params: PaymentsListParams =
   if (params.status) search.set("status", params.status);
   if (params.search?.trim()) search.set("search", params.search.trim());
   if (params.month) search.set("month", params.month);
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<GetPaymentsResponse>(

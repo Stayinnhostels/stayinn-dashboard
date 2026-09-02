@@ -92,6 +92,7 @@ const navSections: NavSection[] = [
     label: "System",
     items: [
       { to: "/admin/notifications", label: "Notifications", icon: Bell },
+      { to: "/admin/hostels", label: "Properties", icon: Building2 },
       { to: "/admin/website", label: "Website Content", icon: Globe },
       { to: "/admin/settings", label: "Settings", icon: Settings },
     ],

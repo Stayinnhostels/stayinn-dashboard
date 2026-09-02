@@ -19,6 +19,7 @@ export async function getSecurityPaymentsApi(token: string, params: SecurityPaym
   if (params.limit) search.set("limit", String(params.limit));
   if (params.status) search.set("status", params.status);
   if (params.search?.trim()) search.set("search", params.search.trim());
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<GetSecurityPaymentsResponse>(

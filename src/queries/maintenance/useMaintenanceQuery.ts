@@ -4,7 +4,10 @@ import { maintenanceKeys } from "@/queries/keys/maintenance.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import type { MaintenanceListParams } from "@/types/domain/maintenance.types";
 
-export function useMaintenanceQuery(params: MaintenanceListParams = {}) {
+export function useMaintenanceQuery(
+  params: MaintenanceListParams = {},
+  options: { enabled?: boolean } = {},
+) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
@@ -13,7 +16,7 @@ export function useMaintenanceQuery(params: MaintenanceListParams = {}) {
       if (!token) throw new Error("You must be signed in to view maintenance");
       return getMaintenanceApi(token, params);
     },
-    enabled: Boolean(token),
+    enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 30_000,
   });
 }

@@ -40,6 +40,7 @@ export type BookingRequestListParams = {
   status?: BookingRequestStatus;
   limit?: number;
   page?: number;
+  hostel?: string;
 };
 
 export type BookingRequestStats = {

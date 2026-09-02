@@ -72,6 +72,7 @@ import {
 import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 import { downloadMonthProfitLossExcelApi, downloadMonthProfitLossPdfApi } from "@/api/expenses";
 import { useAuthStore } from "@/stores/auth/auth.store";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import type {
   Expense,
   ExpenseCategory,
@@ -326,6 +327,7 @@ function MonthExpenseBlock({
 }
 
 function MonthlyExpensesPage() {
+  const { hostelId } = useHostelScope();
   const token = useAuthStore((s) => s.token);
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [historyPage, setHistoryPage] = useState(1);
@@ -335,12 +337,16 @@ function MonthlyExpensesPage() {
   const [downloadingPdfMonth, setDownloadingPdfMonth] = useState<string | null>(null);
   const [downloadingExcelMonth, setDownloadingExcelMonth] = useState<string | null>(null);
 
-  const { data, isLoading, isError, isFetching } = useProfitLossQuery({
-    month,
-    months: 12,
-    history_page: historyPage,
-    history_limit: HISTORY_LIMIT,
-  });
+  const { data, isLoading, isError, isFetching } = useProfitLossQuery(
+    {
+      month,
+      months: 12,
+      history_page: historyPage,
+      history_limit: HISTORY_LIMIT,
+      ...(hostelId ? { hostel: hostelId } : {}),
+    },
+    { enabled: Boolean(hostelId) },
+  );
   const createExpense = useCreateExpenseMutation();
   const updateExpense = useUpdateExpenseMutation();
   const removeExpense = useDeleteExpenseMutation();

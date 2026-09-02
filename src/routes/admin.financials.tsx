@@ -22,6 +22,7 @@ import {
 import { usePaymentsQuery } from "@/queries/payments";
 import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
 import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import {
   chartTooltipMoney,
   formatMoney,
@@ -32,8 +33,17 @@ import {
 export const Route = createFileRoute("/admin/financials")({ component: FinancialsPage });
 
 function FinancialsPage() {
-  const { data: overviewStats, isLoading: statsLoading } = useBookingOverviewStatsQuery(30, 8, 6);
-  const { data: paymentsData, isLoading: paymentsLoading } = usePaymentsQuery({ page: 1, limit: 20 });
+  const { hostelId } = useHostelScope();
+  const { data: overviewStats, isLoading: statsLoading } = useBookingOverviewStatsQuery(
+    30,
+    8,
+    6,
+    hostelId,
+  );
+  const { data: paymentsData, isLoading: paymentsLoading } = usePaymentsQuery(
+    { page: 1, limit: 20, ...(hostelId ? { hostel: hostelId } : {}) },
+    { enabled: Boolean(hostelId) },
+  );
 
   const revenue = overviewStats?.revenue;
   const payments = paymentsData?.payments ?? [];

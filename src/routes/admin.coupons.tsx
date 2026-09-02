@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatCard } from "@/components/admin/stat-card";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { Plus, TicketPercent, Trash2, Pencil, Copy, Check } from "lucide-react";
 import { AdminCardGridSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { toast } from "sonner";
@@ -181,6 +182,13 @@ function CouponsPage() {
                         )}
                       </button>
                       <p className="text-xs text-muted-foreground">{c.description}</p>
+                      <div className="mt-1.5">
+                        <HostelPropertyBadge
+                          hostelId={c.hostel_id}
+                          hostelName={c.hostel_name}
+                          showAllProperties={false}
+                        />
+                      </div>
                     </div>
                     <Badge
                       variant="outline"

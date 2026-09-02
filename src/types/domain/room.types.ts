@@ -65,6 +65,8 @@ export function formatRoomLabel(room: Pick<Room, "title" | "room_number">) {
 
 export type Room = {
   id: string;
+  hostel_id?: string | null;
+  hostel_name?: string | null;
   title: string;
   room_number: number | null;
   description: string;
@@ -107,6 +109,7 @@ export type RoomsListParams = {
   limit?: number;
   status?: RoomStatus;
   search?: string;
+  hostel?: string;
 };
 
 export type RoomsPagination = {

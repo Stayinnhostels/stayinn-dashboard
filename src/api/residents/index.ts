@@ -28,6 +28,7 @@ export async function getResidentsRegisterApi(token: string, params: ResidentReg
   if (params.search) search.set("search", params.search);
   if (params.cohort) search.set("cohort", params.cohort);
   if (params.status) search.set("status", params.status);
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<ListResidentsResponse>(`/api/v1/residents${q ? `?${q}` : ""}`, { token });
@@ -55,6 +56,7 @@ export async function getResidentsDirectoryApi(token: string, params: ResidentDi
   if (params.limit != null) search.set("limit", String(params.limit));
   if (params.search) search.set("search", params.search);
   if (params.scope) search.set("scope", params.scope);
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<DirectoryResponse>(`/api/v1/residents/directory${q ? `?${q}` : ""}`, {
@@ -80,6 +82,7 @@ export async function getResidentsByRoomApi(token: string, params: ResidentsByRo
   const search = new URLSearchParams();
   if (params.search) search.set("search", params.search);
   if (params.include_empty === false) search.set("include_empty", "false");
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<ByRoomResponse>(`/api/v1/residents/by-room${q ? `?${q}` : ""}`, {

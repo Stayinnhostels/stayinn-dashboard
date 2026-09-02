@@ -18,6 +18,7 @@ export async function getBookingsApi(token: string, params: BookingsListParams =
   if (params.move_in_to) search.set("move_in_to", params.move_in_to);
   if (params.check_out_from) search.set("check_out_from", params.check_out_from);
   if (params.check_out_to) search.set("check_out_to", params.check_out_to);
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<GetBookingsResponse>(`/api/v1/bookings${q ? `?${q}` : ""}`, { token });

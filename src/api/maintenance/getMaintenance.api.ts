@@ -10,6 +10,7 @@ type ListMaintenanceResponse = {
 export async function getMaintenanceApi(token: string, params: MaintenanceListParams = {}) {
   const search = new URLSearchParams();
   if (params.status) search.set("status", params.status);
+  if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
   const data = await apiFetch<ListMaintenanceResponse>(

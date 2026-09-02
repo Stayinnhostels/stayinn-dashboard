@@ -20,6 +20,8 @@ export type SecurityLedgerEntry = {
 
 export type Booking = {
   id: string;
+  hostel_id?: string | null;
+  hostel_name?: string | null;
   room_id: string | null;
   room_title: string | null;
   user_id: string | null;
@@ -70,6 +72,7 @@ export type BookingsListParams = {
   /** Check-out date range, YYYY-MM-DD */
   check_out_from?: string;
   check_out_to?: string;
+  hostel?: string;
 };
 
 export type BookingsPagination = {

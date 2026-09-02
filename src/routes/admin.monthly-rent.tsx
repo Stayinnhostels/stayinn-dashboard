@@ -65,6 +65,7 @@ import {
 } from "@/api/residents";
 import { useResidentsRegisterQuery, useUpdateResidentMutation } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type {
@@ -709,6 +710,7 @@ function EditResidentDialog({
 }
 
 function MonthlyRentPage() {
+  const { hostelId } = useHostelScope();
   const token = useAuthStore((s) => s.token);
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [search, setSearch] = useState("");
@@ -727,11 +729,20 @@ function MonthlyRentPage() {
   );
 
   const params = useMemo(
-    () => ({ month, cohort, page, limit: pageSize, ...(search ? { search } : {}) }),
-    [month, cohort, page, pageSize, search],
+    () => ({
+      month,
+      cohort,
+      page,
+      limit: pageSize,
+      ...(hostelId ? { hostel: hostelId } : {}),
+      ...(search ? { search } : {}),
+    }),
+    [month, cohort, page, pageSize, hostelId, search],
   );
 
-  const { data, isLoading, isError } = useResidentsRegisterQuery(params);
+  const { data, isLoading, isError } = useResidentsRegisterQuery(params, {
+    enabled: Boolean(hostelId),
+  });
   const residents = data?.residents ?? [];
   const pagination = data?.pagination;
 

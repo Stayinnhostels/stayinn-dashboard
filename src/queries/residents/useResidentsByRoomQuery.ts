@@ -4,7 +4,10 @@ import { residentKeys } from "@/queries/keys/resident.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import type { ResidentsByRoomParams } from "@/types/domain/resident.types";
 
-export function useResidentsByRoomQuery(params: ResidentsByRoomParams = {}) {
+export function useResidentsByRoomQuery(
+  params: ResidentsByRoomParams = {},
+  options: { enabled?: boolean } = {},
+) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
@@ -13,7 +16,7 @@ export function useResidentsByRoomQuery(params: ResidentsByRoomParams = {}) {
       if (!token) throw new Error("You must be signed in to view residents by room");
       return getResidentsByRoomApi(token, params);
     },
-    enabled: Boolean(token),
+    enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 30_000,
   });
 }

@@ -1,5 +1,7 @@
 export type Facility = {
   id: string;
+  hostel_id?: string | null;
+  hostel_name?: string | null;
   title: string;
   description: string;
   icon: string;

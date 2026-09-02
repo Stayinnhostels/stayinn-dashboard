@@ -29,6 +29,7 @@ import { Route as AdminNotificationsRouteImport } from './routes/admin.notificat
 import { Route as AdminMonthlyRentRouteImport } from './routes/admin.monthly-rent'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMaintenanceRouteImport } from './routes/admin.maintenance'
+import { Route as AdminHostelsRouteImport } from './routes/admin.hostels'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
 import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
@@ -140,6 +141,11 @@ const AdminMaintenanceRoute = AdminMaintenanceRouteImport.update({
   path: '/maintenance',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHostelsRoute = AdminHostelsRouteImport.update({
+  id: '/hostels',
+  path: '/hostels',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminFinancialsRoute = AdminFinancialsRouteImport.update({
   id: '/financials',
   path: '/financials',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
+  '/admin/hostels': typeof AdminHostelsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
+  '/admin/hostels': typeof AdminHostelsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
+  '/admin/hostels': typeof AdminHostelsRoute
   '/admin/maintenance': typeof AdminMaintenanceRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/monthly-rent': typeof AdminMonthlyRentRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
+    | '/admin/hostels'
     | '/admin/maintenance'
     | '/admin/messages'
     | '/admin/monthly-rent'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
+    | '/admin/hostels'
     | '/admin/maintenance'
     | '/admin/messages'
     | '/admin/monthly-rent'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
+    | '/admin/hostels'
     | '/admin/maintenance'
     | '/admin/messages'
     | '/admin/monthly-rent'
@@ -541,6 +553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMaintenanceRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/hostels': {
+      id: '/admin/hostels'
+      path: '/hostels'
+      fullPath: '/admin/hostels'
+      preLoaderRoute: typeof AdminHostelsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/financials': {
       id: '/admin/financials'
       path: '/financials'
@@ -688,6 +707,7 @@ interface AdminRouteChildren {
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminFacilitiesRoute: typeof AdminFacilitiesRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
+  AdminHostelsRoute: typeof AdminHostelsRoute
   AdminMaintenanceRoute: typeof AdminMaintenanceRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminMonthlyRentRoute: typeof AdminMonthlyRentRoute
@@ -713,6 +733,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExpensesRoute: AdminExpensesRoute,
   AdminFacilitiesRoute: AdminFacilitiesRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
+  AdminHostelsRoute: AdminHostelsRoute,
   AdminMaintenanceRoute: AdminMaintenanceRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminMonthlyRentRoute: AdminMonthlyRentRoute,

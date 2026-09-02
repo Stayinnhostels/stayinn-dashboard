@@ -13,7 +13,10 @@ export const securityPaymentKeys = {
   list: (params: SecurityPaymentsListParams) => [...securityPaymentKeys.all, "list", params] as const,
 };
 
-export function useSecurityPaymentsQuery(params: SecurityPaymentsListParams) {
+export function useSecurityPaymentsQuery(
+  params: SecurityPaymentsListParams,
+  options: { enabled?: boolean } = {},
+) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
@@ -22,7 +25,7 @@ export function useSecurityPaymentsQuery(params: SecurityPaymentsListParams) {
       if (!token) throw new Error("You must be signed in to view security payments");
       return getSecurityPaymentsApi(token, params);
     },
-    enabled: Boolean(token),
+    enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 30_000,
     retry: 1,
   });

@@ -18,6 +18,43 @@ export class ApiError extends Error {
   }
 }
 
+type ApiErrorBody = {
+  message?: string;
+  errors?: {
+    formErrors?: string[];
+    fieldErrors?: Record<string, string[]>;
+  };
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  slug: "URL slug",
+  name: "Name",
+  email: "Email",
+};
+
+function formatApiErrorMessage(data: ApiErrorBody, status: number): string {
+  const parts: string[] = [];
+
+  for (const msg of data.errors?.formErrors ?? []) {
+    if (msg.trim()) parts.push(msg.trim());
+  }
+
+  for (const [field, messages] of Object.entries(data.errors?.fieldErrors ?? {})) {
+    const label = FIELD_LABELS[field] ?? field;
+    for (const msg of messages) {
+      if (msg.trim()) parts.push(`${label}: ${msg.trim()}`);
+    }
+  }
+
+  if (parts.length > 0) return parts.join(" · ");
+
+  if (typeof data.message === "string" && data.message.trim()) {
+    return data.message.trim();
+  }
+
+  return `Request failed (${status})`;
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { token, headers: initHeaders, body, skipAuthRefresh, ...rest } = options;
   const headers = new Headers(initHeaders);
@@ -42,12 +79,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     }
   }
 
-  const data = (await res.json().catch(() => ({}))) as T & { message?: string; success?: boolean };
+  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
 
   if (!res.ok) {
-    const msg =
-      typeof data.message === "string" ? data.message : `Request failed (${res.status})`;
-    throw new ApiError(msg, res.status);
+    throw new ApiError(formatApiErrorMessage(data, res.status), res.status);
   }
 
   return data;

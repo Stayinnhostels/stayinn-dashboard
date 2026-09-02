@@ -146,6 +146,7 @@ export type ResidentDirectoryParams = {
   limit?: number;
   search?: string;
   scope?: ResidentDirectoryScope;
+  hostel?: string;
 };
 
 export type ResidentByRoomPerson = {
@@ -188,6 +189,7 @@ export type ResidentsByRoomSummary = {
 export type ResidentsByRoomParams = {
   search?: string;
   include_empty?: boolean;
+  hostel?: string;
 };
 
 export type ResidentRegisterParams = {
@@ -197,6 +199,7 @@ export type ResidentRegisterParams = {
   search?: string;
   cohort?: ResidentRegisterCohort;
   status?: "pending" | "confirmed" | "checked_in" | "checked_out" | "cancelled" | "active";
+  hostel?: string;
 };
 
 export type UpdateResidentInput = {

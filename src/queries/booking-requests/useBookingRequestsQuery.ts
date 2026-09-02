@@ -4,7 +4,10 @@ import { bookingRequestKeys } from "@/queries/keys/booking-request.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import type { BookingRequestListParams } from "@/types/domain/booking-request.types";
 
-export function useBookingRequestsQuery(params: BookingRequestListParams = {}) {
+export function useBookingRequestsQuery(
+  params: BookingRequestListParams = {},
+  options: { enabled?: boolean } = {},
+) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
@@ -13,7 +16,7 @@ export function useBookingRequestsQuery(params: BookingRequestListParams = {}) {
       if (!token) throw new Error("You must be signed in");
       return getBookingRequestsApi(token, params);
     },
-    enabled: Boolean(token),
+    enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 10_000,
   });
 }

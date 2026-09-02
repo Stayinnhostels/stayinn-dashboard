@@ -44,6 +44,7 @@ export type PaymentsListParams = {
   search?: string;
   /** YYYY-MM — rent payments & stats for that month (past or future) */
   month?: string;
+  hostel?: string;
 };
 
 export type PaymentsPagination = {

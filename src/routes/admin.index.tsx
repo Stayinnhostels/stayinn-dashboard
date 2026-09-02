@@ -15,6 +15,7 @@ import { useRoomsQuery } from "@/queries/rooms";
 import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 import type { Room } from "@/types/domain/room.types";
 import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
@@ -124,14 +125,21 @@ function ChartState({
 }
 
 function OverviewPage() {
+  const { hostelId } = useHostelScope();
   const {
     data: overviewStats,
     isLoading: overviewLoading,
     isError: overviewError,
     error: overviewErr,
-  } = useBookingOverviewStatsQuery(30, 8, 6);
-  const { data: roomsApi, isLoading: roomsLoading } = useRoomsQuery({ limit: 100 });
-  const { data: bookingsApi, isLoading: bookingsLoading } = useBookingsQuery({ limit: 100 });
+  } = useBookingOverviewStatsQuery(30, 8, 6, hostelId);
+  const { data: roomsApi, isLoading: roomsLoading } = useRoomsQuery(
+    { limit: 100, ...(hostelId ? { hostel: hostelId } : {}) },
+    { enabled: Boolean(hostelId) },
+  );
+  const { data: bookingsApi, isLoading: bookingsLoading } = useBookingsQuery(
+    { limit: 100, ...(hostelId ? { hostel: hostelId } : {}) },
+    { enabled: Boolean(hostelId) },
+  );
 
   const chartErrorMessage =
     overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";

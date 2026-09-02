@@ -2,6 +2,8 @@ export type CouponDiscountType = "percent" | "fixed";
 
 export type Coupon = {
   id: string;
+  hostel_id?: string | null;
+  hostel_name?: string | null;
   code: string;
   description: string;
   discount_type: CouponDiscountType;

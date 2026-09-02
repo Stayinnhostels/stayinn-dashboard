@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
 import { useResidentsByRoomQuery } from "@/queries/residents";
 import { cn } from "@/lib/utils";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import type { ResidentsByRoomGroup } from "@/types/domain/resident.types";
 
 export const Route = createFileRoute("/admin/residents-by-room")({
@@ -44,6 +45,7 @@ function statusBadgeClass(status: string) {
 }
 
 function ResidentsByRoomPage() {
+  const { hostelId } = useHostelScope();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [includeEmpty, setIncludeEmpty] = useState(true);
@@ -52,13 +54,16 @@ function ResidentsByRoomPage() {
 
   const params = useMemo(
     () => ({
+      ...(hostelId ? { hostel: hostelId } : {}),
       ...(search ? { search } : {}),
       include_empty: includeEmpty,
     }),
-    [search, includeEmpty],
+    [hostelId, search, includeEmpty],
   );
 
-  const { data, isLoading, isError } = useResidentsByRoomQuery(params);
+  const { data, isLoading, isError } = useResidentsByRoomQuery(params, {
+    enabled: Boolean(hostelId),
+  });
   const rooms = data?.rooms ?? [];
   const summary = data?.summary;
 

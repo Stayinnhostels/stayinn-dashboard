@@ -14,6 +14,7 @@ import { SECURITY_STATUS_LABELS, RESIDENT_TYPE_LABELS, affiliationForResident } 
 import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
 import type { CheckoutConfirmExtras } from "@/components/admin/booking-refund-dialog";
 import { BookingInvoicePanel } from "@/components/invoice/booking-invoice-panel";
+import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { toast } from "sonner";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
@@ -186,6 +187,13 @@ function BookingDetailPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>Booking #{booking.id.slice(-6)}</CardTitle>
+                <div className="mt-1.5">
+                  <HostelPropertyBadge
+                    hostelId={booking.hostel_id}
+                    hostelName={booking.hostel_name}
+                    showAllProperties={false}
+                  />
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Created {booking.created_at ? new Date(booking.created_at).toLocaleString() : "—"}
                 </p>

@@ -8,14 +8,15 @@ function useRoomToken() {
   return useAuthStore((s) => s.token);
 }
 
-export function useCreateRoomMutation() {
+export function useCreateRoomMutation(hostelId?: string | null) {
   const token = useRoomToken();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (draft: RoomDraft) => {
       if (!token) throw new Error("You must be signed in to create a room");
-      return postRoomApi(token, draft);
+      if (!hostelId) throw new Error("Select a property before creating a room");
+      return postRoomApi(token, draft, hostelId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: roomKeys.all });

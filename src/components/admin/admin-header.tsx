@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useOnboardingTourStore } from "@/stores/tour/onboarding-tour.store";
 import { LiveNotificationAlerts } from "./live-notification-alerts";
 import { NotificationsBell } from "./notifications-bell";
+import { HostelSwitcher } from "./hostel-switcher";
 import type { AuthUser } from "@/types/domain/auth.types";
 
 function initialsFromName(name: string) {
@@ -82,6 +83,7 @@ export function AdminHeader({
       </div>
 
       <div className="flex shrink-0 items-center gap-3 overflow-visible">
+        <HostelSwitcher />
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

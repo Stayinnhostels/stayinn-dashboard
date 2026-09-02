@@ -29,6 +29,7 @@ import {
   useUpdateMaintenanceStatusMutation,
   useDeleteMaintenanceMutation,
 } from "@/queries/maintenance";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import { useRoomsQuery } from "@/queries/rooms";
 import type {
   MaintenancePriority,
@@ -59,13 +60,19 @@ const blank: MaintenanceDraft = {
 };
 
 function MaintenancePage() {
+  const { hostelId } = useHostelScope();
   const [filter, setFilter] = useState<"all" | MaintenanceStatus>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceTicket | null>(null);
   const [draft, setDraft] = useState<MaintenanceDraft>(blank);
 
-  const listParams = filter === "all" ? {} : { status: filter };
-  const { data, isLoading, isError } = useMaintenanceQuery(listParams);
+  const listParams =
+    filter === "all"
+      ? { ...(hostelId ? { hostel: hostelId } : {}) }
+      : { status: filter, ...(hostelId ? { hostel: hostelId } : {}) };
+  const { data, isLoading, isError } = useMaintenanceQuery(listParams, {
+    enabled: Boolean(hostelId),
+  });
   const { data: roomsData } = useRoomsQuery({ limit: 100 }, { enabled: open });
 
   const createTicket = useCreateMaintenanceMutation();

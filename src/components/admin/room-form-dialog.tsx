@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { compressImageFile } from "@/lib/compress-image";
+import { RoomThumbnail } from "@/components/admin/room-thumbnail";
 import { ROOM_AMENITY_OPTIONS, ROOM_CATEGORIES, type Room, type RoomDraft } from "@/types/domain/room.types";
 
 export type { RoomDraft };
@@ -367,7 +368,7 @@ export function RoomFormDialog({
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {draft.images.map((src, i) => (
                 <div key={src + i} className="relative aspect-square overflow-hidden rounded-lg border">
-                  <img src={src} alt="" className="h-full w-full object-cover" />
+                  <RoomThumbnail src={src} className="h-full w-full" iconClassName="h-8 w-8" />
                   <button
                     type="button"
                     onClick={() => setDraft({ ...draft, images: draft.images.filter((_, idx) => idx !== i) })}
