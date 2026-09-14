@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CnicImagesEditor } from "@/components/admin/cnic-images";
 import { type CnicOcrFields } from "@/api/residents";
 import type { ResidentGender, ResidentType } from "@/types/domain/resident.types";
+import { formatMoney } from "@/lib/payments";
 import { securityDepositForSeats, securityPerSeat } from "@/lib/security-deposit";
 
 type Props = {
