@@ -240,6 +240,9 @@ export function BookingPricingCard({ booking }: Props) {
               <Shield className="h-4 w-4 text-primary" />
               Security deposit
             </div>
+            <p className="text-xs text-muted-foreground">
+              One-time deposit — you can save or correct this anytime from booking details.
+            </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
