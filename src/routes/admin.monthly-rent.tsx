@@ -43,9 +43,10 @@ import {
   LogOut,
   Pencil,
   Receipt,
-  Search,
   Users,
 } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { MonthlyRentTableSkeleton } from "@/components/admin/admin-page-skeletons";
 import {
   CnicImagesEditor,
@@ -713,8 +714,8 @@ function MonthlyRentPage() {
   const { hostelId } = useHostelScope();
   const token = useAuthStore((s) => s.token);
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
-  const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const search = useDebouncedValue(searchInput.trim(), 300);
   const [cohort, setCohort] = useState<ResidentRegisterCohort>("active");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(15);
@@ -745,6 +746,10 @@ function MonthlyRentPage() {
   });
   const residents = data?.residents ?? [];
   const pagination = data?.pagination;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const showingFrom =
     pagination && pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0;
@@ -880,27 +885,13 @@ function MonthlyRentPage() {
           </div>
         </div>
 
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSearch(searchInput.trim());
-            setPage(1);
-          }}
-        >
-          <div className="relative min-w-0 flex-1 sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-9 w-full pl-9"
-              placeholder="Search name, CNIC, phone…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </div>
-          <Button type="submit" variant="secondary" className="h-9 shrink-0">
-            Search
-          </Button>
-        </form>
+        <SearchInput
+          className="sm:max-w-sm"
+          inputClassName="h-9"
+          placeholder="Search name, CNIC, phone…"
+          value={searchInput}
+          onValueChange={setSearchInput}
+        />
       </div>
 
       <Card className="border-border/60">
@@ -1194,6 +1185,7 @@ function MonthlyRentPage() {
         front={cnicViewer?.cnic_image_front ?? ""}
         back={cnicViewer?.cnic_image_back ?? ""}
         bForm={cnicViewer?.b_form_image ?? ""}
+        pdf={cnicViewer?.cnic_pdf ?? ""}
         bookingId={cnicViewer?.booking_id}
         month={month}
       />

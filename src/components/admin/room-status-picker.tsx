@@ -31,7 +31,7 @@ export function RoomStatusPicker({ status, onChange, disabled, className }: Room
     >
       <SelectTrigger
         className={cn(
-          "h-9 w-fit min-w-[9rem] gap-2 rounded-full border px-3 py-1 text-sm font-semibold capitalize shadow-none focus:ring-2",
+          "h-9 w-fit min-w-[9rem] gap-2 rounded-full border px-3 py-1 text-sm font-semibold capitalize focus:ring-2 [&>svg]:text-white",
           roomStatusStyles[status],
           className,
         )}

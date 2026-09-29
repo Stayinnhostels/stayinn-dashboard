@@ -1,11 +1,13 @@
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Pencil, Search, X } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { CalendarCheck, Eye, FileText, LayoutGrid, List as ListIcon, Pencil, X } from "lucide-react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { BookingsListSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,6 +52,7 @@ function BookingsAdminPage() {
 
 function BookingsListPage() {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [moveInFrom, setMoveInFrom] = useState("");
   const [moveInTo, setMoveInTo] = useState("");
@@ -57,6 +60,10 @@ function BookingsListPage() {
   const [checkOutTo, setCheckOutTo] = useState("");
   const [view, setView] = useState<"grid" | "table" | "calendar">("grid");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
@@ -71,13 +78,13 @@ function BookingsListPage() {
       page,
       limit: PAGE_SIZE,
       ...(statusFilter !== "all" ? { status: statusFilter as BookingStatus } : {}),
-      ...(query.trim() ? { search: query.trim() } : {}),
+      ...(debouncedQuery ? { search: debouncedQuery } : {}),
       ...(moveInFrom ? { move_in_from: moveInFrom } : {}),
       ...(moveInTo ? { move_in_to: moveInTo } : {}),
       ...(checkOutFrom ? { check_out_from: checkOutFrom } : {}),
       ...(checkOutTo ? { check_out_to: checkOutTo } : {}),
     }),
-    [page, statusFilter, query, moveInFrom, moveInTo, checkOutFrom, checkOutTo],
+    [page, statusFilter, debouncedQuery, moveInFrom, moveInTo, checkOutFrom, checkOutTo],
   );
 
   function clearFilters() {
@@ -207,18 +214,11 @@ function BookingsListPage() {
       <Card className="border-border/60">
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search by guest, email, phone…"
-                className="pl-9"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search by guest, email, phone…"
+              value={query}
+              onValueChange={setQuery}
+            />
             <Tabs value={view} onValueChange={(v) => setView(v as "grid" | "table" | "calendar")}>
               <TabsList>
                 <TabsTrigger value="grid">

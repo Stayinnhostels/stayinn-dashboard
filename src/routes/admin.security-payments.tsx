@@ -5,7 +5,6 @@ import {
   ArrowDownToLine,
   History,
   Loader2,
-  Search,
   Shield,
   Wallet,
 } from "lucide-react";
@@ -15,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchInput } from "@/components/ui/search-input";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -58,10 +59,15 @@ function securityBadgeClass(status: SecurityStatus) {
 function SecurityPaymentsPage() {
   const { hostelId } = useHostelScope();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [refundRow, setRefundRow] = useState<SecurityPaymentRow | null>(null);
   const [historyRow, setHistoryRow] = useState<SecurityPaymentRow | null>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
 
   const status =
     statusFilter === "all" ? undefined : (statusFilter as SecurityStatus);
@@ -71,7 +77,7 @@ function SecurityPaymentsPage() {
       page,
       limit: 50,
       status,
-      search: query.trim() || undefined,
+      search: debouncedQuery || undefined,
       ...(hostelId ? { hostel: hostelId } : {}),
     },
     { enabled: Boolean(hostelId) },
@@ -120,18 +126,11 @@ function SecurityPaymentsPage() {
 
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search guest, phone, payer…"
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search guest, phone, payer…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <Select
             value={statusFilter}
             onValueChange={(v) => {

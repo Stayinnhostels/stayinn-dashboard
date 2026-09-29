@@ -2,11 +2,12 @@ export type RoomStatus = "available" | "full" | "maintenance" | "draft";
 
 export const ROOM_STATUS_OPTIONS: RoomStatus[] = ["available", "full", "maintenance", "draft"];
 
+/** Solid high-contrast chips — readable on room photos and in tables. */
 export const roomStatusStyles: Record<RoomStatus, string> = {
-  available: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  full: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  maintenance: "bg-rose-500/15 text-rose-600 border-rose-500/30",
-  draft: "bg-muted text-muted-foreground border-border",
+  available: "border-transparent bg-emerald-600 text-white shadow-sm",
+  full: "border-transparent bg-amber-600 text-white shadow-sm",
+  maintenance: "border-transparent bg-rose-600 text-white shadow-sm",
+  draft: "border-transparent bg-slate-600 text-white shadow-sm",
 };
 
 export function formatRoomStatus(status: RoomStatus): string {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
-import { FileText, IdCard, ImagePlus, Loader2, Pencil, X } from "lucide-react";
+import { FileText, IdCard, ImagePlus, Loader2, Pencil, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
+import { ZoomableImageLightbox } from "@/components/admin/zoomable-image-lightbox";
 import { FULL_PAGE_ASPECT_RATIO, prepareCnicImageForOcr, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
 import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
 import { ocrCnicApi, type CnicOcrFields } from "@/api/residents";
@@ -121,37 +122,88 @@ type EditorProps = {
 
 type CropSide = "Front" | "Back" | "B-Form";
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function CnicPdfUploadControl({
   busy,
   disabled,
+  hasPdf,
+  pdfDataUrl,
+  downloadName = "cnic.pdf",
   onPick,
 }: {
   busy: boolean;
   disabled?: boolean;
+  hasPdf?: boolean;
+  pdfDataUrl?: string;
+  downloadName?: string;
   onPick: (file: File) => void;
 }) {
+  const label = hasPdf ? "Replace PDF" : "Upload PDF";
+
   return (
-    <label
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90",
-        busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
-      )}
-      title="Front and back of the CNIC (1 or 2 pages)"
-    >
-      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-      Upload PDF
-      <input
-        type="file"
-        accept="application/pdf,.pdf"
-        className="hidden"
-        disabled={busy || disabled}
-        onChange={(e) => {
-          const file = e.target.files?.[0] ?? null;
-          e.target.value = "";
-          if (file) onPick(file);
-        }}
-      />
-    </label>
+    <div className="flex flex-wrap items-center gap-2">
+      {hasPdf && pdfDataUrl ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          disabled={busy}
+          onClick={() => downloadDataUrl(pdfDataUrl, downloadName)}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download PDF
+        </Button>
+      ) : null}
+      {!disabled || !hasPdf ? (
+      <label
+        className={cn(
+          "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm transition-opacity",
+          hasPdf
+            ? "border border-input bg-background text-foreground hover:bg-muted/60"
+            : "bg-primary text-primary-foreground hover:opacity-90",
+          busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+        )}
+        title={
+          hasPdf
+            ? "Replace the full CNIC PDF (page 1 → front, page 2 → back)"
+            : "Front and back of the CNIC (1 or 2 pages)"
+        }
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+        {label}
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          disabled={busy || disabled}
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            e.target.value = "";
+            if (file) onPick(file);
+          }}
+        />
+      </label>
+      ) : null}
+    </div>
   );
 }
 
@@ -170,6 +222,7 @@ export function CnicImagesEditor({
   const [uploadingBForm, setUploadingBForm] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [readingCard, setReadingCard] = useState(false);
+  const [localPdf, setLocalPdf] = useState("");
   const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
@@ -221,9 +274,16 @@ export function CnicImagesEditor({
   async function handlePdfPick(file: File) {
     setUploadingPdf(true);
     try {
-      const pages = await extractCnicPagesFromPdf(file);
+      const [pages, pdfDataUrl] = await Promise.all([
+        extractCnicPagesFromPdf(file),
+        readFileAsDataUrl(file),
+      ]);
+      if (!pdfDataUrl.startsWith("data:application/pdf")) {
+        throw new Error("Please upload a PDF file");
+      }
       onFrontChange(pages.front);
       onBackChange(pages.back);
+      setLocalPdf(pdfDataUrl);
       toast.success(
         pages.back
           ? "PDF applied — reading name, father name, CNIC, and address…"
@@ -257,6 +317,8 @@ export function CnicImagesEditor({
           {readingCard ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
           <CnicPdfUploadControl
             busy={uploadingPdf || readingCard}
+            hasPdf={Boolean(localPdf)}
+            pdfDataUrl={localPdf || undefined}
             onPick={(file) => void handlePdfPick(file)}
           />
         </div>
@@ -336,6 +398,8 @@ type ViewerSlotProps = {
 };
 
 function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     e.target.value = "";
@@ -347,13 +411,18 @@ function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProp
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       {value ? (
         <div className="relative overflow-hidden rounded-xl border">
-          <a href={value} target="_blank" rel="noopener noreferrer" className="block">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="block w-full cursor-zoom-in text-left"
+            aria-label={`View ${label} full size`}
+          >
             <img
               src={value}
               alt={`CNIC ${label.toLowerCase()}`}
               className="h-56 w-full object-contain bg-muted/30"
             />
-          </a>
+          </button>
           <label
             className={cn(
               "absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1.5 text-xs font-medium shadow hover:bg-background",
@@ -374,6 +443,13 @@ function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProp
               onChange={handleFile}
             />
           </label>
+          <ZoomableImageLightbox
+            open={previewOpen}
+            onOpenChange={setPreviewOpen}
+            src={value}
+            alt={`CNIC ${label.toLowerCase()}`}
+            title={label}
+          />
         </div>
       ) : (
         <label
@@ -412,18 +488,29 @@ function ReadOnlyIdSlot({
   value: string;
   altText: string;
 }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       {value ? (
-        <a
-          href={value}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block overflow-hidden rounded-xl border"
-        >
-          <img src={value} alt={altText} className="h-56 w-full object-contain bg-muted/30" />
-        </a>
+        <>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="block w-full overflow-hidden rounded-xl border cursor-zoom-in text-left"
+            aria-label={`View ${label} full size`}
+          >
+            <img src={value} alt={altText} className="h-56 w-full object-contain bg-muted/30" />
+          </button>
+          <ZoomableImageLightbox
+            open={previewOpen}
+            onOpenChange={setPreviewOpen}
+            src={value}
+            alt={altText}
+            title={label}
+          />
+        </>
       ) : (
         <div className="flex h-56 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
           {label} not uploaded
@@ -440,6 +527,8 @@ type ViewerProps = {
   front: string;
   back: string;
   bForm: string;
+  /** Original CNIC PDF data URL when available. */
+  pdf?: string;
   /** When provided (with `month`), missing/existing images can be uploaded and are saved immediately. */
   bookingId?: string;
   month?: string;
@@ -452,6 +541,7 @@ export function CnicImagesViewerModal({
   front,
   back,
   bForm,
+  pdf = "",
   bookingId,
   month,
 }: ViewerProps) {
@@ -461,6 +551,7 @@ export function CnicImagesViewerModal({
   const [localFront, setLocalFront] = useState(front);
   const [localBack, setLocalBack] = useState(back);
   const [localBForm, setLocalBForm] = useState(bForm);
+  const [localPdf, setLocalPdf] = useState(pdf);
   const [pickingFront, setPickingFront] = useState(false);
   const [pickingBack, setPickingBack] = useState(false);
   const [pickingBForm, setPickingBForm] = useState(false);
@@ -468,14 +559,16 @@ export function CnicImagesViewerModal({
   const [cropSide, setCropSide] = useState<CropSide | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const anyPicking = pickingFront || pickingBack || pickingBForm || uploadingPdf;
+  const hasPdf = Boolean(localPdf);
 
   useEffect(() => {
     if (open) {
       setLocalFront(front);
       setLocalBack(back);
       setLocalBForm(bForm);
+      setLocalPdf(pdf);
     }
-  }, [open, front, back, bForm]);
+  }, [open, front, back, bForm, pdf]);
 
   async function handlePick(side: CropSide, file: File) {
     const setPicking =
@@ -492,10 +585,11 @@ export function CnicImagesViewerModal({
     }
   }
 
-  function persistBothSides(nextFront: string, nextBack: string) {
+  function persistPdfUpload(nextFront: string, nextBack: string, nextPdf: string) {
     if (!bookingId || !month) {
       setLocalFront(nextFront);
       setLocalBack(nextBack);
+      setLocalPdf(nextPdf);
       return;
     }
     update.mutate(
@@ -505,15 +599,21 @@ export function CnicImagesViewerModal({
           month,
           guest_cnic_image_front: nextFront,
           guest_cnic_image_back: nextBack,
+          guest_cnic_pdf: nextPdf,
         },
       },
       {
         onSuccess: () => {
           setLocalFront(nextFront);
           setLocalBack(nextBack);
-          toast.success("CNIC PDF saved — page 1 → front, page 2 → back");
+          setLocalPdf(nextPdf);
+          toast.success(
+            hasPdf
+              ? "CNIC PDF replaced — page 1 → front, page 2 → back"
+              : "CNIC PDF saved — page 1 → front, page 2 → back",
+          );
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save PDF images"),
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save PDF"),
       },
     );
   }
@@ -521,8 +621,17 @@ export function CnicImagesViewerModal({
   async function handlePdfPick(file: File) {
     setUploadingPdf(true);
     try {
-      const pages = await extractCnicPagesFromPdf(file);
-      persistBothSides(pages.front, pages.back);
+      const [pages, pdfDataUrl] = await Promise.all([
+        extractCnicPagesFromPdf(file),
+        readFileAsDataUrl(file),
+      ]);
+      if (!pdfDataUrl.startsWith("data:application/pdf")) {
+        throw new Error("Please upload a PDF file");
+      }
+      if (pdfDataUrl.length > 7_500_000) {
+        throw new Error("PDF is too large — please upload a smaller file (under ~5 MB)");
+      }
+      persistPdfUpload(pages.front, pages.back, pdfDataUrl);
       if (!bookingId || !month) {
         toast.success("PDF applied — page 1 → front, page 2 → back");
       }
@@ -569,11 +678,14 @@ export function CnicImagesViewerModal({
           <DialogHeader>
             <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
           </DialogHeader>
-          {canUpload ? (
+          {(canUpload || hasPdf) ? (
             <div className="flex flex-wrap items-center justify-end">
               <CnicPdfUploadControl
                 busy={uploadingPdf || (update.isPending && !cropSide)}
-                disabled={anyPicking || update.isPending}
+                disabled={!canUpload || anyPicking || update.isPending}
+                hasPdf={hasPdf}
+                pdfDataUrl={localPdf || undefined}
+                downloadName={`${(name || "cnic").replace(/\s+/g, "-").toLowerCase()}-cnic.pdf`}
                 onPick={(file) => void handlePdfPick(file)}
               />
             </div>

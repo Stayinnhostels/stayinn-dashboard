@@ -7,14 +7,14 @@ import {
   ChevronRight,
   ExternalLink,
   Phone,
-  Search,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
 import { useResidentsByRoomQuery } from "@/queries/residents";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ function statusBadgeClass(status: string) {
 function ResidentsByRoomPage() {
   const { hostelId } = useHostelScope();
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedValue(searchInput.trim(), 300);
   const [includeEmpty, setIncludeEmpty] = useState(true);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -73,25 +73,14 @@ function ResidentsByRoomPage() {
 
   return (
     <div className="space-y-6">
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSearch(searchInput.trim());
-        }}
-      >
-        <div className="relative min-w-0 flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-9 w-full pl-9"
-            placeholder="Search room number, name, phone, CNIC…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-        <Button type="submit" variant="secondary" className="h-9 shrink-0">
-          Search
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          className="sm:max-w-md"
+          inputClassName="h-9"
+          placeholder="Search room number, name, phone, CNIC…"
+          value={searchInput}
+          onValueChange={setSearchInput}
+        />
         <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border/60 bg-card px-3 text-xs text-muted-foreground">
           <input
             type="checkbox"
@@ -100,7 +89,7 @@ function ResidentsByRoomPage() {
           />
           Show empty rooms
         </label>
-      </form>
+      </div>
 
       {summary && (
         <div className="grid gap-3 sm:grid-cols-4">

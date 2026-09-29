@@ -305,9 +305,11 @@ function SidebarBody({
                 <div className="min-h-0 overflow-hidden">
                   <div
                     className={cn(
-                      "space-y-1 transition-opacity duration-300 ease-in-out",
+                      "transition-opacity duration-300 ease-in-out",
                       open ? "opacity-100" : "opacity-0",
-                      !compact && "pt-0.5",
+                      compact
+                        ? "space-y-1 pt-0.5"
+                        : "ml-5 space-y-0.5 border-l border-border/80 pl-4 pt-1",
                     )}
                   >
                     {section.items.map((item) => (

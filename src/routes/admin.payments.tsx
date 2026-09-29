@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Clock, FileText, Search, Users, Wallet } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Users, Wallet } from "lucide-react";
 import { StatCard } from "@/components/admin/stat-card";
 import { PaymentsTableSkeleton, StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
 import { MonthFilterSelect, useSyncedMonthFilter } from "@/components/admin/month-filter-select";
@@ -14,6 +14,7 @@ import { usePaymentsQuery } from "@/queries/payments";
 import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/payments";
 import { RENT_PAYMENT_STATUS_LABELS } from "@/types/domain/resident.types";
 import { useHostelScope } from "@/lib/use-hostel-scope";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { Payment, PaymentStatus } from "@/types/domain/payment.types";
 
 export const Route = createFileRoute("/admin/payments")({ component: PaymentsPage });
@@ -22,8 +23,13 @@ function PaymentsPage() {
   const { hostelId } = useHostelScope();
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
 
   const paymentStatus = statusFilter === "all" ? undefined : (statusFilter as PaymentStatus);
 
@@ -31,7 +37,7 @@ function PaymentsPage() {
     page,
     limit: 50,
     status: paymentStatus,
-    search: query.trim() || undefined,
+    search: debouncedQuery || undefined,
     month,
     ...(hostelId ? { hostel: hostelId } : {}),
   }, { enabled: Boolean(hostelId) });
@@ -123,18 +129,11 @@ function PaymentsPage() {
 
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search guest, email, phone…"
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search guest, email, phone…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <Select
             value={statusFilter}
             onValueChange={(v) => {

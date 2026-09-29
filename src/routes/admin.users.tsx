@@ -1,16 +1,17 @@
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Eye, Search, LayoutGrid, List as ListIcon, Mail } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { Eye, LayoutGrid, List as ListIcon, Mail } from "lucide-react";
 import { UsersListSkeleton } from "@/components/admin/users-page-skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUsersQuery } from "@/queries/users";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 export const Route = createFileRoute("/admin/users")({ component: UsersAdminPage });
 
@@ -26,18 +27,23 @@ function UsersAdminPage() {
 
 function UsersListPage() {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
 
   const listParams = useMemo(
     () => ({
       page,
       limit: PAGE_SIZE,
       ...(roleFilter !== "all" ? { role: roleFilter as "user" | "super_admin" } : {}),
-      ...(query.trim() ? { search: query.trim() } : {}),
+      ...(debouncedQuery ? { search: debouncedQuery } : {}),
     }),
-    [page, roleFilter, query],
+    [page, roleFilter, debouncedQuery],
   );
 
   const { data, isLoading, isError, error } = useUsersQuery(listParams);
@@ -71,18 +77,11 @@ function UsersListPage() {
     <div className="space-y-4">
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name or email…"
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search by name or email…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <Select
             value={roleFilter}
             onValueChange={(v) => {

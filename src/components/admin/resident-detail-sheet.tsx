@@ -13,6 +13,7 @@ import {
   downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
 import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
+import { ZoomableImageLightbox } from "@/components/admin/zoomable-image-lightbox";
 import { useResidentDetailQuery } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
@@ -31,6 +32,29 @@ function DetailField({ label, value }: { label: string; value: ReactNode }) {
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className="text-sm font-medium break-words">{value || "—"}</p>
     </div>
+  );
+}
+
+function ResidentCnicThumb({ src, label }: { src: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-block w-full overflow-hidden rounded-lg border cursor-zoom-in text-left"
+        aria-label={`View CNIC ${label}`}
+      >
+        <img src={src} alt={`CNIC ${label}`} className="h-24 w-full object-cover" />
+      </button>
+      <ZoomableImageLightbox
+        open={open}
+        onOpenChange={setOpen}
+        src={src}
+        alt={`CNIC ${label}`}
+        title={`CNIC ${label}`}
+      />
+    </>
   );
 }
 
@@ -276,14 +300,7 @@ export function ResidentDetailSheet({
                           <div className="space-y-1">
                             <p className="text-[10px] text-muted-foreground">Front</p>
                             {r.cnic_image_front ? (
-                              <a
-                                href={r.cnic_image_front}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block overflow-hidden rounded-lg border"
-                              >
-                                <img src={r.cnic_image_front} alt="CNIC front" className="h-24 w-full object-cover" />
-                              </a>
+                              <ResidentCnicThumb src={r.cnic_image_front} label="Front" />
                             ) : (
                               <p className="text-xs text-muted-foreground">Not uploaded</p>
                             )}
@@ -291,14 +308,7 @@ export function ResidentDetailSheet({
                           <div className="space-y-1">
                             <p className="text-[10px] text-muted-foreground">Back</p>
                             {r.cnic_image_back ? (
-                              <a
-                                href={r.cnic_image_back}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block overflow-hidden rounded-lg border"
-                              >
-                                <img src={r.cnic_image_back} alt="CNIC back" className="h-24 w-full object-cover" />
-                              </a>
+                              <ResidentCnicThumb src={r.cnic_image_back} label="Back" />
                             ) : (
                               <p className="text-xs text-muted-foreground">Not uploaded</p>
                             )}

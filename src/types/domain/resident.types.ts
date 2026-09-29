@@ -18,6 +18,8 @@ export type ResidentRegisterRow = {
   cnic: string;
   cnic_image_front: string;
   cnic_image_back: string;
+  /** Original CNIC PDF data URL when staff uploaded a PDF. */
+  cnic_pdf?: string;
   /** Child registration document — single-image alternative ID used when no CNIC is on file. */
   b_form_image: string;
   contact_number: string;
@@ -211,6 +213,7 @@ export type UpdateResidentInput = {
   guest_cnic?: string;
   guest_cnic_image_front?: string;
   guest_cnic_image_back?: string;
+  guest_cnic_pdf?: string;
   guest_b_form_image?: string;
   guest_guardian_contact?: string;
   guest_permanent_address?: string;

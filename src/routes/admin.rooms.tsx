@@ -19,8 +19,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -38,7 +38,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
-  Search,
   Trash2,
   Eye,
   BedDouble,
@@ -66,6 +65,7 @@ import {
 } from "@/queries/rooms";
 import { roomKeys } from "@/queries/keys/room.keys";
 import { useHostelScope } from "@/lib/use-hostel-scope";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
@@ -127,7 +127,9 @@ function SortableRoomCard({
             className="bg-background/80"
           />
         </div>
-        <Badge variant="outline" className={`absolute right-2 top-2 capitalize ${statusVariants[room.status]}`}>
+        <Badge
+          className={`absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize tracking-wide ${statusVariants[room.status]}`}
+        >
           {room.status}
         </Badge>
       </div>
@@ -239,7 +241,7 @@ function SortableRoomRow({
         {room.beds_available}/{room.beds_total}
       </TableCell>
       <TableCell>
-        <Badge variant="outline" className={`capitalize ${statusVariants[room.status]}`}>
+        <Badge className={`rounded-full px-2.5 font-semibold capitalize ${statusVariants[room.status]}`}>
           {room.status}
         </Badge>
       </TableCell>
@@ -273,6 +275,7 @@ function RoomsListPage() {
   const queryClient = useQueryClient();
   const { hostelId } = useHostelScope();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [editing, setEditing] = useState<Room | null>(null);
@@ -285,16 +288,16 @@ function RoomsListPage() {
   useEffect(() => {
     setLocalRooms(null);
     setSelected(new Set());
-  }, [statusFilter, query]);
+  }, [statusFilter, debouncedQuery]);
 
   const listParams = useMemo(
     () => ({
       page: 1,
       limit: ROOMS_FETCH_LIMIT,
       ...(statusFilter !== "all" ? { status: statusFilter as RoomStatus } : {}),
-      ...(query.trim() ? { search: query.trim() } : {}),
+      ...(debouncedQuery ? { search: debouncedQuery } : {}),
     }),
-    [statusFilter, query],
+    [statusFilter, debouncedQuery],
   );
 
   const { data, isLoading, isError, error } = useRoomsQuery(listParams);
@@ -413,17 +416,12 @@ function RoomsListPage() {
     <div className="space-y-4">
       <Card className="border-border/60">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="rooms-search"
-              autoComplete="off"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search rooms…"
-              className="pl-9"
-            />
-          </div>
+          <SearchInput
+            name="rooms-search"
+            placeholder="Search rooms…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-44">
               <SelectValue />

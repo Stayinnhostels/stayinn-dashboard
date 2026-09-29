@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { FileText, IdCard, Loader2, Search, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText, IdCard, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   Table,
   TableBody,
@@ -52,10 +53,14 @@ function ResidentsDirectoryPage() {
   const token = useAuthStore((s) => s.token);
   const [scope, setScope] = useState<ResidentDirectoryScope>("active");
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const search = useDebouncedValue(searchInput.trim(), 300);
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [pdfBookingId, setPdfBookingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const params = useMemo(
     () => ({
@@ -92,31 +97,19 @@ function ResidentsDirectoryPage() {
 
   return (
     <div className="space-y-6">
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSearch(searchInput.trim());
-          setPage(1);
-        }}
-      >
-        <div className="relative min-w-0 flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-9 w-full pl-9"
-            placeholder="Search name, CNIC, phone, room…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-        <Button type="submit" variant="secondary" className="h-9 shrink-0">
-          Search
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          className="sm:max-w-md"
+          inputClassName="h-9"
+          placeholder="Search name, CNIC, phone, room…"
+          value={searchInput}
+          onValueChange={setSearchInput}
+        />
         <Badge variant="secondary" className="hidden h-9 gap-1.5 px-3 sm:inline-flex">
           <Users className="h-3.5 w-3.5" />
           {pagination?.total ?? 0} residents
         </Badge>
-      </form>
+      </div>
 
       <Card className="border-border/60">
         <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
