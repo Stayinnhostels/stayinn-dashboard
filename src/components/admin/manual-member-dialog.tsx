@@ -20,7 +20,7 @@ import { CnicImagesEditor } from "@/components/admin/cnic-images";
 import { type CnicOcrFields } from "@/api/residents";
 import type { ResidentGender, ResidentType } from "@/types/domain/resident.types";
 import { formatMoney } from "@/lib/payments";
-import { securityDepositForSeats, securityPerSeat } from "@/lib/security-deposit";
+import { securityDepositForSeats } from "@/lib/security-deposit";
 
 type Props = {
   room: Room;
@@ -95,6 +95,8 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const [useCustomSecurity, setUseCustomSecurity] = useState(false);
   const [totalInput, setTotalInput] = useState("");
   const [securityInput, setSecurityInput] = useState("");
+  const [returnableInput, setReturnableInput] = useState("");
+  const [useCustomReturnable, setUseCustomReturnable] = useState(false);
   const [currency, setCurrency] = useState<"pkr" | "usd">("pkr");
 
   const seatsNum = Number.parseInt(seats, 10);
@@ -133,6 +135,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
   const parsedTotal = Number(totalInput);
   const parsedSecurity = Number(securityInput);
+  const parsedReturnable = Number(returnableInput);
   const monthsToPayNum = Number.parseInt(monthsToPay, 10);
   const listSecurity =
     !isNightStay && Number.isFinite(seatsNum) ? securityDepositForSeats(seatsNum, currency) : 0;
@@ -169,6 +172,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
       );
   const securityCharge =
     useCustomSecurity && Number.isFinite(parsedSecurity) ? parsedSecurity : listSecurity;
+  const returnableCharge =
+    useCustomReturnable && Number.isFinite(parsedReturnable)
+      ? parsedReturnable
+      : securityCharge;
   const rentPayNow = isNightStay
     ? chargeTotal
     : Number.isFinite(monthsToPayNum) && monthsToPayNum >= 1
@@ -187,6 +194,12 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
       setSecurityInput(String(listSecurity));
     }
   }, [listSecurity, useCustomSecurity]);
+
+  useEffect(() => {
+    if (!useCustomReturnable) {
+      setReturnableInput(String(securityCharge));
+    }
+  }, [securityCharge, useCustomReturnable]);
 
   useEffect(() => {
     if (!isNightStay) {
@@ -234,6 +247,11 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     (isNightStay ||
       !useCustomSecurity ||
       (Number.isFinite(parsedSecurity) && parsedSecurity >= 0)) &&
+    (isNightStay ||
+      !useCustomReturnable ||
+      (Number.isFinite(parsedReturnable) &&
+        parsedReturnable >= 0 &&
+        parsedReturnable <= securityCharge)) &&
     (residentType !== "employee" || company.trim().length > 0) &&
     (residentType !== "student" || institution.trim().length > 0);
 
@@ -265,8 +283,10 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
     setNotes("");
     setUseCustomPrice(false);
     setUseCustomSecurity(false);
+    setUseCustomReturnable(false);
     setTotalInput("");
     setSecurityInput("");
+    setReturnableInput("");
     setCurrency("pkr");
   };
 
@@ -324,7 +344,12 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 ? { total_amount: chargeTotal, price_per_seat: pricePerSeat }
                 : {}),
             }),
-        ...(!isNightStay && Number.isFinite(securityCharge) ? { security_amount: securityCharge } : {}),
+        ...(!isNightStay && Number.isFinite(securityCharge)
+          ? {
+              security_amount: securityCharge,
+              security_returnable: returnableCharge,
+            }
+          : {}),
       },
       {
         onSuccess: () => {
@@ -713,11 +738,16 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 </div>
                 {!isNightStay && (
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-muted-foreground">
-                      Security once at check-in ({formatMoney(securityPerSeat(currency), currency)} ×{" "}
-                      {seatsNum})
-                    </span>
+                    <span className="text-muted-foreground">Security deposit (once)</span>
                     <span className="font-semibold tabular-nums">{formatMoney(securityCharge, currency)}</span>
+                  </div>
+                )}
+                {!isNightStay && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-muted-foreground">Returnable security</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatMoney(returnableCharge, currency)}
+                    </span>
                   </div>
                 )}
                 <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-2">
@@ -840,6 +870,48 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                             {parsedSecurity < listSecurity
                               ? `Below standard by ${formatMoney(listSecurity - parsedSecurity, currency)}`
                               : `Above standard by ${formatMoney(parsedSecurity - listSecurity, currency)}`}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border"
+                        checked={useCustomReturnable}
+                        onChange={(e) => {
+                          setUseCustomReturnable(e.target.checked);
+                          if (e.target.checked) {
+                            setReturnableInput(String(securityCharge));
+                          }
+                        }}
+                      />
+                      <span>Set returnable security (amount to give back later)</span>
+                    </label>
+
+                    {useCustomReturnable ? (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="manual-returnable" required>
+                          Returnable amount
+                        </Label>
+                        <Input
+                          id="manual-returnable"
+                          type="number"
+                          min={0}
+                          max={securityCharge}
+                          step={1}
+                          value={returnableInput}
+                          onChange={(e) => setReturnableInput(e.target.value)}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Reminder of how much you will return to the guest (max{" "}
+                          {formatMoney(securityCharge, currency)}).
+                        </p>
+                        {Number.isFinite(parsedReturnable) && parsedReturnable > securityCharge ? (
+                          <p className="text-xs text-destructive">
+                            Cannot exceed the security deposit collected.
                           </p>
                         ) : null}
                       </div>

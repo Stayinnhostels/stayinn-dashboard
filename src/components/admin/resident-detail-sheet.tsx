@@ -346,6 +346,16 @@ export function ResidentDetailSheet({
                     label="Security"
                     value={`${SECURITY_STATUS_LABELS[r.security_status]}${r.security_amount != null ? ` · ${formatMoney(r.security_amount, r.currency)}` : ""}`}
                   />
+                  <DetailField
+                    label="Returnable security"
+                    value={
+                      r.security_returnable != null
+                        ? formatMoney(r.security_returnable, r.currency)
+                        : r.security_amount != null
+                          ? formatMoney(r.security_amount, r.currency)
+                          : "—"
+                    }
+                  />
                 </div>
               </div>
 

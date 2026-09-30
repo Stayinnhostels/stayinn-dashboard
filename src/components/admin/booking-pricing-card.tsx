@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUpdateBookingPricingMutation } from "@/queries/bookings";
 import { useUpdateResidentMutation } from "@/queries/residents";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
-import { securityDepositForSeats, securityPerSeat } from "@/lib/security-deposit";
+import { securityDepositForSeats } from "@/lib/security-deposit";
 import {
   RENT_PAYMENT_STATUS_LABELS,
   SECURITY_STATUS_LABELS,
@@ -58,6 +58,9 @@ export function BookingPricingCard({ booking }: Props) {
   const [useCustomSecurity, setUseCustomSecurity] = useState(false);
   const [securityInput, setSecurityInput] = useState(String(storedSecurityAmount));
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus>(storedSecurityStatus);
+  const [returnableInput, setReturnableInput] = useState(
+    String(booking.security_returnable ?? storedSecurityAmount),
+  );
   const [collectMonths, setCollectMonths] = useState("1");
 
   const rentTimeline = useMemo(
@@ -81,8 +84,9 @@ export function BookingPricingCard({ booking }: Props) {
         ? booking.security_status
         : "not_paid",
     );
+    setReturnableInput(String(booking.security_returnable ?? booking.security_amount ?? listSecurity));
     setUseCustomSecurity(false);
-  }, [booking.id, booking.security_amount, booking.security_status, listSecurity]);
+  }, [booking.id, booking.security_amount, booking.security_returnable, booking.security_status, listSecurity]);
 
   useEffect(() => {
     const unpaid = rentTimeline.filter((m) => m.payment_status === "not_paid").length;
@@ -93,8 +97,11 @@ export function BookingPricingCard({ booking }: Props) {
   const parsedTotal = Number(totalInput);
   const parsedPricePerSeat = Number(pricePerSeatInput);
   const parsedSecurity = Number(securityInput);
+  const parsedReturnable = Number(returnableInput);
   const effectiveSecurity =
     useCustomSecurity && Number.isFinite(parsedSecurity) ? parsedSecurity : listSecurity;
+  const effectiveReturnable = Number.isFinite(parsedReturnable) ? parsedReturnable : effectiveSecurity;
+  const storedReturnable = booking.security_returnable ?? booking.security_amount ?? listSecurity;
 
   const discount = useMemo(() => {
     if (!Number.isFinite(parsedTotal) || quotedTotal <= 0) return null;
@@ -116,8 +123,12 @@ export function BookingPricingCard({ booking }: Props) {
     monthlyStay &&
     booking.status !== "cancelled" &&
     effectiveSecurity >= 0 &&
+    Number.isFinite(effectiveReturnable) &&
+    effectiveReturnable >= 0 &&
+    effectiveReturnable <= effectiveSecurity &&
     (effectiveSecurity !== (booking.security_amount ?? listSecurity) ||
-      securityStatus !== storedSecurityStatus);
+      securityStatus !== storedSecurityStatus ||
+      effectiveReturnable !== storedReturnable);
 
   function handleSaveRent(e: React.FormEvent) {
     e.preventDefault();
@@ -179,6 +190,7 @@ export function BookingPricingCard({ booking }: Props) {
         bookingId: booking.id,
         input: {
           security_amount: effectiveSecurity,
+          security_returnable: effectiveReturnable,
           security_status: securityStatus,
         },
       },
@@ -273,6 +285,25 @@ export function BookingPricingCard({ booking }: Props) {
                   onChange={(e) => setSecurityInput(e.target.value)}
                   disabled={!useCustomSecurity}
                 />
+              </div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>Returnable security</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={effectiveSecurity}
+                  step={1}
+                  value={returnableInput}
+                  onChange={(e) => setReturnableInput(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Amount you plan to return to the guest (max {money(effectiveSecurity)}).
+                </p>
+                {Number.isFinite(parsedReturnable) && parsedReturnable > effectiveSecurity ? (
+                  <p className="text-xs text-destructive">
+                    Cannot exceed the security deposit.
+                  </p>
+                ) : null}
               </div>
             </div>
 

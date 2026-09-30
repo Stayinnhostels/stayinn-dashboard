@@ -11,7 +11,6 @@ import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import {
   isMonthlyBooking,
   securityDepositForSeats,
-  securityPerSeat,
 } from "@/lib/security-deposit";
 
 export { isMonthlyBooking };
@@ -34,6 +33,7 @@ export function BookingSecurityCard({ booking }: Props) {
   const isMonthlyStay = isMonthlyBooking(booking);
   const listSecurity = securityDepositForSeats(booking.seats_booked, cur);
   const storedAmount = booking.security_amount ?? listSecurity;
+  const storedReturnable = booking.security_returnable ?? storedAmount;
   const storedStatus =
     booking.security_status && booking.security_status !== "not_applicable"
       ? booking.security_status
@@ -41,27 +41,46 @@ export function BookingSecurityCard({ booking }: Props) {
 
   const [useCustom, setUseCustom] = useState(false);
   const [amountInput, setAmountInput] = useState(String(storedAmount));
+  const [returnableInput, setReturnableInput] = useState(String(storedReturnable));
   const [status, setStatus] = useState<SecurityStatus>(storedStatus);
 
   useEffect(() => {
     setAmountInput(String(booking.security_amount ?? listSecurity));
+    setReturnableInput(
+      String(booking.security_returnable ?? booking.security_amount ?? listSecurity),
+    );
     setStatus(
       booking.security_status && booking.security_status !== "not_applicable"
         ? booking.security_status
         : "not_paid",
     );
     setUseCustom(false);
-  }, [booking.id, booking.security_amount, booking.security_status, listSecurity]);
+  }, [
+    booking.id,
+    booking.security_amount,
+    booking.security_returnable,
+    booking.security_status,
+    listSecurity,
+  ]);
 
   if (!isMonthlyStay) return null;
 
   const parsedAmount = Number(amountInput);
+  const parsedReturnable = Number(returnableInput);
   const effectiveAmount =
     useCustom && Number.isFinite(parsedAmount) ? parsedAmount : listSecurity;
+  const effectiveReturnable = Number.isFinite(parsedReturnable)
+    ? parsedReturnable
+    : effectiveAmount;
   const canSave =
     booking.status !== "cancelled" &&
     effectiveAmount >= 0 &&
-    (effectiveAmount !== (booking.security_amount ?? listSecurity) || status !== storedStatus);
+    Number.isFinite(effectiveReturnable) &&
+    effectiveReturnable >= 0 &&
+    effectiveReturnable <= effectiveAmount &&
+    (effectiveAmount !== (booking.security_amount ?? listSecurity) ||
+      status !== storedStatus ||
+      effectiveReturnable !== storedReturnable);
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +91,7 @@ export function BookingSecurityCard({ booking }: Props) {
         bookingId: booking.id,
         input: {
           security_amount: effectiveAmount,
+          security_returnable: effectiveReturnable,
           security_status: status,
         },
       },
@@ -131,6 +151,20 @@ export function BookingSecurityCard({ booking }: Props) {
                 onChange={(e) => setAmountInput(e.target.value)}
                 disabled={!useCustom}
               />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Returnable security</Label>
+              <Input
+                type="number"
+                min={0}
+                max={effectiveAmount}
+                step={1}
+                value={returnableInput}
+                onChange={(e) => setReturnableInput(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Amount you plan to return to the guest (max {money(effectiveAmount)}).
+              </p>
             </div>
           </div>
 

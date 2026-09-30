@@ -44,6 +44,8 @@ export type Booking = {
   amount_outstanding?: number;
   security_status?: SecurityStatus;
   security_amount?: number | null;
+  /** Planned amount to return to the guest (reminder). */
+  security_returnable?: number | null;
   security_returned?: number | null;
   security_retained?: number | null;
   security_remaining?: number;

@@ -1,15 +1,21 @@
 import type { Booking } from "@/types/domain/booking.types";
 
-export const SECURITY_PER_SEAT_PKR = 5000;
-export const SECURITY_PER_SEAT_USD = 50;
+/** Flat default security deposit for monthly stays (not per seat). */
+export const DEFAULT_SECURITY_PKR = 10000;
+export const DEFAULT_SECURITY_USD = 100;
+
+/** @deprecated Prefer DEFAULT_SECURITY_PKR — flat deposit, not per seat. */
+export const SECURITY_PER_SEAT_PKR = DEFAULT_SECURITY_PKR;
+/** @deprecated Prefer DEFAULT_SECURITY_USD */
+export const SECURITY_PER_SEAT_USD = DEFAULT_SECURITY_USD;
 
 export function securityPerSeat(currency: "pkr" | "usd") {
-  return currency === "usd" ? SECURITY_PER_SEAT_USD : SECURITY_PER_SEAT_PKR;
+  return currency === "usd" ? DEFAULT_SECURITY_USD : DEFAULT_SECURITY_PKR;
 }
 
-export function securityDepositForSeats(seats: number, currency: "pkr" | "usd") {
-  const count = Math.max(1, Number(seats) || 1);
-  return securityPerSeat(currency) * count;
+/** Default security for a monthly booking. `seats` is ignored (flat amount). */
+export function securityDepositForSeats(_seats: number, currency: "pkr" | "usd") {
+  return securityPerSeat(currency);
 }
 
 export function isMonthlyBooking(booking: Booking) {

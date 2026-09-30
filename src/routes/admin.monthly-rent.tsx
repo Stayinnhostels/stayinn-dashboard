@@ -367,6 +367,7 @@ function EditResidentDialog({
   const [residentType, setResidentType] = useState<ResidentType>("employee");
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus>("not_applicable");
   const [securityAmount, setSecurityAmount] = useState("");
+  const [securityReturnable, setSecurityReturnable] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<RentPaymentStatus>("not_paid");
   const [applyRentForward, setApplyRentForward] = useState(false);
@@ -391,6 +392,13 @@ function EditResidentDialog({
     setResidentType(row.resident_type || "employee");
     setSecurityStatus(row.security_status);
     setSecurityAmount(row.security_amount != null ? String(row.security_amount) : "");
+    setSecurityReturnable(
+      row.security_returnable != null
+        ? String(row.security_returnable)
+        : row.security_amount != null
+          ? String(row.security_amount)
+          : "",
+    );
     setMonthlyRent(String(row.monthly_rent));
     setPaymentStatus(row.payment_status);
     setApplyRentForward(false);
@@ -439,6 +447,13 @@ function EditResidentDialog({
         ? {
             security_status: securityStatus,
             security_amount: securityAmount.trim() ? Number(securityAmount) : null,
+          }
+        : {}),
+      ...(securityReturnable.trim() !== "" || row.security_returnable != null
+        ? {
+            security_returnable: securityReturnable.trim()
+              ? Number(securityReturnable)
+              : null,
           }
         : {}),
     };
@@ -655,9 +670,26 @@ function EditResidentDialog({
               </>
             ) : (
               <div className="sm:col-span-2 text-xs text-muted-foreground">
-                Security: check-in month only
+                Security amount/status: check-in month only. Returnable amount can be set anytime.
               </div>
             )}
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Returnable security</Label>
+              <Input
+                type="number"
+                min={0}
+                value={securityReturnable}
+                onChange={(e) => setSecurityReturnable(e.target.value)}
+                placeholder="Amount you plan to return"
+              />
+              <p className="text-xs text-muted-foreground">
+                Reminder of how much you will return to this resident
+                {row.security_amount != null
+                  ? ` (deposit on file: ${row.security_amount})`
+                  : ""}
+                .
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Monthly rent ({month})</Label>
               <Input

@@ -34,6 +34,8 @@ export type ResidentRegisterRow = {
   status: string;
   security_status: SecurityStatus;
   security_amount: number | null;
+  /** Planned amount to return to the guest (reminder). */
+  security_returnable?: number | null;
   /** True only for the check-in month — security is a one-time deposit. */
   security_due_this_month?: boolean;
   payment_status: RentPaymentStatus;
@@ -225,6 +227,8 @@ export type UpdateResidentInput = {
   resident_type?: ResidentType;
   security_status?: SecurityStatus;
   security_amount?: number | null;
+  /** Planned amount to return to the guest (≤ security_amount). */
+  security_returnable?: number | null;
   month?: string;
   monthly_rent?: number;
   payment_status?: RentPaymentStatus;

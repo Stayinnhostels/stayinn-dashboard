@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowDownToLine,
+  Banknote,
   History,
   Loader2,
   Shield,
@@ -90,15 +91,22 @@ function SecurityPaymentsPage() {
   return (
     <div className="space-y-4">
       {isLoading && !data ? (
-        <StatCardsRowSkeleton count={4} />
+        <StatCardsRowSkeleton count={6} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
             label="Held security (PKR)"
             value={formatMoney(summary?.pkr?.remaining ?? 0, "pkr")}
             icon={Shield}
             accent="success"
             delta={`${summary?.pkr?.count ?? 0} booking(s) with deposit on file`}
+          />
+          <StatCard
+            label="Returnable security (PKR)"
+            value={formatMoney(summary?.pkr?.returnable ?? 0, "pkr")}
+            icon={Banknote}
+            accent="info"
+            delta="Planned amount to give back to guests"
           />
           <StatCard
             label="Returned to date (PKR)"
@@ -113,6 +121,13 @@ function SecurityPaymentsPage() {
             icon={Wallet}
             accent="info"
             delta={`${summary?.usd?.count ?? 0} booking(s)`}
+          />
+          <StatCard
+            label="Returnable security (USD)"
+            value={formatMoney(summary?.usd?.returnable ?? 0, "usd")}
+            icon={Banknote}
+            accent="warning"
+            delta="Planned amount to give back to guests"
           />
           <StatCard
             label="Returned to date (USD)"
@@ -165,6 +180,7 @@ function SecurityPaymentsPage() {
                   <TableHead>Guest / payer</TableHead>
                   <TableHead>Room</TableHead>
                   <TableHead>Deposited</TableHead>
+                  <TableHead>Returnable</TableHead>
                   <TableHead>Returned</TableHead>
                   <TableHead>Remaining</TableHead>
                   <TableHead>Status</TableHead>
@@ -174,7 +190,7 @@ function SecurityPaymentsPage() {
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                       No security deposits match your filters.
                     </TableCell>
                   </TableRow>
@@ -265,6 +281,9 @@ function SecurityRow({
         {formatMoney(row.security_amount ?? 0, cur)}
       </TableCell>
       <TableCell className="tabular-nums text-muted-foreground">
+        {formatMoney(row.security_returnable ?? row.security_amount ?? 0, cur)}
+      </TableCell>
+      <TableCell className="tabular-nums text-muted-foreground">
         {formatMoney(row.security_returned ?? 0, cur)}
       </TableCell>
       <TableCell className="font-bold tabular-nums text-emerald-700">
@@ -350,6 +369,12 @@ function ReturnSecurityDialog({
               <p>
                 <span className="text-muted-foreground">Deposited: </span>
                 <span className="font-semibold">{formatMoney(row.security_amount ?? 0, cur)}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Returnable (planned): </span>
+                <span className="font-semibold">
+                  {formatMoney(row.security_returnable ?? row.security_amount ?? 0, cur)}
+                </span>
               </p>
               <p>
                 <span className="text-muted-foreground">Already returned: </span>

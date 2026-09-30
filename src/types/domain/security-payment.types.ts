@@ -14,6 +14,8 @@ export type SecurityPaymentRow = {
   booking_status: string;
   security_status: SecurityStatus;
   security_amount: number | null;
+  /** Planned amount to return to the guest. */
+  security_returnable?: number | null;
   security_returned: number;
   security_retained: number;
   security_remaining: number;
@@ -28,6 +30,8 @@ export type SecurityPaymentsSummaryBucket = {
   remaining: number;
   deposited: number;
   returned: number;
+  /** Planned amount still owed back to guests (sum of security_returnable). */
+  returnable: number;
   count: number;
 };
 

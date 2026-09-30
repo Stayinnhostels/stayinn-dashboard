@@ -33,6 +33,7 @@ export type CreateManualBookingInput = {
   notes?: string;
   total_amount?: number;
   security_amount?: number;
+  security_returnable?: number;
   price_per_seat?: number;
   currency?: "pkr" | "usd";
 };
