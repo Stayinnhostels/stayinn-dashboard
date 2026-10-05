@@ -12,7 +12,8 @@ export type CnicCropArea = {
 };
 
 const MAX_WIDTH = 1280;
-const MAX_DATA_URL_LENGTH = 500_000;
+/** Keep each CNIC side small so front+back (+form) stay under nginx ~1mb default. */
+const MAX_DATA_URL_LENGTH = 280_000;
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

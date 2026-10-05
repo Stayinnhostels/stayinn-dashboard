@@ -1,5 +1,6 @@
 const MAX_WIDTH = 1280;
-const MAX_DATA_URL_LENGTH = 500_000;
+/** Keep room photos / uploads under typical nginx 1mb body limits when several are sent. */
+const MAX_DATA_URL_LENGTH = 280_000;
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -72,6 +72,14 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     body,
   });
 
+  // nginx often returns HTML for 413 without CORS JSON — surface a clear message.
+  if (res.status === 413) {
+    throw new ApiError(
+      "Upload too large for the server. Use smaller CNIC photos/PDF, or raise nginx client_max_body_size on the API host.",
+      413,
+    );
+  }
+
   if (res.status === 401 && !skipAuthRefresh && path !== "/api/auth/refresh") {
     const nextToken = await refreshDashboardSession();
     if (nextToken) {
