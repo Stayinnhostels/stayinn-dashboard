@@ -12,6 +12,13 @@ export type AboutPageForm = Pick<
   | "aboutMissionHeading"
   | "aboutMissionParagraph1"
   | "aboutMissionParagraph2"
+  | "aboutShowMissionStats"
+  | "aboutStat1Value"
+  | "aboutStat1Label"
+  | "aboutStat2Value"
+  | "aboutStat2Label"
+  | "aboutStat3Value"
+  | "aboutStat3Label"
   | "aboutShowBrokerage"
   | "aboutBrokerageValue"
   | "aboutBrokerageLabel"
@@ -33,6 +40,7 @@ export const ABOUT_PAGE_FORM_DEFAULTS: AboutPageForm = {
 
 export function pickAboutPage(settings: PropertySettings): AboutPageForm {
   return {
+    ...ABOUT_PAGE_FORM_DEFAULTS,
     aboutBadgeText: settings.aboutBadgeText,
     aboutTitleLine1: settings.aboutTitleLine1,
     aboutTitleAccent: settings.aboutTitleAccent,
@@ -40,6 +48,13 @@ export function pickAboutPage(settings: PropertySettings): AboutPageForm {
     aboutMissionHeading: settings.aboutMissionHeading,
     aboutMissionParagraph1: settings.aboutMissionParagraph1,
     aboutMissionParagraph2: settings.aboutMissionParagraph2,
+    aboutShowMissionStats: settings.aboutShowMissionStats ?? ABOUT_PAGE_FORM_DEFAULTS.aboutShowMissionStats,
+    aboutStat1Value: settings.aboutStat1Value || ABOUT_PAGE_FORM_DEFAULTS.aboutStat1Value,
+    aboutStat1Label: settings.aboutStat1Label || ABOUT_PAGE_FORM_DEFAULTS.aboutStat1Label,
+    aboutStat2Value: settings.aboutStat2Value || ABOUT_PAGE_FORM_DEFAULTS.aboutStat2Value,
+    aboutStat2Label: settings.aboutStat2Label || ABOUT_PAGE_FORM_DEFAULTS.aboutStat2Label,
+    aboutStat3Value: settings.aboutStat3Value || ABOUT_PAGE_FORM_DEFAULTS.aboutStat3Value,
+    aboutStat3Label: settings.aboutStat3Label || ABOUT_PAGE_FORM_DEFAULTS.aboutStat3Label,
     aboutShowBrokerage: settings.aboutShowBrokerage,
     aboutBrokerageValue: settings.aboutBrokerageValue,
     aboutBrokerageLabel: settings.aboutBrokerageLabel,

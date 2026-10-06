@@ -235,8 +235,15 @@ function SettingsPage() {
                   type="url"
                   value={s.mapUrl}
                   onChange={(e) => update("mapUrl", e.target.value)}
-                  placeholder="Google Maps URL"
+                  placeholder="https://www.google.com/maps?q=Stay+Inn+Hostels,+Lahore"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Best: open your place in Google Maps → Share → copy link, or use a link that includes the
+                  place name / coordinates (e.g.{" "}
+                  <span className="font-mono">maps?q=Stay+Inn+Hostels,+Lahore</span>). Long{" "}
+                  <span className="font-mono">vet=</span> share links are supported — the site converts them
+                  for the contact map.
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -84,6 +84,13 @@ export type PropertySettings = {
   aboutMissionHeading: string;
   aboutMissionParagraph1: string;
   aboutMissionParagraph2: string;
+  aboutShowMissionStats: boolean;
+  aboutStat1Value: string;
+  aboutStat1Label: string;
+  aboutStat2Value: string;
+  aboutStat2Label: string;
+  aboutStat3Value: string;
+  aboutStat3Label: string;
   aboutShowBrokerage: boolean;
   aboutBrokerageValue: string;
   aboutBrokerageLabel: string;
@@ -167,6 +174,13 @@ export type PublicPropertySettings = Pick<
   | "aboutMissionHeading"
   | "aboutMissionParagraph1"
   | "aboutMissionParagraph2"
+  | "aboutShowMissionStats"
+  | "aboutStat1Value"
+  | "aboutStat1Label"
+  | "aboutStat2Value"
+  | "aboutStat2Label"
+  | "aboutStat3Value"
+  | "aboutStat3Label"
   | "aboutShowBrokerage"
   | "aboutBrokerageValue"
   | "aboutBrokerageLabel"

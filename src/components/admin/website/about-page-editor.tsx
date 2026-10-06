@@ -159,6 +159,73 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
           <div className="rounded-lg border p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="font-semibold">Mission stats</p>
+                <p className="text-xs text-muted-foreground">
+                  Cards shown next to the mission text (residents, locations, rating, etc.)
+                </p>
+              </div>
+              <Switch
+                checked={value.aboutShowMissionStats}
+                onCheckedChange={(v) => onChange("aboutShowMissionStats", v)}
+              />
+            </div>
+            {value.aboutShowMissionStats ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>Stat 1 value</Label>
+                  <Input
+                    value={value.aboutStat1Value}
+                    onChange={(e) => onChange("aboutStat1Value", e.target.value)}
+                    placeholder="100+"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Stat 1 label</Label>
+                  <Input
+                    value={value.aboutStat1Label}
+                    onChange={(e) => onChange("aboutStat1Label", e.target.value)}
+                    placeholder="Happy Residents"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Stat 2 value</Label>
+                  <Input
+                    value={value.aboutStat2Value}
+                    onChange={(e) => onChange("aboutStat2Value", e.target.value)}
+                    placeholder="1"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Stat 2 label</Label>
+                  <Input
+                    value={value.aboutStat2Label}
+                    onChange={(e) => onChange("aboutStat2Label", e.target.value)}
+                    placeholder="Locations"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Stat 3 value</Label>
+                  <Input
+                    value={value.aboutStat3Value}
+                    onChange={(e) => onChange("aboutStat3Value", e.target.value)}
+                    placeholder="4.8"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Stat 3 label</Label>
+                  <Input
+                    value={value.aboutStat3Label}
+                    onChange={(e) => onChange("aboutStat3Label", e.target.value)}
+                    placeholder="/5"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="font-semibold">Brokerage stat</p>
               </div>
               <Switch
