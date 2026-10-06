@@ -1,4 +1,5 @@
 import type { AboutValueCard } from "@/lib/about-values";
+import type { FaqItem } from "@/lib/faqs";
 
 export type PropertySettings = {
   hotelName: string;
@@ -104,6 +105,13 @@ export type PropertySettings = {
   aboutCtaSecondaryLabel: string;
   aboutCtaSecondaryHref: string;
   aboutCtaShowSecondary: boolean;
+  faqBadgeText: string;
+  faqTitleLine1: string;
+  faqTitleAccent: string;
+  faqIntro: string;
+  faqs: FaqItem[];
+  faqCtaLabel: string;
+  faqCtaHref: string;
   /** Email unpaid guests for the current calendar month on configured days. */
   rentRemindersEnabled: boolean;
   /** Calendar days of the month to send reminders (1–28). */
@@ -194,4 +202,11 @@ export type PublicPropertySettings = Pick<
   | "aboutCtaSecondaryLabel"
   | "aboutCtaSecondaryHref"
   | "aboutCtaShowSecondary"
+  | "faqBadgeText"
+  | "faqTitleLine1"
+  | "faqTitleAccent"
+  | "faqIntro"
+  | "faqs"
+  | "faqCtaLabel"
+  | "faqCtaHref"
 >;

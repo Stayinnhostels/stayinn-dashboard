@@ -36,6 +36,8 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/facilities": { title: "Facilities", subtitle: "" },
   "/admin/website": { title: "Website", subtitle: "" },
   "/admin/website/about": { title: "About", subtitle: "" },
+  "/admin/website/faq": { title: "FAQ", subtitle: "" },
+  "/admin/website/booking-rules": { title: "Booking rules", subtitle: "" },
   "/admin/reviews": { title: "Reviews", subtitle: "" },
   "/admin/staff": { title: "Staff", subtitle: "" },
   "/admin/maintenance": { title: "Maintenance", subtitle: "" },

@@ -159,9 +159,9 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
           <div className="rounded-lg border p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold">Mission stats</p>
+                <p className="font-semibold">Stats row</p>
                 <p className="text-xs text-muted-foreground">
-                  Cards shown next to the mission text (residents, locations, rating, etc.)
+                  Cards shown next to the mission text on the About page
                 </p>
               </div>
               <Switch
@@ -170,49 +170,40 @@ export function AboutPageEditor({ value, onChange }: AboutPageEditorProps) {
               />
             </div>
             {value.aboutShowMissionStats ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label>Stat 1 value</Label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2 rounded-lg border p-3">
+                  <p className="text-xs font-semibold text-muted-foreground">Stat 1</p>
                   <Input
                     value={value.aboutStat1Value}
                     onChange={(e) => onChange("aboutStat1Value", e.target.value)}
                     placeholder="100+"
                   />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Stat 1 label</Label>
                   <Input
                     value={value.aboutStat1Label}
                     onChange={(e) => onChange("aboutStat1Label", e.target.value)}
                     placeholder="Happy Residents"
                   />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label>Stat 2 value</Label>
+                <div className="space-y-2 rounded-lg border p-3">
+                  <p className="text-xs font-semibold text-muted-foreground">Stat 2</p>
                   <Input
                     value={value.aboutStat2Value}
                     onChange={(e) => onChange("aboutStat2Value", e.target.value)}
                     placeholder="1"
                   />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Stat 2 label</Label>
                   <Input
                     value={value.aboutStat2Label}
                     onChange={(e) => onChange("aboutStat2Label", e.target.value)}
                     placeholder="Locations"
                   />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label>Stat 3 value</Label>
+                <div className="space-y-2 rounded-lg border p-3">
+                  <p className="text-xs font-semibold text-muted-foreground">Stat 3 (rating)</p>
                   <Input
                     value={value.aboutStat3Value}
                     onChange={(e) => onChange("aboutStat3Value", e.target.value)}
                     placeholder="4.8"
                   />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Stat 3 label</Label>
                   <Input
                     value={value.aboutStat3Label}
                     onChange={(e) => onChange("aboutStat3Label", e.target.value)}

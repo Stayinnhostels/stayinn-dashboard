@@ -164,63 +164,6 @@ export function HeroSectionEditor({ value, onChange, onUploadHeroImage }: HeroSe
 
       <Card className="border-border/60">
         <CardHeader>
-          <CardTitle className="text-base">Stats row</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <p className="font-semibold">Show stats</p>
-            </div>
-            <Switch checked={value.heroShowStats} onCheckedChange={(v) => onChange("heroShowStats", v)} />
-          </div>
-          {value.heroShowStats ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2 rounded-lg border p-3">
-                <p className="text-xs font-semibold text-muted-foreground">Stat 1</p>
-                <Input
-                  value={value.heroStat1Value}
-                  onChange={(e) => onChange("heroStat1Value", e.target.value)}
-                  placeholder="2,500+"
-                />
-                <Input
-                  value={value.heroStat1Label}
-                  onChange={(e) => onChange("heroStat1Label", e.target.value)}
-                  placeholder="Happy Residents"
-                />
-              </div>
-              <div className="space-y-2 rounded-lg border p-3">
-                <p className="text-xs font-semibold text-muted-foreground">Stat 2</p>
-                <Input
-                  value={value.heroStat2Value}
-                  onChange={(e) => onChange("heroStat2Value", e.target.value)}
-                  placeholder="12"
-                />
-                <Input
-                  value={value.heroStat2Label}
-                  onChange={(e) => onChange("heroStat2Label", e.target.value)}
-                  placeholder="Locations"
-                />
-              </div>
-              <div className="space-y-2 rounded-lg border p-3">
-                <p className="text-xs font-semibold text-muted-foreground">Stat 3 (rating)</p>
-                <Input
-                  value={value.heroStat3Value}
-                  onChange={(e) => onChange("heroStat3Value", e.target.value)}
-                  placeholder="4.8"
-                />
-                <Input
-                  value={value.heroStat3Label}
-                  onChange={(e) => onChange("heroStat3Label", e.target.value)}
-                  placeholder="/5"
-                />
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60">
-        <CardHeader>
           <CardTitle className="text-base">Trust badge overlay</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

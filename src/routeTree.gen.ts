@@ -37,6 +37,8 @@ import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminBookingRequestsRouteImport } from './routes/admin.booking-requests'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AdminWebsiteFaqRouteImport } from './routes/admin.website.faq'
+import { Route as AdminWebsiteBookingRulesRouteImport } from './routes/admin.website.booking-rules'
 import { Route as AdminWebsiteAboutRouteImport } from './routes/admin.website.about'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
 import { Route as AdminRoomsIdRouteImport } from './routes/admin.rooms.$id'
@@ -181,6 +183,17 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AdminWebsiteFaqRoute = AdminWebsiteFaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => AdminWebsiteRoute,
+} as any)
+const AdminWebsiteBookingRulesRoute =
+  AdminWebsiteBookingRulesRouteImport.update({
+    id: '/booking-rules',
+    path: '/booking-rules',
+    getParentRoute: () => AdminWebsiteRoute,
+  } as any)
 const AdminWebsiteAboutRoute = AdminWebsiteAboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -234,6 +247,8 @@ export interface FileRoutesByFullPath {
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
+  '/admin/website/booking-rules': typeof AdminWebsiteBookingRulesRoute
+  '/admin/website/faq': typeof AdminWebsiteFaqRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -266,6 +281,8 @@ export interface FileRoutesByTo {
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
+  '/admin/website/booking-rules': typeof AdminWebsiteBookingRulesRoute
+  '/admin/website/faq': typeof AdminWebsiteFaqRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -301,6 +318,8 @@ export interface FileRoutesById {
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
+  '/admin/website/booking-rules': typeof AdminWebsiteBookingRulesRoute
+  '/admin/website/faq': typeof AdminWebsiteFaqRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -336,6 +355,8 @@ export interface FileRouteTypes {
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
+    | '/admin/website/booking-rules'
+    | '/admin/website/faq'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -368,6 +389,8 @@ export interface FileRouteTypes {
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
+    | '/admin/website/booking-rules'
+    | '/admin/website/faq'
   id:
     | '__root__'
     | '/'
@@ -402,6 +425,8 @@ export interface FileRouteTypes {
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
+    | '/admin/website/booking-rules'
+    | '/admin/website/faq'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -609,6 +634,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/admin/website/faq': {
+      id: '/admin/website/faq'
+      path: '/faq'
+      fullPath: '/admin/website/faq'
+      preLoaderRoute: typeof AdminWebsiteFaqRouteImport
+      parentRoute: typeof AdminWebsiteRoute
+    }
+    '/admin/website/booking-rules': {
+      id: '/admin/website/booking-rules'
+      path: '/booking-rules'
+      fullPath: '/admin/website/booking-rules'
+      preLoaderRoute: typeof AdminWebsiteBookingRulesRouteImport
+      parentRoute: typeof AdminWebsiteRoute
+    }
     '/admin/website/about': {
       id: '/admin/website/about'
       path: '/about'
@@ -690,10 +729,14 @@ const AdminUsersRouteWithChildren = AdminUsersRoute._addFileChildren(
 
 interface AdminWebsiteRouteChildren {
   AdminWebsiteAboutRoute: typeof AdminWebsiteAboutRoute
+  AdminWebsiteBookingRulesRoute: typeof AdminWebsiteBookingRulesRoute
+  AdminWebsiteFaqRoute: typeof AdminWebsiteFaqRoute
 }
 
 const AdminWebsiteRouteChildren: AdminWebsiteRouteChildren = {
   AdminWebsiteAboutRoute: AdminWebsiteAboutRoute,
+  AdminWebsiteBookingRulesRoute: AdminWebsiteBookingRulesRoute,
+  AdminWebsiteFaqRoute: AdminWebsiteFaqRoute,
 }
 
 const AdminWebsiteRouteWithChildren = AdminWebsiteRoute._addFileChildren(

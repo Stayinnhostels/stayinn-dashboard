@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Loader2, Palette, Share2, BedDouble, Image as ImageIcon, X, LayoutDashboard, UserRound } from "lucide-react";
+import { Building2, Loader2, Palette, Share2, Image as ImageIcon, X, LayoutDashboard, UserRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { SettingsPageSkeleton } from "@/components/admin/admin-page-skeletons";
 import { AdminProfileSettingsCard } from "@/components/admin/admin-profile-settings-card";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ import { DEFAULT_EXTRA_FACILITY_PRESETS } from "@/types/domain/resident.types";
 import { HOMEPAGE_HERO_DEFAULTS } from "@/lib/homepage-hero-defaults";
 import { HOMEPAGE_CTA_DEFAULTS } from "@/lib/homepage-cta-defaults";
 import { ABOUT_PAGE_DEFAULTS } from "@/lib/about-page-defaults";
+import { FAQ_PAGE_FORM_DEFAULTS } from "@/lib/faq-page-defaults";
+import { BOOKING_RULES_PAGE_DEFAULTS } from "@/lib/booking-rules-page-defaults";
 
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
@@ -61,29 +63,14 @@ const DEFAULTS: SettingsForm = {
   youtube: "",
   linkedin: "",
   threads: "",
-  checkInTime: "14:00",
-  checkOutTime: "11:00",
-  minStay: 1,
-  maxStay: 30,
-  advanceBookingDays: 365,
-  cancellationWindowHours: 48,
-  cancellationPolicy: "moderate",
-  depositPercent: 25,
-  allowChildren: true,
-  allowPets: false,
-  smokingAllowed: false,
   rentRemindersEnabled: true,
   rentReminderDays: [1, 5],
   extraFacilityPresets: [...DEFAULT_EXTRA_FACILITY_PRESETS],
-  houseRules:
-    "• No loud music after 10pm\n• Keep common areas clean\n• Be respectful of other guests\n• ID required at check-in\n• Minimum stay of 3 months — leave earlier and security is not refundable\n• After 3 months, give at least 1 month written notice before vacating",
-  quietHoursStart: "22:00",
-  quietHoursEnd: "07:00",
-  roomsFilterMinPrice: 3000,
-  roomsFilterMaxPrice: 50000,
+  ...BOOKING_RULES_PAGE_DEFAULTS,
   ...HOMEPAGE_HERO_DEFAULTS,
   ...HOMEPAGE_CTA_DEFAULTS,
   ...ABOUT_PAGE_DEFAULTS,
+  ...FAQ_PAGE_FORM_DEFAULTS,
 };
 
 const REMINDER_DAY_OPTIONS = [1, 5, 10] as const;
@@ -153,8 +140,7 @@ function SettingsPage() {
 
   function save() {
     saveMutation.mutate(s, {
-      onSuccess: () =>
-        toast.success("Settings saved — property, branding, and booking rules updated"),
+      onSuccess: () => toast.success("Settings saved"),
       onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save settings"),
     });
   }
@@ -192,7 +178,6 @@ function SettingsPage() {
           <TabsTrigger value="branding"><Palette className="h-3.5 w-3.5" /> Branding</TabsTrigger>
           <TabsTrigger value="dashboard"><LayoutDashboard className="h-3.5 w-3.5" /> Dashboard</TabsTrigger>
           <TabsTrigger value="social"><Share2 className="h-3.5 w-3.5" /> Social</TabsTrigger>
-          <TabsTrigger value="booking"><BedDouble className="h-3.5 w-3.5" /> Booking rules</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -245,6 +230,76 @@ function SettingsPage() {
                   for the contact map.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-base">Monthly rent reminders</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="font-semibold">Email unpaid guests</p>
+                  <p className="text-xs text-muted-foreground">
+                    Only the current month · skips paid / returned · Asia/Karachi 9:00 AM
+                  </p>
+                </div>
+                <Switch
+                  checked={s.rentRemindersEnabled}
+                  onCheckedChange={(v) => update("rentRemindersEnabled", v)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Reminder days of the month</Label>
+                <div className="flex flex-wrap gap-2">
+                  {REMINDER_DAY_OPTIONS.map((day) => {
+                    const checked = (s.rentReminderDays ?? []).includes(day);
+                    return (
+                      <label
+                        key={day}
+                        className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-primary"
+                          checked={checked}
+                          onChange={(e) => toggleReminderDay(day, e.target.checked)}
+                        />
+                        Day {day}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Day 1 = due notice · Day 5 = follow-up · Day 10 = optional overdue nudge
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={runningReminders}
+                onClick={() => void runRemindersNow()}
+                className="rounded-full"
+              >
+                {runningReminders ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Run reminders now
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-base">Public booking rules</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                Check-in times, stay rules, house rules, and related guest-facing content are edited under
+                Website Content.
+              </p>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/admin/website/booking-rules">Open booking rules</Link>
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -504,163 +559,6 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="booking" className="space-y-4">
-          <Card className="border-border/60 border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-base">Public booking rules page</CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle className="text-base">Rooms page price filter</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label>Minimum price (PKR)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={500}
-                  value={s.roomsFilterMinPrice}
-                  onChange={(e) => update("roomsFilterMinPrice", Number(e.target.value))}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Maximum price (PKR)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={500}
-                  value={s.roomsFilterMaxPrice}
-                  onChange={(e) => update("roomsFilterMaxPrice", Number(e.target.value))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle className="text-base">Check-in & check-out</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5"><Label>Check-in time</Label><Input type="time" value={s.checkInTime} onChange={(e) => update("checkInTime", e.target.value)} /></div>
-              <div className="grid gap-1.5"><Label>Check-out time</Label><Input type="time" value={s.checkOutTime} onChange={(e) => update("checkOutTime", e.target.value)} /></div>
-              <div className="grid gap-1.5"><Label>Quiet hours start</Label><Input type="time" value={s.quietHoursStart} onChange={(e) => update("quietHoursStart", e.target.value)} /></div>
-              <div className="grid gap-1.5"><Label>Quiet hours end</Label><Input type="time" value={s.quietHoursEnd} onChange={(e) => update("quietHoursEnd", e.target.value)} /></div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader><CardTitle className="text-base">Stay rules</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5"><Label>Minimum stay (nights)</Label><Input type="number" min={1} value={s.minStay} onChange={(e) => update("minStay", Number(e.target.value))} /></div>
-              <div className="grid gap-1.5"><Label>Maximum stay (nights)</Label><Input type="number" min={1} value={s.maxStay} onChange={(e) => update("maxStay", Number(e.target.value))} /></div>
-              <div className="grid gap-1.5"><Label>Advance booking window (days)</Label><Input type="number" min={1} value={s.advanceBookingDays} onChange={(e) => update("advanceBookingDays", Number(e.target.value))} /></div>
-              <div className="grid gap-1.5"><Label>Deposit (%)</Label><Input type="number" min={0} max={100} value={s.depositPercent} onChange={(e) => update("depositPercent", Number(e.target.value))} /></div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader><CardTitle className="text-base">Cancellation policy</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label>Policy</Label>
-                <Select value={s.cancellationPolicy} onValueChange={(v) => update("cancellationPolicy", v as SettingsForm["cancellationPolicy"])}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="flexible">Flexible — full refund 24h before</SelectItem>
-                    <SelectItem value="moderate">Moderate — full refund 5 days before</SelectItem>
-                    <SelectItem value="strict">Strict — 50% refund up to 7 days before</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5"><Label>Free cancellation window (hours)</Label><Input type="number" min={0} value={s.cancellationWindowHours} onChange={(e) => update("cancellationWindowHours", Number(e.target.value))} /></div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader><CardTitle className="text-base">Guest preferences</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Allow children</p></div>
-                <Switch checked={s.allowChildren} onCheckedChange={(v) => update("allowChildren", v)} />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Allow pets</p></div>
-                <Switch checked={s.allowPets} onCheckedChange={(v) => update("allowPets", v)} />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div><p className="font-semibold">Smoking allowed</p></div>
-                <Switch checked={s.smokingAllowed} onCheckedChange={(v) => update("smokingAllowed", v)} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle className="text-base">Monthly rent reminders</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <p className="font-semibold">Email unpaid guests</p>
-                  <p className="text-xs text-muted-foreground">
-                    Only the current month · skips paid / returned · Asia/Karachi 9:00 AM
-                  </p>
-                </div>
-                <Switch
-                  checked={s.rentRemindersEnabled}
-                  onCheckedChange={(v) => update("rentRemindersEnabled", v)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Reminder days of the month</Label>
-                <div className="flex flex-wrap gap-2">
-                  {REMINDER_DAY_OPTIONS.map((day) => {
-                    const checked = (s.rentReminderDays ?? []).includes(day);
-                    return (
-                      <label
-                        key={day}
-                        className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          className="size-4 accent-primary"
-                          checked={checked}
-                          onChange={(e) => toggleReminderDay(day, e.target.checked)}
-                        />
-                        Day {day}
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Day 1 = due notice · Day 5 = follow-up · Day 10 = optional overdue nudge
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={runningReminders}
-                onClick={() => void runRemindersNow()}
-                className="rounded-full"
-              >
-                {runningReminders ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Run reminders now
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle className="text-base">House rules</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea rows={6} value={s.houseRules} onChange={(e) => update("houseRules", e.target.value)} className="font-mono text-sm" />
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       <div className="sticky bottom-4 flex justify-end gap-2">

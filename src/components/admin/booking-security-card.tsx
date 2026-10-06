@@ -125,7 +125,7 @@ export function BookingSecurityCard({ booking }: Props) {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3">
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as SecurityStatus)}>
@@ -152,7 +152,7 @@ export function BookingSecurityCard({ booking }: Props) {
                 disabled={!useCustom}
               />
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label>Returnable security</Label>
               <Input
                 type="number"

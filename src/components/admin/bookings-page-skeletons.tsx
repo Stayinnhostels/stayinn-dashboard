@@ -123,10 +123,9 @@ export function BookingDetailSkeleton() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Skeleton className="h-9 w-36 rounded-md" />
         <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-9 w-28 rounded-md" />
-          <Skeleton className="h-9 w-24 rounded-md" />
           <Skeleton className="h-9 w-32 rounded-md" />
-          <Skeleton className="h-9 w-24 rounded-md" />
+          <Skeleton className="h-9 w-28 rounded-md" />
+          <Skeleton className="h-9 w-36 rounded-md" />
         </div>
       </div>
 
@@ -141,7 +140,7 @@ export function BookingDetailSkeleton() {
               <Skeleton className="h-6 w-24 rounded-full" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-3 w-24" />
                   <Skeleton className="h-5 w-full" />
@@ -151,17 +150,23 @@ export function BookingDetailSkeleton() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60">
-          <CardContent className="space-y-4 p-6">
-            <Skeleton className="h-5 w-32" />
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="h-10 w-full rounded-md" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="border-border/60">
+            <CardContent className="space-y-3 p-6">
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-28" />
+            </CardContent>
+          </Card>
+          <Card className="border-border/60">
+            <CardContent className="space-y-3 p-6">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-9 w-full rounded-md" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

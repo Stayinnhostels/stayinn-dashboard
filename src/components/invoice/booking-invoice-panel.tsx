@@ -3,7 +3,7 @@ import { Download, Eye, FileText, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking } from "@/types/domain/booking.types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -72,38 +72,32 @@ export function BookingInvoicePanel({ booking }: Props) {
 
   return (
     <>
-      <Card className="border-2 border-foreground/80 shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4" />
-            Invoice / Bill
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
-            <p className="font-semibold">{invoiceData.invoiceNumber}</p>
-            <p className="text-muted-foreground">
-              {invoiceData.bookingReference} · Total{" "}
+      <Card className="border-border/60">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <FileText className="h-4 w-4" />
+              Invoice / Bill
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {invoiceData.invoiceNumber} ·{" "}
               {formatMoney(invoiceData.total, normalizeMoneyCurrency(booking.currency))}
             </p>
           </div>
-
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)}>
-              <Eye className="h-4 w-4" />
-              Preview invoice
+            <Button type="button" size="sm" variant="outline" onClick={() => setPreviewOpen(true)}>
+              <Eye className="h-3.5 w-3.5" />
+              Preview
             </Button>
-            <Button type="button" onClick={() => void handleDownload()} disabled={downloading}>
-              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Download PDF
+            <Button type="button" size="sm" onClick={() => void handleDownload()} disabled={downloading}>
+              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              PDF
             </Button>
-            <Button type="button" variant="secondary" onClick={openWhatsApp} disabled={!guestWaUrl}>
-              <MessageCircle className="h-4 w-4" />
-              Open guest WhatsApp
+            <Button type="button" size="sm" variant="secondary" onClick={openWhatsApp} disabled={!guestWaUrl}>
+              <MessageCircle className="h-3.5 w-3.5" />
+              WhatsApp
             </Button>
           </div>
-
-         
         </CardContent>
       </Card>
 

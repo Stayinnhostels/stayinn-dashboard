@@ -30,7 +30,8 @@ export const HOMEPAGE_HERO_DEFAULTS: Pick<
   heroSecondaryCtaHref: "/rooms",
   heroImageUrl: "",
   heroImageAlt: "Modern Stay Inn Hostel common room with students",
-  heroShowStats: true,
+  /** Legacy fields — homepage no longer shows these; edit About page stats instead. */
+  heroShowStats: false,
   heroStat1Value: "100+",
   heroStat1Label: "Happy Residents",
   heroStat2Value: "1",

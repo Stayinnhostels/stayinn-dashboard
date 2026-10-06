@@ -26,7 +26,9 @@ type WebsiteTab = "hero" | "cta";
 
 function WebsitePage() {
   const aboutMatch = useMatch({ from: "/admin/website/about", shouldThrow: false });
-  if (aboutMatch) {
+  const faqMatch = useMatch({ from: "/admin/website/faq", shouldThrow: false });
+  const bookingRulesMatch = useMatch({ from: "/admin/website/booking-rules", shouldThrow: false });
+  if (aboutMatch || faqMatch || bookingRulesMatch) {
     return <Outlet />;
   }
 

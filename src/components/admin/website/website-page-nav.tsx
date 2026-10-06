@@ -1,10 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { FileText, LayoutTemplate } from "lucide-react";
+import { BedDouble, CircleHelp, FileText, LayoutTemplate } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const pages = [
   { to: "/admin/website", label: "Homepage", icon: LayoutTemplate, exact: true },
   { to: "/admin/website/about", label: "About page", icon: FileText },
+  { to: "/admin/website/faq", label: "FAQ page", icon: CircleHelp },
+  { to: "/admin/website/booking-rules", label: "Booking rules", icon: BedDouble },
 ] as const;
 
 export function WebsitePageNav() {

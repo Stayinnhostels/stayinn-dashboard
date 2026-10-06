@@ -16,13 +16,6 @@ export type HeroSectionForm = Pick<
   | "heroSecondaryCtaHref"
   | "heroImageUrl"
   | "heroImageAlt"
-  | "heroShowStats"
-  | "heroStat1Value"
-  | "heroStat1Label"
-  | "heroStat2Value"
-  | "heroStat2Label"
-  | "heroStat3Value"
-  | "heroStat3Label"
   | "heroShowTrustBadge"
   | "heroTrustTitle"
   | "heroTrustSubtitle"
@@ -49,13 +42,6 @@ export function pickHeroSection(settings: PropertySettings): HeroSectionForm {
     heroSecondaryCtaHref: settings.heroSecondaryCtaHref,
     heroImageUrl: settings.heroImageUrl,
     heroImageAlt: settings.heroImageAlt,
-    heroShowStats: settings.heroShowStats,
-    heroStat1Value: settings.heroStat1Value,
-    heroStat1Label: settings.heroStat1Label,
-    heroStat2Value: settings.heroStat2Value,
-    heroStat2Label: settings.heroStat2Label,
-    heroStat3Value: settings.heroStat3Value,
-    heroStat3Label: settings.heroStat3Label,
     heroShowTrustBadge: settings.heroShowTrustBadge,
     heroTrustTitle: settings.heroTrustTitle,
     heroTrustSubtitle: settings.heroTrustSubtitle,

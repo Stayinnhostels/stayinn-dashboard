@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, FileText, Mail, Pencil, Phone, User, X } from "lucide-react";
+import { ArrowLeft, BedDouble, CalendarRange, FileText, Mail, Pencil, Phone, User, UserRound, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BookingDetailSkeleton } from "@/components/admin/bookings-page-skeletons";
 import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
 import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
-import { BookingPricingCard } from "@/components/admin/booking-pricing-card";
+import { BookingSecurityCard } from "@/components/admin/booking-security-card";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { SECURITY_STATUS_LABELS, RESIDENT_TYPE_LABELS, affiliationForResident } from "@/types/domain/resident.types";
 import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
@@ -28,6 +29,22 @@ export const Route = createFileRoute("/admin/bookings/$id")({
 });
 
 const STATUSES: BookingStatus[] = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
+
+const STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  checked_in: "Checked in",
+  checked_out: "Checked out",
+  cancelled: "Cancelled",
+};
+
+const statusColor: Record<BookingStatus, string> = {
+  pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  confirmed: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+  checked_in: "bg-violet-500/15 text-violet-600 border-violet-500/30",
+  checked_out: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  cancelled: "bg-rose-500/15 text-rose-600 border-rose-500/30",
+};
 
 function BookingDetailPage() {
   const { id } = Route.useParams();
@@ -132,6 +149,10 @@ function BookingDetailPage() {
   }
 
   const affiliation = affiliationForResident(booking);
+  const money = (amount: number) => formatMoney(amount, cur);
+  const securityStatus = booking.security_status ?? "not_paid";
+  const collected = booking.amount_paid_upfront;
+  const stillDue = booking.amount_outstanding;
 
   return (
     <div className="space-y-6">
@@ -139,25 +160,29 @@ function BookingDetailPage() {
         <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/admin/bookings" })}>
           <ArrowLeft className="h-4 w-4" /> Back to bookings
         </Button>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> Edit booking
           </Button>
           <Button
-            variant="default"
-            onClick={() => document.getElementById("booking-invoice")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            onClick={() =>
+              document.getElementById("booking-invoice")?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
           >
             <FileText className="h-4 w-4" /> Invoice / Bill
           </Button>
-          <Button variant="outline" onClick={() => onStatusChange("confirmed")}>
-            <CheckCircle2 className="h-4 w-4" /> Confirm
-          </Button>
-          <Button variant="outline" onClick={() => setCheckoutOpen(true)}>
-            Mark completed
-          </Button>
-          <Button variant="destructive" onClick={() => onStatusChange("cancelled")}>
-            <X className="h-4 w-4" /> Cancel
-          </Button>
+          <Select value={booking.status} onValueChange={(v) => onStatusChange(v as BookingStatus)}>
+            <SelectTrigger className="w-[160px]" aria-label="Booking status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -165,7 +190,7 @@ function BookingDetailPage() {
 
       <BookingRefundDialog
         open={cancelOpen}
-        booking={booking ?? null}
+        booking={booking}
         mode="cancel"
         submitting={updateStatus.isPending}
         onClose={() => setCancelOpen(false)}
@@ -174,7 +199,7 @@ function BookingDetailPage() {
 
       <BookingRefundDialog
         open={checkoutOpen}
-        booking={booking ?? null}
+        booking={booking}
         mode="checkout"
         submitting={updateStatus.isPending}
         onClose={() => setCheckoutOpen(false)}
@@ -183,167 +208,150 @@ function BookingDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-border/60 lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle>Booking #{booking.id.slice(-6)}</CardTitle>
-                <div className="mt-1.5">
+          <CardHeader className="pb-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="text-xl">{booking.guest_name}</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">Booking #{booking.id.slice(-6)}</p>
+                <div className="mt-2">
                   <HostelPropertyBadge
                     hostelId={booking.hostel_id}
                     hostelName={booking.hostel_name}
                     showAllProperties={false}
                   />
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Created {booking.created_at ? new Date(booking.created_at).toLocaleString() : "—"}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="capitalize">
-                  {booking.status.replace("_", " ")}
-                </Badge>
-                <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </Button>
-              </div>
+              <Badge variant="outline" className={cn("px-2.5 py-0.5", statusColor[booking.status])}>
+                {STATUS_LABELS[booking.status]}
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Guest name" value={booking.guest_name} />
-            <Field label="Guest email" value={booking.guest_email} />
-            <Field label="Phone" value={booking.guest_phone || "—"} />
-            <Field label="Move-in" value={booking.move_in ?? "—"} />
-            <Field label="Check-out" value={booking.check_out ?? "—"} />
-            <Field label="Seats booked" value={String(booking.seats_booked)} />
-            <Field
-              label={booking.stay_unit === "night" ? "Nights" : "Months"}
-              value={
-                booking.stay_unit === "night"
-                  ? String(booking.nights ?? "—")
-                  : String(booking.months)
-              }
-            />
-            <Field
-              label="Price per seat / month"
-              value={formatMoney(booking.price_per_seat, normalizeMoneyCurrency(booking.currency))}
-            />
-            <Field label="Source" value={booking.source} />
-            <Field label="Type" value={RESIDENT_TYPE_LABELS[booking.resident_type || ""]} />
-            {affiliation ? (
-              <Field label={affiliation.label} value={affiliation.value || "—"} />
-            ) : null}
-            <Field
-              label="Rent total"
-              value={formatMoney(booking.total_amount, normalizeMoneyCurrency(booking.currency))}
-            />
-            {isMonthlyStay && securityAmount != null && (
-              <>
-                <Field
-                  label="Security deposit"
-                  value={formatMoney(securityAmount, normalizeMoneyCurrency(booking.currency))}
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <DetailGroup title="Guest" icon={UserRound}>
+                <DetailRow label="Name" value={booking.guest_name} />
+                <DetailRow
+                  label="Email"
+                  value={
+                    booking.guest_email ? (
+                      <a href={`mailto:${booking.guest_email}`} className="hover:underline">
+                        {booking.guest_email}
+                      </a>
+                    ) : (
+                      "—"
+                    )
+                  }
                 />
-                <Field
-                  label="Security status"
-                  value={SECURITY_STATUS_LABELS[booking.security_status ?? "not_paid"]}
+                <DetailRow
+                  label="Phone"
+                  value={
+                    booking.guest_phone ? (
+                      <a href={`tel:${booking.guest_phone}`} className="hover:underline">
+                        {booking.guest_phone}
+                      </a>
+                    ) : (
+                      "—"
+                    )
+                  }
                 />
-              </>
-            )}
-            {isMonthlyStay && booking.months_paid_upfront != null && booking.months > 1 && (
-              <Field
-                label="Rent months committed upfront"
-                value={`${booking.months_paid_upfront} of ${booking.months}`}
-              />
-            )}
-            {booking.amount_paid_upfront != null && (
-              <Field
-                label="Rent collected so far"
-                value={formatMoney(booking.amount_paid_upfront, normalizeMoneyCurrency(booking.currency))}
-              />
-            )}
-            {booking.amount_outstanding != null && booking.amount_outstanding > 0 && (
-              <Field
-                label="Rent still due"
-                value={formatMoney(booking.amount_outstanding, normalizeMoneyCurrency(booking.currency))}
-              />
-            )}
-            {isMonthlyStay && securityAmount != null && (
-              <Field
-                label="Est. due at check-in"
-                value={formatMoney(
-                  (booking.months > 0
-                    ? Math.round(
-                        (booking.total_amount / booking.months) *
-                          (booking.months_paid_upfront ?? 1) *
-                          100,
-                      ) / 100
-                    : 0) + (booking.security_status === "paid" ? 0 : securityAmount),
-                  normalizeMoneyCurrency(booking.currency),
-                )}
-              />
-            )}
-            {(booking.status === "cancelled" || booking.status === "checked_out") &&
-              (booking.amount_refunded != null || booking.amount_retained != null) && (
-              <>
-                <Field
-                  label="Rent refunded to guest"
-                  value={formatMoney(booking.amount_refunded ?? 0, normalizeMoneyCurrency(booking.currency))}
+                <DetailRow label="Type" value={RESIDENT_TYPE_LABELS[booking.resident_type || ""] || "—"} />
+                {affiliation ? <DetailRow label={affiliation.label} value={affiliation.value || "—"} /> : null}
+                <DetailRow label="Source" value={booking.source || "—"} />
+              </DetailGroup>
+
+              <DetailGroup title="Stay" icon={CalendarRange}>
+                <DetailRow label="Move-in" value={formatStayDate(booking.move_in)} />
+                <DetailRow label="Check-out" value={formatStayDate(booking.check_out)} />
+                <DetailRow label="Seats" value={String(booking.seats_booked)} />
+                <DetailRow
+                  label={booking.stay_unit === "night" ? "Nights" : "Months"}
+                  value={booking.stay_unit === "night" ? String(booking.nights ?? "—") : String(booking.months)}
                 />
-                <Field
-                  label="Rent kept (revenue)"
-                  value={formatMoney(booking.amount_retained ?? 0, normalizeMoneyCurrency(booking.currency))}
+                <DetailRow
+                  label={booking.stay_unit === "night" ? "Price / seat / night" : "Price / seat / month"}
+                  value={money(booking.price_per_seat)}
                 />
-              </>
-            )}
-            {booking.status === "checked_out" &&
-              (booking.security_returned != null || booking.security_retained != null) && (
-              <>
-                <Field
-                  label="Security returned to guest"
-                  value={formatMoney(booking.security_returned ?? 0, normalizeMoneyCurrency(booking.currency))}
-                />
-                <Field
-                  label="Security kept (revenue)"
-                  value={formatMoney(booking.security_retained ?? 0, normalizeMoneyCurrency(booking.currency))}
-                />
-              </>
-            )}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Change status</p>
-              <Select value={booking.status} onValueChange={(v) => onStatusChange(v as BookingStatus)}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">
-                      {s.replace("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              </DetailGroup>
             </div>
+
+            <DetailGroup title="Payment" icon={Wallet} columns={2}>
+              <DetailRow label="Rent total" value={money(booking.total_amount)} />
+              {collected != null && (
+                <DetailRow label="Collected" value={money(collected)} accent={collected > 0 ? "paid" : undefined} />
+              )}
+              {stillDue != null && (
+                <DetailRow label="Still due" value={money(stillDue)} accent={stillDue > 0 ? "due" : "paid"} />
+              )}
+              {isMonthlyStay && securityAmount != null && (
+                <>
+                  <DetailRow label="Security deposit" value={money(securityAmount)} />
+                  <DetailRow
+                    label="Security status"
+                    value={
+                      <Badge variant="outline" className={cn("font-semibold", securityColor[securityStatus])}>
+                        {SECURITY_STATUS_LABELS[securityStatus]}
+                      </Badge>
+                    }
+                  />
+                </>
+              )}
+              {isMonthlyStay && booking.months_paid_upfront != null && booking.months > 1 && (
+                <DetailRow
+                  label="Months paid upfront"
+                  value={`${booking.months_paid_upfront} of ${booking.months}`}
+                />
+              )}
+              {(booking.status === "cancelled" || booking.status === "checked_out") &&
+                (booking.amount_refunded != null || booking.amount_retained != null) && (
+                  <>
+                    <DetailRow label="Rent refunded" value={money(booking.amount_refunded ?? 0)} />
+                    <DetailRow label="Rent kept" value={money(booking.amount_retained ?? 0)} />
+                  </>
+                )}
+              {booking.status === "checked_out" &&
+                (booking.security_returned != null || booking.security_retained != null) && (
+                  <>
+                    <DetailRow label="Security returned" value={money(booking.security_returned ?? 0)} />
+                    <DetailRow label="Security kept" value={money(booking.security_retained ?? 0)} />
+                  </>
+                )}
+            </DetailGroup>
+
             <BookingNotesDisplay booking={booking} />
           </CardContent>
         </Card>
 
-        <div className="space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
+        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           {booking.room_id && (
             <Card className="border-border/60">
-              <CardHeader>
-                <CardTitle className="text-base">Room</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Link to="/admin/rooms/$id" params={{ id: booking.room_id }} className="font-bold hover:underline">
-                  {booking.room_title ?? "View room"}
-                </Link>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {booking.seats_booked} seat(s) · {booking.months} month(s)
-                </p>
+              <CardContent className="flex items-start gap-3 p-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <BedDouble className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">Room</p>
+                  <Link
+                    to="/admin/rooms/$id"
+                    params={{ id: booking.room_id }}
+                    className="mt-0.5 block truncate font-semibold hover:underline"
+                  >
+                    {booking.room_title ?? "View room"}
+                  </Link>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {booking.seats_booked} seat(s) ·{" "}
+                    {booking.stay_unit === "night"
+                      ? `${booking.nights ?? "—"} night(s)`
+                      : `${booking.months} month(s)`}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
 
-          <BookingPricingCard booking={booking} />
+          <BookingSecurityCard booking={booking} />
 
           {booking.user_id && (
             <Card className="border-border/60">
@@ -358,8 +366,8 @@ function BookingDetailPage() {
                   </Link>
                 </p>
                 {booking.guest_email && (
-                  <p className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground" /> {booking.guest_email}
+                  <p className="flex items-center gap-2 break-all">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> {booking.guest_email}
                   </p>
                 )}
                 {booking.guest_phone && (
@@ -370,7 +378,6 @@ function BookingDetailPage() {
               </CardContent>
             </Card>
           )}
-
         </div>
       </div>
 
@@ -386,7 +393,7 @@ function BookingDetailPage() {
           <ol className="relative space-y-4 border-l border-border pl-6 text-sm">
             <TimelineItem label="Booking created" at={booking.created_at} />
             {booking.updated_at && booking.updated_at !== booking.created_at && (
-              <TimelineItem label={`Status: ${booking.status.replace("_", " ")}`} at={booking.updated_at} />
+              <TimelineItem label={`Status: ${STATUS_LABELS[booking.status]}`} at={booking.updated_at} />
             )}
           </ol>
         </CardContent>
@@ -395,11 +402,71 @@ function BookingDetailPage() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+const securityColor: Record<string, string> = {
+  paid: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  not_paid: "bg-rose-500/15 text-rose-700 border-rose-500/30",
+  returned: "bg-sky-500/15 text-sky-700 border-sky-500/30",
+  held: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  not_applicable: "bg-muted text-muted-foreground border-border",
+};
+
+function formatStayDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return value;
+  return new Date(year, month - 1, day).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function DetailGroup({
+  title,
+  icon: Icon,
+  children,
+  columns = 1,
+}: {
+  title: string;
+  icon: typeof UserRound;
+  children: ReactNode;
+  columns?: 1 | 2;
+}) {
   return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-1 font-medium">{value}</p>
+    <section className="rounded-xl bg-muted/30 p-4">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-background text-primary shadow-sm ring-1 ring-border/70">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        {title}
+      </h2>
+      <div className={columns === 2 ? "grid gap-x-8 gap-y-3 sm:grid-cols-2" : "grid gap-y-3"}>{children}</div>
+    </section>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: ReactNode;
+  accent?: "paid" | "due";
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div
+        className={cn(
+          "mt-0.5 break-words text-sm font-semibold leading-snug",
+          accent === "due" && "text-rose-600 dark:text-rose-400",
+          accent === "paid" && "text-emerald-700 dark:text-emerald-400",
+          !accent && "text-foreground",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
