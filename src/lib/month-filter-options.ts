@@ -1,7 +1,7 @@
-/** Earliest month selectable in admin month filters (property go-live). */
-export const MONTH_FILTER_START = "2026-05";
+/** Earliest month selectable in admin month filters. */
+export const MONTH_FILTER_START = "2025-01";
 
-const START = { year: 2026, month: 5 };
+const START = { year: 2025, month: 1 };
 
 export type MonthOption = { key: string; label: string };
 
