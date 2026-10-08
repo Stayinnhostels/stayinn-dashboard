@@ -28,6 +28,7 @@ import { HostelPropertyBadge } from "@/components/admin/hostel-property-badge";
 import { useBookingsQuery } from "@/queries/bookings";
 import { useRoomQuery, useUpdateRoomMutation, useDeleteRoomMutation } from "@/queries/rooms";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import {
   ROOM_AMENITY_OPTIONS,
   formatRoomLabel,
@@ -399,15 +400,19 @@ function RoomDetailPage() {
           <div>
             <CardTitle className="text-base">Bookings</CardTitle>
           </div>
-          <Button
-            type="button"
-            onClick={() => setAddMemberOpen(true)}
-            disabled={room.beds_available <= 0}
-            title={room.beds_available <= 0 ? "No seats available" : undefined}
+          <HintTooltip
+            label="No seats available"
+            enabled={room.beds_available <= 0}
           >
-            <UserPlus className="h-4 w-4" />
-            Add walk-in member
-          </Button>
+            <Button
+              type="button"
+              onClick={() => setAddMemberOpen(true)}
+              disabled={room.beds_available <= 0}
+            >
+              <UserPlus className="h-4 w-4" />
+              Add walk-in member
+            </Button>
+          </HintTooltip>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

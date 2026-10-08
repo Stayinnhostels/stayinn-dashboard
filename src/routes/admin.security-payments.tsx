@@ -36,6 +36,7 @@ import {
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { SECURITY_STATUS_LABELS, type SecurityStatus } from "@/types/domain/resident.types";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import type { SecurityPaymentRow } from "@/types/domain/security-payment.types";
 
 export const Route = createFileRoute("/admin/security-payments")({
@@ -299,9 +300,11 @@ function SecurityRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
-          <Button type="button" size="sm" variant="ghost" title="Ledger history" onClick={onHistory}>
-            <History className="h-4 w-4" />
-          </Button>
+          <HintTooltip label="Ledger history">
+            <Button type="button" size="sm" variant="ghost" aria-label="Ledger history" onClick={onHistory}>
+              <History className="h-4 w-4" />
+            </Button>
+          </HintTooltip>
           <Button type="button" size="sm" variant="outline" disabled={!canRefund} onClick={onRefund}>
             Return
           </Button>

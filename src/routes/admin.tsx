@@ -8,6 +8,7 @@ import { NotFoundView } from "@/components/not-found-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
 import { DashboardThemeProvider } from "@/providers/dashboard-theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -83,23 +84,25 @@ function AdminLayout() {
 
   return (
     <DashboardThemeProvider>
-      <NotificationSocketProvider>
-      <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
-        <OnboardingTour />
-        <AdminSidebar />
-        <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <AdminHeader
-            title={meta.title}
-            subtitle={meta.subtitle}
-            onOpenMobileNav={() => setMobileNav(true)}
-          />
-          <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    </NotificationSocketProvider>
+      <TooltipProvider delayDuration={200}>
+        <NotificationSocketProvider>
+          <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
+            <OnboardingTour />
+            <AdminSidebar />
+            <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <AdminHeader
+                title={meta.title}
+                subtitle={meta.subtitle}
+                onOpenMobileNav={() => setMobileNav(true)}
+              />
+              <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8">
+                <Outlet />
+              </main>
+            </div>
+          </div>
+        </NotificationSocketProvider>
+      </TooltipProvider>
     </DashboardThemeProvider>
   );
 }

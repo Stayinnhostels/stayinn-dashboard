@@ -20,6 +20,7 @@ import {
 } from "@/components/admin/booking-refund-dialog";
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
 
@@ -370,11 +371,13 @@ function BookingsListPage() {
                       <Eye className="h-3.5 w-3.5" /> View
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="secondary" title="Edit booking">
-                    <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
+                  <HintTooltip label="Edit booking">
+                    <Button asChild size="sm" variant="secondary" aria-label="Edit booking">
+                      <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </HintTooltip>
                   <Select
                     value={b.status}
                     onValueChange={(v) => onStatusChange(b.id, v as BookingStatus, b.status)}
@@ -454,21 +457,27 @@ function BookingsListPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button asChild size="sm" variant="ghost" title="View booking">
-                          <Link to="/admin/bookings/$id" params={{ id: b.id }}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button asChild size="sm" variant="ghost" title="Edit booking">
-                          <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button asChild size="sm" variant="ghost" title="Invoice / Bill">
-                          <Link to="/admin/bookings/$id" params={{ id: b.id }} hash="booking-invoice">
-                            <FileText className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        <HintTooltip label="View booking">
+                          <Button asChild size="sm" variant="ghost" aria-label="View booking">
+                            <Link to="/admin/bookings/$id" params={{ id: b.id }}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </HintTooltip>
+                        <HintTooltip label="Edit booking">
+                          <Button asChild size="sm" variant="ghost" aria-label="Edit booking">
+                            <Link to="/admin/bookings/$id" params={{ id: b.id }} search={{ edit: true }}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </HintTooltip>
+                        <HintTooltip label="Invoice / Bill">
+                          <Button asChild size="sm" variant="ghost" aria-label="Invoice / Bill">
+                            <Link to="/admin/bookings/$id" params={{ id: b.id }} hash="booking-invoice">
+                              <FileText className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </HintTooltip>
                       </div>
                     </TableCell>
                   </TableRow>

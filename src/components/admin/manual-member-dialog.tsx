@@ -68,6 +68,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [guardianContact, setGuardianContact] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestCnic, setGuestCnic] = useState("");
   const [cnicFront, setCnicFront] = useState("");
@@ -258,6 +259,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
   const resetForm = () => {
     setGuestName("");
     setGuestPhone("");
+    setGuardianContact("");
     setGuestEmail("");
     setGuestCnic("");
     setCnicFront("");
@@ -304,6 +306,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
         room_id: room.id,
         guest_name: guestName.trim(),
         guest_phone: guestPhone.trim(),
+        guest_guardian_contact: guardianContact.trim() || undefined,
         guest_email: guestEmail.trim() || undefined,
         guest_cnic: guestCnic.trim() || undefined,
         guest_cnic_image_front: cnicFront || undefined,
@@ -468,6 +471,16 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div className="grid gap-1.5">
+                  <Label htmlFor="manual-guardian">Guardian number</Label>
+                  <Input
+                    id="manual-guardian"
+                    value={guardianContact}
+                    onChange={(e) => setGuardianContact(e.target.value)}
+                    placeholder="+92 300 1234567"
+                    maxLength={30}
+                  />
+                </div>
+                <div className="grid gap-1.5">
                   <Label htmlFor="manual-email">Email</Label>
                   <Input
                     id="manual-email"
@@ -476,10 +489,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="guest@email.com"
                   />
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    We’ll email them a website link to create a password and track their stay. If the address is
-                    wrong, they won’t receive it.
-                  </p>
+                  
                 </div>
                 <div className="grid gap-1.5 sm:col-span-2">
                   <Label htmlFor="manual-channel">Channel</Label>
@@ -675,6 +685,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                         onChange={(e) => setMonthsToPay(e.target.value)}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Counted from the move-in month. Set move-in to the real check-in date if they already live here.
+                      </p>
                     </div>
                   </>
                 )}

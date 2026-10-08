@@ -22,6 +22,7 @@ import { downloadResidentDossierPdfApi } from "@/api/residents";
 import { useResidentsDirectoryQuery } from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import type {
@@ -175,51 +176,54 @@ function ResidentsDirectoryPage() {
                           {r.serial_no}
                         </TableCell>
                         <TableCell className="max-w-[10rem] font-medium">
-                          <span className="block truncate" title={r.name}>
-                            {r.name}
-                          </span>
+                          <HintTooltip label={r.name} className="w-full">
+                            <span className="block truncate">{r.name}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="max-w-[7rem] whitespace-nowrap text-xs tabular-nums">
-                          <span className="block truncate" title={r.booking_ref}>
-                            {r.booking_ref}
-                          </span>
+                          <HintTooltip label={r.booking_ref} className="w-full">
+                            <span className="block truncate">{r.booking_ref}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="max-w-[11rem] text-xs">
-                          <span className="block truncate" title={r.email || undefined}>
-                            {r.email || "—"}
-                          </span>
+                          <HintTooltip label={r.email || undefined} className="w-full">
+                            <span className="block truncate">{r.email || "—"}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
-                          <span className="block truncate" title={r.contact_number || undefined}>
-                            {r.contact_number || "—"}
-                          </span>
+                          <HintTooltip label={r.contact_number || undefined} className="w-full">
+                            <span className="block truncate">{r.contact_number || "—"}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
-                          <span className="block truncate" title={r.cnic || undefined}>
-                            {r.cnic || "—"}
-                          </span>
+                          <HintTooltip label={r.cnic || undefined} className="w-full">
+                            <span className="block truncate">{r.cnic || "—"}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span
-                            className={cn(
-                              "inline-flex h-8 w-8 items-center justify-center rounded-full border",
-                              r.has_cnic_images
-                                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700"
-                                : "border-border bg-muted/40 text-muted-foreground",
-                            )}
-                            title={
+                          <HintTooltip
+                            label={
                               r.has_cnic_images
                                 ? "ID card on file — included in PDF"
                                 : "No ID card images"
                             }
                           >
-                            <IdCard className="h-4 w-4" />
-                          </span>
+                            <span
+                              className={cn(
+                                "inline-flex h-8 w-8 items-center justify-center rounded-full border",
+                                r.has_cnic_images
+                                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700"
+                                  : "border-border bg-muted/40 text-muted-foreground",
+                              )}
+                            >
+                              <IdCard className="h-4 w-4" />
+                            </span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="max-w-[9rem]">
-                          <span className="block truncate text-sm" title={roomLabel}>
-                            {roomLabel}
-                          </span>
+                          <HintTooltip label={roomLabel} className="w-full">
+                            <span className="block truncate text-sm">{roomLabel}</span>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs tabular-nums">
                           {r.check_in ?? "—"}
@@ -231,13 +235,14 @@ function ResidentsDirectoryPage() {
                           {r.months_living}/{r.months_in_stay}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn("max-w-full truncate text-xs", statusBadgeClass(r.status))}
-                            title={r.status.replace(/_/g, " ")}
-                          >
-                            {r.status.replace(/_/g, " ")}
-                          </Badge>
+                          <HintTooltip label={r.status.replace(/_/g, " ")}>
+                            <Badge
+                              variant="outline"
+                              className={cn("max-w-full truncate text-xs", statusBadgeClass(r.status))}
+                            >
+                              {r.status.replace(/_/g, " ")}
+                            </Badge>
+                          </HintTooltip>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-right text-sm font-semibold tabular-nums">
                           {formatMoney(r.total_rent_collected, r.currency)}

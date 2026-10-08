@@ -66,6 +66,7 @@ import {
 import { roomKeys } from "@/queries/keys/room.keys";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
@@ -140,9 +141,9 @@ function SortableRoomCard({
           showAllProperties={false}
           className="max-w-full"
         />
-        <p className="truncate font-bold tracking-tight" title={formatRoomLabel(room)}>
-          {formatRoomLabel(room)}
-        </p>
+        <HintTooltip label={formatRoomLabel(room)} className="w-full">
+          <p className="truncate font-bold tracking-tight">{formatRoomLabel(room)}</p>
+        </HintTooltip>
         <p className="text-xs text-muted-foreground">
           {room.room_number != null ? `No. ${room.room_number} · ` : ""}
           {room.category} · {room.capacity} guests · Order {room.display_order ?? 100}
@@ -223,9 +224,9 @@ function SortableRoomRow({
         {room.room_number ?? "—"}
       </TableCell>
       <TableCell className="max-w-[220px] font-semibold">
-        <span className="block truncate" title={formatRoomLabel(room)}>
-          {room.title}
-        </span>
+        <HintTooltip label={formatRoomLabel(room)} className="w-full">
+          <span className="block truncate">{room.title}</span>
+        </HintTooltip>
       </TableCell>
       <TableCell>
         <HostelPropertyBadge hostelId={room.hostel_id} hostelName={room.hostel_name} showAllProperties={false} />

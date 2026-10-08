@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -148,13 +149,14 @@ function InlineSecurityStatus({ row, month }: { row: ResidentRegisterRow; month:
       return <span className="text-xs text-muted-foreground">—</span>;
     }
     return (
-      <Badge
-        variant="outline"
-        className={cn("text-xs whitespace-nowrap", securityBadgeClass(row.security_status))}
-        title="Security is a one-time deposit — change it on the check-in month"
-      >
-        {SECURITY_STATUS_LABELS[row.security_status]}
-      </Badge>
+      <HintTooltip label="Security is a one-time deposit. Change it on the check-in month.">
+        <Badge
+          variant="outline"
+          className={cn("text-xs whitespace-nowrap", securityBadgeClass(row.security_status))}
+        >
+          {SECURITY_STATUS_LABELS[row.security_status]}
+        </Badge>
+      </HintTooltip>
     );
   }
 
@@ -669,8 +671,8 @@ function EditResidentDialog({
                 </div>
               </>
             ) : (
-              <div className="sm:col-span-2 text-xs text-muted-foreground">
-                Security amount/status: check-in month only. Returnable amount can be set anytime.
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-relaxed text-foreground sm:col-span-2">
+                Security amount and status can be changed on the check-in month. The returnable amount can be set anytime.
               </div>
             )}
             <div className="space-y-2 sm:col-span-2">
@@ -1018,40 +1020,41 @@ function MonthlyRentPage() {
                         </Link>
                       </TableCell>
                       <TableCell className="max-w-[9rem] font-medium">
-                        <span className="block truncate" title={r.name}>
-                          {r.name}
-                        </span>
+                        <HintTooltip label={r.name} className="w-full">
+                          <span className="block truncate">{r.name}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="max-w-[8rem] text-xs">
-                        <span className="block truncate" title={r.channel || undefined}>
-                          {r.channel || "—"}
-                        </span>
+                        <HintTooltip label={r.channel || undefined} className="w-full">
+                          <span className="block truncate">{r.channel || "—"}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="max-w-[9rem] text-xs">
-                        <span
-                          className="block truncate"
-                          title={affiliationForResident(r)?.value || undefined}
-                        >
-                          {affiliationForResident(r)?.value || "—"}
-                        </span>
+                        <HintTooltip label={affiliationForResident(r)?.value || undefined} className="w-full">
+                          <span className="block truncate">
+                            {affiliationForResident(r)?.value || "—"}
+                          </span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="max-w-[10rem] text-xs">
-                        <span
-                          className="block truncate"
-                          title={
+                        <HintTooltip
+                          label={
                             r.email && !r.email.endsWith("@stayinn.internal") ? r.email : undefined
                           }
+                          className="w-full"
                         >
-                          {r.email && !r.email.endsWith("@stayinn.internal") ? r.email : "—"}
-                        </span>
+                          <span className="block truncate">
+                            {r.email && !r.email.endsWith("@stayinn.internal") ? r.email : "—"}
+                          </span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs tabular-nums">
                         {r.contact_number || "—"}
                       </TableCell>
                       <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
-                        <span className="block truncate" title={r.cnic || undefined}>
-                          {r.cnic || "—"}
-                        </span>
+                        <HintTooltip label={r.cnic || undefined} className="w-full">
+                          <span className="block truncate">{r.cnic || "—"}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="text-center">
                         <CnicImagesStatusIcon
@@ -1062,22 +1065,19 @@ function MonthlyRentPage() {
                         />
                       </TableCell>
                       <TableCell className="max-w-[8rem] whitespace-nowrap text-xs tabular-nums">
-                        <span className="block truncate" title={r.guardian_contact || undefined}>
-                          {r.guardian_contact || "—"}
-                        </span>
+                        <HintTooltip label={r.guardian_contact || undefined} className="w-full">
+                          <span className="block truncate">{r.guardian_contact || "—"}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="max-w-[12rem] text-xs">
-                        <span className="block truncate" title={r.permanent_address || undefined}>
-                          {r.permanent_address || "—"}
-                        </span>
+                        <HintTooltip label={r.permanent_address || undefined} className="w-full">
+                          <span className="block truncate">{r.permanent_address || "—"}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="max-w-[9rem]">
-                        <span
-                          className="block truncate text-xs"
-                          title={r.room_title || r.room_seat}
-                        >
-                          {r.room_title || "Room"}
-                        </span>
+                        <HintTooltip label={r.room_title || r.room_seat} className="w-full">
+                          <span className="block truncate text-xs">{r.room_title || "Room"}</span>
+                        </HintTooltip>
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         {r.seat_label ? `${r.seat_label}` : "—"}
@@ -1111,23 +1111,25 @@ function MonthlyRentPage() {
                       <TableCell className="sticky right-0 z-10 bg-card">
                         <div className="flex items-center justify-end gap-0.5">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                title="Download rent invoice"
-                                disabled={invoiceBookingId === r.booking_id}
-                                onClick={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                              >
-                                {invoiceBookingId === r.booking_id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Receipt className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </DropdownMenuTrigger>
+                            <HintTooltip label="Download rent invoice">
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={invoiceBookingId === r.booking_id}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  aria-label="Download rent invoice"
+                                >
+                                  {invoiceBookingId === r.booking_id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Receipt className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </HintTooltip>
                             <DropdownMenuContent
                               align="end"
                               onClick={(e) => e.stopPropagation()}
@@ -1146,18 +1148,20 @@ function MonthlyRentPage() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            title="Edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditRow(r);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <HintTooltip label="Edit">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Edit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditRow(r);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </HintTooltip>
                         </div>
                       </TableCell>
                     </TableRow>

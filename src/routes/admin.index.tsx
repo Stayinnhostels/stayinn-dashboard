@@ -16,6 +16,7 @@ import { chartTooltipMoney, formatMoney } from "@/lib/payments";
 import type { Room } from "@/types/domain/room.types";
 import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
 import { useHostelScope } from "@/lib/use-hostel-scope";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 
 export const Route = createFileRoute("/admin/")({ component: OverviewPage });
 
@@ -81,9 +82,9 @@ function OverviewPie({
               className="h-2 w-2 shrink-0 rounded-full"
               style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
             />
-            <span className="truncate" title={row.name}>
-              {row.name}
-            </span>
+            <HintTooltip label={row.name} className="min-w-0">
+              <span className="truncate">{row.name}</span>
+            </HintTooltip>
           </li>
         ))}
       </ul>

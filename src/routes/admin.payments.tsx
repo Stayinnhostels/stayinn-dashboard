@@ -15,6 +15,7 @@ import { formatMoney, normalizeMoneyCurrency, paymentStatusLabel } from "@/lib/p
 import { RENT_PAYMENT_STATUS_LABELS } from "@/types/domain/resident.types";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import type { Payment, PaymentStatus } from "@/types/domain/payment.types";
 
 export const Route = createFileRoute("/admin/payments")({ component: PaymentsPage });
@@ -249,9 +250,9 @@ function PaymentRow({
         <div className="text-xs text-muted-foreground">{p.guest_email}</div>
       </TableCell>
       <TableCell className="max-w-[9rem]">
-        <span className="block truncate" title={p.room_title ?? undefined}>
-          {p.room_title ?? "—"}
-        </span>
+        <HintTooltip label={p.room_title ?? undefined} className="w-full">
+          <span className="block truncate">{p.room_title ?? "—"}</span>
+        </HintTooltip>
       </TableCell>
       <TableCell className="text-xs whitespace-nowrap">{p.month_label ?? p.month ?? "—"}</TableCell>
       <TableCell className="font-bold tabular-nums">
@@ -276,11 +277,13 @@ function PaymentRow({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        <Button asChild size="sm" variant="ghost" title="View booking & invoice">
-          <Link to="/admin/bookings/$id" params={{ id: p.booking_id }} hash="booking-invoice">
-            <FileText className="h-4 w-4" />
-          </Link>
-        </Button>
+        <HintTooltip label="View booking & invoice">
+          <Button asChild size="sm" variant="ghost" aria-label="View booking & invoice">
+            <Link to="/admin/bookings/$id" params={{ id: p.booking_id }} hash="booking-invoice">
+              <FileText className="h-4 w-4" />
+            </Link>
+          </Button>
+        </HintTooltip>
       </TableCell>
     </TableRow>
   );

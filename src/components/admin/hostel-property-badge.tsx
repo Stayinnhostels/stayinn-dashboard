@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
@@ -33,16 +34,17 @@ export function HostelPropertyBadge({
   }
 
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "inline-flex max-w-full items-center gap-1 border-sky-500/30 bg-sky-500/10 font-medium text-sky-700 dark:text-sky-300",
-        className,
-      )}
-      title={hostelId ?? undefined}
-    >
-      <Building2 className="h-3 w-3 shrink-0" />
-      <span className="truncate">{hostelName ?? "Property"}</span>
-    </Badge>
+    <HintTooltip label={hostelName ?? hostelId ?? undefined}>
+      <Badge
+        variant="outline"
+        className={cn(
+          "inline-flex max-w-full items-center gap-1 border-sky-500/30 bg-sky-500/10 font-medium text-sky-700 dark:text-sky-300",
+          className,
+        )}
+      >
+        <Building2 className="h-3 w-3 shrink-0" />
+        <span className="truncate">{hostelName ?? "Property"}</span>
+      </Badge>
+    </HintTooltip>
   );
 }

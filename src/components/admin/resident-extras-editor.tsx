@@ -23,6 +23,7 @@ import { useUpdateResidentMutation } from "@/queries/residents";
 import { usePropertySettingsQuery } from "@/queries/settings/usePropertySettingsQuery";
 import { useUpdatePropertySettingsMutation } from "@/queries/settings/useUpdatePropertySettingsMutation";
 import { formatMoney } from "@/lib/payments";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 import type {
   ExtraBillingCycle,
@@ -224,17 +225,19 @@ export function ResidentExtrasEditor({
               ) : (
                 <span className="text-[11px] text-muted-foreground">Not billed this month</span>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                disabled={busy}
-                title="Remove facility"
-                onClick={() => removeExtra(extra)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <HintTooltip label="Remove facility">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  disabled={busy}
+                  aria-label="Remove facility"
+                  onClick={() => removeExtra(extra)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </HintTooltip>
             </div>
           ))}
         </div>
@@ -341,17 +344,19 @@ export function ResidentExtrasEditor({
                     className="flex items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5 text-sm"
                   >
                     <span>{name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      disabled={busy}
-                      title={`Remove ${name}`}
-                      onClick={() => removePreset(name)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <HintTooltip label={`Remove ${name}`}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        disabled={busy}
+                        aria-label={`Remove ${name}`}
+                        onClick={() => removePreset(name)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </HintTooltip>
                   </li>
                 ))}
               </ul>

@@ -145,7 +145,6 @@ function NavLink({
     <Link
       to={item.to as "/admin"}
       onClick={onNavigate}
-      title={compact ? item.label : undefined}
       className={cn(
         "group flex items-center rounded-xl text-sm font-medium transition-all",
         compact ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
@@ -337,7 +336,6 @@ function SidebarBody({
                 <Link
                   to="/dashboard"
                   onClick={onNavigate}
-                  title="Account dashboard"
                   className="flex items-center justify-center rounded-xl px-0 py-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -354,7 +352,6 @@ function SidebarBody({
                     href={frontendBase}
                     onClick={onNavigate}
                     rel="noopener noreferrer"
-                    title="Public website"
                     className="flex items-center justify-center rounded-xl px-0 py-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
                     <Globe className="h-4 w-4" />

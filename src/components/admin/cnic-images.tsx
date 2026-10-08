@@ -19,6 +19,7 @@ import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
 import { ocrCnicApi, type CnicOcrFields } from "@/api/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { useUpdateResidentMutation } from "@/queries/residents";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 
 type CnicImages = {
@@ -174,34 +175,37 @@ function CnicPdfUploadControl({
         </Button>
       ) : null}
       {!disabled || !hasPdf ? (
-      <label
-        className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm transition-opacity",
-          hasPdf
-            ? "border border-input bg-background text-foreground hover:bg-muted/60"
-            : "bg-primary text-primary-foreground hover:opacity-90",
-          busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
-        )}
-        title={
+      <HintTooltip
+        label={
           hasPdf
             ? "Replace the full CNIC PDF (page 1 → front, page 2 → back)"
             : "Front and back of the CNIC (1 or 2 pages)"
         }
       >
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-        {label}
-        <input
-          type="file"
-          accept="application/pdf,.pdf"
-          className="hidden"
-          disabled={busy || disabled}
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            e.target.value = "";
-            if (file) onPick(file);
-          }}
-        />
-      </label>
+        <label
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm transition-opacity",
+            hasPdf
+              ? "border border-input bg-background text-foreground hover:bg-muted/60"
+              : "bg-primary text-primary-foreground hover:opacity-90",
+            busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+          )}
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+          {label}
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            disabled={busy || disabled}
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null;
+              e.target.value = "";
+              if (file) onPick(file);
+            }}
+          />
+        </label>
+      </HintTooltip>
       ) : null}
     </div>
   );
@@ -776,36 +780,37 @@ type StatusIconProps = {
 export function CnicImagesStatusIcon({ front, back, bForm = "", onClick }: StatusIconProps) {
   const count = cnicUploadCount({ front, back });
   const { complete, partial } = idDocStatus({ front, back, bForm });
+  const tip =
+    bForm && !(front && back)
+      ? "B-Form uploaded — view"
+      : complete
+        ? "Front & back uploaded — view"
+        : partial
+          ? `${count}/2 uploaded — view`
+          : "No ID on file — click to upload";
 
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title={
-        bForm && !(front && back)
-          ? "B-Form uploaded — view"
-          : complete
-            ? "Front & back uploaded — view"
+    <HintTooltip label={tip}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className={cn(
+          "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
+          complete
+            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25"
             : partial
-              ? `${count}/2 uploaded — view`
-              : "No ID on file — click to upload"
-      }
-      className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-        complete
-          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25"
-          : partial
-            ? "border-amber-500/40 bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-            : "border-border bg-muted/40 text-muted-foreground hover:bg-muted",
-      )}
-    >
-      <IdCard className="h-4 w-4" />
-      <span className="sr-only">
-        {complete ? "ID complete" : partial ? "ID partial" : "ID missing"}
-      </span>
-    </button>
+              ? "border-amber-500/40 bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+              : "border-border bg-muted/40 text-muted-foreground hover:bg-muted",
+        )}
+      >
+        <IdCard className="h-4 w-4" />
+        <span className="sr-only">
+          {complete ? "ID complete" : partial ? "ID partial" : "ID missing"}
+        </span>
+      </button>
+    </HintTooltip>
   );
 }
