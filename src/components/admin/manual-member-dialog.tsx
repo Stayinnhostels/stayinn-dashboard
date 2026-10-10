@@ -400,8 +400,9 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                 onExtracted={(fields: CnicOcrFields) => {
                   if (fields.cnic) setGuestCnic(fields.cnic);
                   if (fields.name) setGuestName(fields.name);
-                  if (fields.father_name) setFatherName(fields.father_name);
-                  if (fields.address) setAddress(fields.address);
+                  // Clear prior junk when OCR omits a field.
+                  setFatherName(fields.father_name || "");
+                  setAddress(fields.address || "");
                   if (fields.gender) setGender(fields.gender);
                 }}
               />
@@ -422,7 +423,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     id="manual-cnic"
                     value={guestCnic}
                     onChange={(e) => setGuestCnic(e.target.value)}
-                    placeholder="Filled from ID card"
+                    placeholder="e.g. 35202-1234567-1"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -431,7 +432,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     id="manual-father"
                     value={fatherName}
                     onChange={(e) => setFatherName(e.target.value)}
-                    placeholder="Filled from ID card"
+                    placeholder="Father / husband name"
                   />
                 </div>
                 <div className="grid gap-1.5">
@@ -457,7 +458,7 @@ export function ManualMemberDialog({ room, open, onOpenChange }: Props) {
                     rows={2}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Filled from ID card back"
+                    placeholder="Type address if not read from CNIC back"
                   />
                 </div>
                 <div className="grid gap-1.5">

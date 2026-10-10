@@ -409,8 +409,8 @@ function EditResidentDialog({
   function applyCnicOcr(fields: CnicOcrFields) {
     if (fields.cnic) setCnic(fields.cnic);
     if (fields.name) setGuestName(fields.name);
-    if (fields.father_name) setFatherName(fields.father_name);
-    if (fields.address) setAddress(fields.address);
+    setFatherName(fields.father_name || "");
+    setAddress(fields.address || "");
     if (fields.gender) setGender(fields.gender);
   }
 

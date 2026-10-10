@@ -14,7 +14,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { CnicCropDialog } from "@/components/admin/cnic-crop-dialog";
 import { ZoomableImageLightbox } from "@/components/admin/zoomable-image-lightbox";
-import { FULL_PAGE_ASPECT_RATIO, prepareCnicImageForOcr, readImageFileAsDataUrl } from "@/lib/crop-cnic-image";
+import {
+  CNIC_ASPECT_RATIO,
+  FULL_PAGE_ASPECT_RATIO,
+  prepareCnicImageForOcr,
+  readImageFileAsDataUrl,
+} from "@/lib/crop-cnic-image";
 import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
 import { ocrCnicApi, type CnicOcrFields } from "@/api/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -60,25 +65,42 @@ function CnicUploadSlot({
   onUploading,
   onPickForCrop,
 }: UploadSlotProps) {
+  const isBForm = label === "B-Form";
+  const frameStyle = { aspectRatio: isBForm ? "3 / 4" : String(CNIC_ASPECT_RATIO) };
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       {value ? (
-        <div className="relative overflow-hidden rounded-xl border">
-          <img src={value} alt={label} className="h-36 w-full object-cover" />
+        <div
+          className="relative w-full overflow-hidden rounded-xl border bg-muted/20"
+          style={frameStyle}
+        >
+          <img src={value} alt={label} className="absolute inset-0 h-full w-full object-contain" />
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 shadow hover:bg-background"
+            className="absolute right-2 top-2 z-10 rounded-full bg-background/90 p-1.5 shadow hover:bg-background"
             aria-label={`Remove ${label}`}
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       ) : (
-        <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted/40">
+        <label
+          style={frameStyle}
+          className={cn(
+            "flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-sm",
+            uploading
+              ? "border-primary/30 bg-primary/5 text-primary"
+              : "text-muted-foreground hover:bg-muted/40",
+          )}
+        >
           {uploading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="font-medium">Uploading {label.toLowerCase()}…</span>
+            </>
           ) : (
             <>
               <ImagePlus className="h-5 w-5" />
@@ -144,6 +166,7 @@ function downloadDataUrl(dataUrl: string, filename: string) {
 
 function CnicPdfUploadControl({
   busy,
+  busyLabel,
   disabled,
   hasPdf,
   pdfDataUrl,
@@ -151,48 +174,54 @@ function CnicPdfUploadControl({
   onPick,
 }: {
   busy: boolean;
+  busyLabel?: string;
   disabled?: boolean;
   hasPdf?: boolean;
   pdfDataUrl?: string;
   downloadName?: string;
   onPick: (file: File) => void;
 }) {
-  const label = hasPdf ? "Replace PDF" : "Upload PDF";
+  const idleLabel = hasPdf ? "Replace PDF" : "Upload PDF";
+  const label = busy ? busyLabel || "Working…" : idleLabel;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {hasPdf && pdfDataUrl ? (
+      {hasPdf && pdfDataUrl && !busy ? (
         <Button
           type="button"
           variant="outline"
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          disabled={busy}
           onClick={() => downloadDataUrl(pdfDataUrl, downloadName)}
         >
           <Download className="h-3.5 w-3.5" />
           Download PDF
         </Button>
       ) : null}
-      {!disabled || !hasPdf ? (
+      {!disabled || !hasPdf || busy ? (
       <HintTooltip
         label={
-          hasPdf
-            ? "Replace the full CNIC PDF (page 1 → front, page 2 → back)"
-            : "Front and back of the CNIC (1 or 2 pages)"
+          busy
+            ? label
+            : hasPdf
+              ? "Replace the full CNIC PDF (page 1 → front, page 2 → back)"
+              : "Front and back of the CNIC (1 or 2 pages)"
         }
       >
         <label
           className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm transition-opacity",
-            hasPdf
-              ? "border border-input bg-background text-foreground hover:bg-muted/60"
-              : "bg-primary text-primary-foreground hover:opacity-90",
-            busy || disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
+            "inline-flex h-8 min-w-[8.5rem] items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm transition-colors",
+            busy
+              ? "border border-input bg-muted/50 text-muted-foreground"
+              : hasPdf
+                ? "border border-input bg-background text-foreground hover:bg-muted/60"
+                : "bg-primary text-primary-foreground hover:opacity-90",
+            busy || disabled ? "pointer-events-none" : "cursor-pointer",
+            disabled && !busy ? "opacity-60" : undefined,
           )}
         >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-          {label}
+          {busy ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> : <FileText className="h-3.5 w-3.5 shrink-0" />}
+          <span className="whitespace-nowrap">{label}</span>
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -207,6 +236,36 @@ function CnicPdfUploadControl({
         </label>
       </HintTooltip>
       ) : null}
+    </div>
+  );
+}
+
+function CnicScanStatusBanner({
+  phase,
+}: {
+  phase: "processing_pdf" | "reading_card" | null;
+}) {
+  if (!phase) return null;
+  const title = phase === "processing_pdf" ? "Processing PDF" : "Reading ID card";
+  const detail =
+    phase === "processing_pdf"
+      ? "Extracting front and back pages…"
+      : "Filling name, CNIC number, and address…";
+
+  return (
+    <div role="status" aria-live="polite" className="overflow-hidden rounded-lg border bg-background">
+      <div className="relative h-1 w-full overflow-hidden bg-muted">
+        <div className="absolute inset-y-0 w-2/5 animate-[cnicSlide_1.2s_ease-in-out_infinite] bg-primary" />
+      </div>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{title}</span>
+          <span className="mx-1.5 text-border">·</span>
+          {detail}
+        </p>
+      </div>
+      <style>{`@keyframes cnicSlide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}`}</style>
     </div>
   );
 }
@@ -306,32 +365,34 @@ export function CnicImagesEditor({
     }
   }
 
+  const scanPhase = uploadingPdf
+    ? ("processing_pdf" as const)
+    : readingCard
+      ? ("reading_card" as const)
+      : null;
+
   return (
     <div className="space-y-3 sm:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <Label>CNIC images</Label>
           <p className="text-[11px] text-muted-foreground">
-            {readingCard
-              ? "Reading name, father name, CNIC number, and address…"
-              : "Upload front (and back for address) — details fill in automatically."}
+            Upload front (and back for address) — details fill in automatically.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {readingCard ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
-          <CnicPdfUploadControl
-            busy={uploadingPdf || readingCard}
-            hasPdf={Boolean(localPdf)}
-            pdfDataUrl={localPdf || undefined}
-            onPick={(file) => void handlePdfPick(file)}
-          />
-        </div>
+        <CnicPdfUploadControl
+          busy={Boolean(scanPhase)}
+          busyLabel={scanPhase === "processing_pdf" ? "Processing…" : "Reading…"}
+          hasPdf={Boolean(localPdf)}
+          pdfDataUrl={localPdf || undefined}
+          onPick={(file) => void handlePdfPick(file)}
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CnicUploadSlot
           label="Front"
           value={front}
-          uploading={uploadingFront || uploadingPdf}
+          uploading={uploadingFront || (uploadingPdf && !front)}
           onChange={onFrontChange}
           onUploading={setUploadingFront}
           onPickForCrop={(src) => openCrop("Front", src)}
@@ -339,12 +400,13 @@ export function CnicImagesEditor({
         <CnicUploadSlot
           label="Back"
           value={back}
-          uploading={uploadingBack || uploadingPdf}
+          uploading={uploadingBack || (uploadingPdf && !back)}
           onChange={onBackChange}
           onUploading={setUploadingBack}
           onPickForCrop={(src) => openCrop("Back", src)}
         />
       </div>
+      <CnicScanStatusBanner phase={scanPhase} />
 
       <div className="flex items-center gap-2 pt-1">
         <span className="h-px flex-1 bg-border" />
@@ -403,6 +465,8 @@ type ViewerSlotProps = {
 
 function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const isBForm = label === "B-Form";
+  const frameStyle = { aspectRatio: isBForm ? "3 / 4" : String(CNIC_ASPECT_RATIO) };
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -414,22 +478,22 @@ function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProp
     <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       {value ? (
-        <div className="relative overflow-hidden rounded-xl border">
+        <div className="relative overflow-hidden rounded-xl border bg-muted/20" style={frameStyle}>
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
-            className="block w-full cursor-zoom-in text-left"
+            className="absolute inset-0 block w-full cursor-zoom-in text-left"
             aria-label={`View ${label} full size`}
           >
             <img
               src={value}
               alt={`CNIC ${label.toLowerCase()}`}
-              className="h-56 w-full object-contain bg-muted/30"
+              className="h-full w-full object-contain"
             />
           </button>
           <label
             className={cn(
-              "absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1.5 text-xs font-medium shadow hover:bg-background",
+              "absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1.5 text-xs font-medium shadow hover:bg-background",
               disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
             )}
           >
@@ -457,8 +521,9 @@ function CnicViewerSlot({ label, value, busy, disabled, onPick }: ViewerSlotProp
         </div>
       ) : (
         <label
+          style={frameStyle}
           className={cn(
-            "flex h-56 w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted/40",
+            "flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted/40",
             disabled ? "pointer-events-none opacity-60" : "cursor-pointer",
           )}
         >
@@ -686,6 +751,7 @@ export function CnicImagesViewerModal({
             <div className="flex flex-wrap items-center justify-end">
               <CnicPdfUploadControl
                 busy={uploadingPdf || (update.isPending && !cropSide)}
+                busyLabel={uploadingPdf ? "Processing…" : "Saving…"}
                 disabled={!canUpload || anyPicking || update.isPending}
                 hasPdf={hasPdf}
                 pdfDataUrl={localPdf || undefined}
@@ -719,6 +785,7 @@ export function CnicImagesViewerModal({
               </>
             )}
           </div>
+          <CnicScanStatusBanner phase={uploadingPdf ? "processing_pdf" : null} />
 
           <div className="flex items-center gap-2 pt-1">
             <span className="h-px flex-1 bg-border" />

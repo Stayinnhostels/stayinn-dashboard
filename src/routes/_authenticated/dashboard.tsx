@@ -21,7 +21,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     ],
   }),
 });
-
 function DashboardPage() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -144,3 +143,4 @@ function DashboardPage() {
     </div>
   );
 }
+
