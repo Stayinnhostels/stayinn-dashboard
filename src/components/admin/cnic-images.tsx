@@ -23,7 +23,7 @@ import {
 import { extractCnicPagesFromPdf } from "@/lib/extract-cnic-from-pdf";
 import { ocrCnicApi, type CnicOcrFields } from "@/api/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
-import { useUpdateResidentMutation } from "@/queries/residents";
+import { useResidentDetailQuery, useUpdateResidentMutation } from "@/queries/residents";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { cn } from "@/lib/utils";
 
@@ -616,11 +616,19 @@ export function CnicImagesViewerModal({
 }: ViewerProps) {
   const update = useUpdateResidentMutation();
   const canUpload = Boolean(bookingId && month);
+  const needsFetch = Boolean(open && bookingId && !(front || back || bForm || pdf));
+  const detailQuery = useResidentDetailQuery(needsFetch ? bookingId! : null, month);
+  const detailResident = detailQuery.data?.resident;
 
-  const [localFront, setLocalFront] = useState(front);
-  const [localBack, setLocalBack] = useState(back);
-  const [localBForm, setLocalBForm] = useState(bForm);
-  const [localPdf, setLocalPdf] = useState(pdf);
+  const resolvedFront = front || detailResident?.cnic_image_front || "";
+  const resolvedBack = back || detailResident?.cnic_image_back || "";
+  const resolvedBForm = bForm || detailResident?.b_form_image || "";
+  const resolvedPdf = pdf || detailResident?.cnic_pdf || "";
+
+  const [localFront, setLocalFront] = useState(resolvedFront);
+  const [localBack, setLocalBack] = useState(resolvedBack);
+  const [localBForm, setLocalBForm] = useState(resolvedBForm);
+  const [localPdf, setLocalPdf] = useState(resolvedPdf);
   const [pickingFront, setPickingFront] = useState(false);
   const [pickingBack, setPickingBack] = useState(false);
   const [pickingBForm, setPickingBForm] = useState(false);
@@ -632,12 +640,12 @@ export function CnicImagesViewerModal({
 
   useEffect(() => {
     if (open) {
-      setLocalFront(front);
-      setLocalBack(back);
-      setLocalBForm(bForm);
-      setLocalPdf(pdf);
+      setLocalFront(resolvedFront);
+      setLocalBack(resolvedBack);
+      setLocalBForm(resolvedBForm);
+      setLocalPdf(resolvedPdf);
     }
-  }, [open, front, back, bForm, pdf]);
+  }, [open, resolvedFront, resolvedBack, resolvedBForm, resolvedPdf]);
 
   async function handlePick(side: CropSide, file: File) {
     const setPicking =
@@ -747,6 +755,11 @@ export function CnicImagesViewerModal({
           <DialogHeader>
             <DialogTitle>{name ? `CNIC — ${name}` : "CNIC images"}</DialogTitle>
           </DialogHeader>
+          {needsFetch && detailQuery.isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading ID images…
+            </div>
+          ) : null}
           {(canUpload || hasPdf) ? (
             <div className="flex flex-wrap items-center justify-end">
               <CnicPdfUploadControl
@@ -838,20 +851,39 @@ export function CnicImagesViewerModal({
 }
 
 type StatusIconProps = {
-  front: string;
-  back: string;
+  front?: string;
+  back?: string;
   bForm?: string;
+  /** When list payloads omit base64 images, use these flags for icon state. */
+  hasImages?: boolean;
+  hasBForm?: boolean;
   onClick: () => void;
 };
 
-export function CnicImagesStatusIcon({ front, back, bForm = "", onClick }: StatusIconProps) {
+export function CnicImagesStatusIcon({
+  front = "",
+  back = "",
+  bForm = "",
+  hasImages,
+  hasBForm,
+  onClick,
+}: StatusIconProps) {
   const count = cnicUploadCount({ front, back });
-  const { complete, partial } = idDocStatus({ front, back, bForm });
+  const fromPayload = idDocStatus({ front, back, bForm });
+  const hasAnyPayload = Boolean(front || back || bForm);
+  const complete = hasAnyPayload
+    ? fromPayload.complete
+    : Boolean(hasImages || hasBForm);
+  const partial = hasAnyPayload
+    ? fromPayload.partial
+    : false;
   const tip =
-    bForm && !(front && back)
+    (bForm || hasBForm) && !(front && back) && !hasImages
       ? "B-Form uploaded — view"
       : complete
-        ? "Front & back uploaded — view"
+        ? hasAnyPayload && front && back
+          ? "Front & back uploaded — view"
+          : "ID on file — view"
         : partial
           ? `${count}/2 uploaded — view`
           : "No ID on file — click to upload";

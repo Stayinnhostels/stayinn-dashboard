@@ -16,12 +16,17 @@ export type ResidentRegisterRow = {
   gender: ResidentGender;
   email: string;
   cnic: string;
+  /** Present on detail/edit payloads only — omitted from list APIs for performance. */
   cnic_image_front: string;
   cnic_image_back: string;
   /** Original CNIC PDF data URL when staff uploaded a PDF. */
   cnic_pdf?: string;
   /** Child registration document — single-image alternative ID used when no CNIC is on file. */
   b_form_image: string;
+  /** List-safe presence flags (images themselves are not sent in register/directory lists). */
+  has_cnic_images?: boolean;
+  has_cnic_pdf?: boolean;
+  has_b_form_image?: boolean;
   contact_number: string;
   guardian_contact: string;
   permanent_address: string;
@@ -142,7 +147,6 @@ export type ResidentDirectoryRow = ResidentRegisterRow & {
   months_remaining: number;
   total_rent_due: number;
   total_rent_collected: number;
-  has_cnic_images: boolean;
 };
 
 export type ResidentDirectoryParams = {

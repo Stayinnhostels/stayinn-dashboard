@@ -65,7 +65,11 @@ import {
   downloadResidentMonthInvoiceApi,
   type CnicOcrFields,
 } from "@/api/residents";
-import { useResidentsRegisterQuery, useUpdateResidentMutation } from "@/queries/residents";
+import {
+  useResidentDetailQuery,
+  useResidentsRegisterQuery,
+  useUpdateResidentMutation,
+} from "@/queries/residents";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { formatMoney } from "@/lib/payments";
@@ -351,6 +355,8 @@ function EditResidentDialog({
   onInvoiceMonths?: () => void;
 }) {
   const update = useUpdateResidentMutation();
+  const detailQuery = useResidentDetailQuery(open && row ? row.booking_id : null, month);
+  const detailResident = detailQuery.data?.resident;
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [guestName, setGuestName] = useState("");
@@ -385,9 +391,9 @@ function EditResidentDialog({
     setFatherName(row.father_name);
     setGender(row.gender || "male");
     setCnic(row.cnic);
-    setCnicFront(row.cnic_image_front ?? "");
-    setCnicBack(row.cnic_image_back ?? "");
-    setBFormImage(row.b_form_image ?? "");
+    setCnicFront(row.cnic_image_front || detailResident?.cnic_image_front || "");
+    setCnicBack(row.cnic_image_back || detailResident?.cnic_image_back || "");
+    setBFormImage(row.b_form_image || detailResident?.b_form_image || "");
     setGuardian(row.guardian_contact);
     setAddress(row.permanent_address);
     setSeatLabel(row.seat_label);
@@ -404,7 +410,7 @@ function EditResidentDialog({
     setMonthlyRent(String(row.monthly_rent));
     setPaymentStatus(row.payment_status);
     setApplyRentForward(false);
-  }, [row, open]);
+  }, [row, open, detailResident]);
 
   function applyCnicOcr(fields: CnicOcrFields) {
     if (fields.cnic) setCnic(fields.cnic);
@@ -1061,6 +1067,8 @@ function MonthlyRentPage() {
                           front={r.cnic_image_front ?? ""}
                           back={r.cnic_image_back ?? ""}
                           bForm={r.b_form_image ?? ""}
+                          hasImages={r.has_cnic_images}
+                          hasBForm={r.has_b_form_image}
                           onClick={() => setCnicViewer(r)}
                         />
                       </TableCell>

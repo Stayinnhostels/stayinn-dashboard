@@ -81,6 +81,9 @@ export type Room = {
   beds_available: number;
   amenities: string[];
   images: string[];
+  /** List APIs omit image blobs; use these to know photos exist. */
+  image_count?: number;
+  has_images?: boolean;
   badge: string | null;
   display_order: number;
   created_at: string | null;

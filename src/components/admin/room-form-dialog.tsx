@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { getRoomApi } from "@/api/rooms";
 import { compressImageFile } from "@/lib/compress-image";
 import { RoomThumbnail } from "@/components/admin/room-thumbnail";
 import { ROOM_AMENITY_OPTIONS, ROOM_CATEGORIES, type Room, type RoomDraft } from "@/types/domain/room.types";
@@ -85,6 +86,7 @@ export function RoomFormDialog({
   const [bedsAvailableText, setBedsAvailableText] = useState("2");
   const [displayOrderText, setDisplayOrderText] = useState("100");
   const [roomNumberText, setRoomNumberText] = useState("101");
+  const [loadingImages, setLoadingImages] = useState(false);
   const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
@@ -100,6 +102,37 @@ export function RoomFormDialog({
     setRoomNumberText(
       next.room_number != null ? String(next.room_number) : String(suggestedRoomNumber),
     );
+
+    const roomId = initial?.id;
+    const needsImages =
+      Boolean(roomId) &&
+      !(initial?.images?.length) &&
+      Boolean(initial?.has_images || (initial?.image_count ?? 0) > 0);
+
+    if (!needsImages || !roomId) {
+      setLoadingImages(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingImages(true);
+    void getRoomApi(roomId)
+      .then((full) => {
+        if (cancelled) return;
+        setDraft((d) => ({ ...d, images: full.images ?? [] }));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : "Could not load room photos");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingImages(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, initial, suggestedRoomNumber]);
 
   const amenityOptions = useMemo(() => {
@@ -365,6 +398,11 @@ export function RoomFormDialog({
 
           <div className="grid gap-2">
             <Label>Images</Label>
+            {loadingImages ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading photos…
+              </div>
+            ) : null}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {draft.images.map((src, i) => (
                 <div key={src + i} className="relative aspect-square overflow-hidden rounded-lg border">
