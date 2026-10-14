@@ -31,6 +31,8 @@ export type ExpenseDraft = {
   expense_date: string;
   vendor: string;
   notes: string;
+  /** Property this expense belongs to (required for multi-hostel lists). */
+  hostel?: string;
 };
 
 export type ProfitLossMonthDetail = {

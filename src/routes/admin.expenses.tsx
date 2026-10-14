@@ -21,6 +21,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -180,7 +190,7 @@ function ExpenseTable({
 }: {
   expenses: Expense[];
   onEdit: (exp: Expense) => void;
-  onDelete: (id: string) => void;
+  onDelete: (exp: Expense) => void;
   deleting: boolean;
 }) {
   if (expenses.length === 0) {
@@ -232,7 +242,7 @@ function ExpenseTable({
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => onDelete(exp.id)}
+                  onClick={() => onDelete(exp)}
                   disabled={deleting}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -262,7 +272,7 @@ function MonthExpenseBlock({
   highlight?: boolean;
   highlightLabel?: string;
   onEdit: (exp: Expense) => void;
-  onDelete: (id: string) => void;
+  onDelete: (exp: Expense) => void;
   onDownloadPdf: (month: string) => void;
   onDownloadExcel: (month: string) => void;
   downloadingPdf: boolean;
@@ -333,6 +343,7 @@ function MonthlyExpensesPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [draft, setDraft] = useState<ExpenseDraft>(blank);
   const [downloadingPdfMonth, setDownloadingPdfMonth] = useState<string | null>(null);
   const [downloadingExcelMonth, setDownloadingExcelMonth] = useState<string | null>(null);
@@ -399,12 +410,18 @@ function MonthlyExpensesPage() {
       return;
     }
 
+    if (!hostelId) {
+      toast.error("Select a property before adding an expense");
+      return;
+    }
+
     const payload: ExpenseDraft = {
       ...draft,
       title: draft.title.trim(),
       amount: Math.round(Number(draft.amount) * 100) / 100,
       vendor: draft.vendor.trim(),
       notes: draft.notes.trim(),
+      hostel: hostelId,
     };
 
     if (editing) {
@@ -433,10 +450,13 @@ function MonthlyExpensesPage() {
     });
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm("Delete this expense?")) return;
-    removeExpense.mutate(id, {
-      onSuccess: () => toast.success("Expense deleted"),
+  function confirmDeleteExpense() {
+    if (!deleteTarget) return;
+    removeExpense.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        toast.success("Expense deleted");
+        setDeleteTarget(null);
+      },
       onError: (err) => toast.error(err instanceof Error ? err.message : "Delete failed"),
     });
   }
@@ -607,7 +627,7 @@ function MonthlyExpensesPage() {
               highlight
               highlightLabel={focusBadgeLabel}
               onEdit={openEdit}
-              onDelete={handleDelete}
+              onDelete={setDeleteTarget}
               onDownloadPdf={(m) => void handleDownloadMonthPdf(m)}
               onDownloadExcel={(m) => void handleDownloadMonthExcel(m)}
               downloadingPdf={downloadingPdfMonth === current.month}
@@ -626,7 +646,7 @@ function MonthlyExpensesPage() {
                   key={block.month}
                   block={block}
                   onEdit={openEdit}
-                  onDelete={handleDelete}
+                  onDelete={setDeleteTarget}
                   onDownloadPdf={(m) => void handleDownloadMonthPdf(m)}
                   onDownloadExcel={(m) => void handleDownloadMonthExcel(m)}
                   downloadingPdf={downloadingPdfMonth === block.month}
@@ -773,6 +793,33 @@ function MonthlyExpensesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete “{deleteTarget?.title}”? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeExpense.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeExpense.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteExpense();
+              }}
+            >
+              {removeExpense.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
