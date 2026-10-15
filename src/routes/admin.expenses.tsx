@@ -337,7 +337,7 @@ function MonthExpenseBlock({
 }
 
 function MonthlyExpensesPage() {
-  const { hostelId } = useHostelScope();
+  const { hostelId, hostels } = useHostelScope();
   const token = useAuthStore((s) => s.token);
   const { month, setMonth, monthLabel } = useSyncedMonthFilter();
   const [historyPage, setHistoryPage] = useState(1);
@@ -348,13 +348,18 @@ function MonthlyExpensesPage() {
   const [downloadingPdfMonth, setDownloadingPdfMonth] = useState<string | null>(null);
   const [downloadingExcelMonth, setDownloadingExcelMonth] = useState<string | null>(null);
 
+  // Live still has APIs that save expenses with hostel=null. Strict hostel filtering
+  // hides those rows. With a single property there is nothing to scope — omit the
+  // filter so newly added expenses appear immediately. Multi-property installs still filter.
+  const scopeHostelInQuery = Boolean(hostelId) && hostels.length > 1;
+
   const { data, isLoading, isError, isFetching } = useProfitLossQuery(
     {
       month,
       months: 12,
       history_page: historyPage,
       history_limit: HISTORY_LIMIT,
-      ...(hostelId ? { hostel: hostelId } : {}),
+      ...(scopeHostelInQuery ? { hostel: hostelId! } : {}),
     },
     { enabled: Boolean(hostelId) },
   );
