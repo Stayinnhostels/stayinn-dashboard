@@ -133,12 +133,13 @@ function OverviewPage() {
     isError: overviewError,
     error: overviewErr,
   } = useBookingOverviewStatsQuery(30, 8, 6, hostelId);
+  // Lean list slices only — overview charts come from /stats/overview (not full ledgers).
   const { data: roomsApi, isLoading: roomsLoading } = useRoomsQuery(
-    { limit: 100, ...(hostelId ? { hostel: hostelId } : {}) },
+    { limit: 50, ...(hostelId ? { hostel: hostelId } : {}) },
     { enabled: Boolean(hostelId) },
   );
   const { data: bookingsApi, isLoading: bookingsLoading } = useBookingsQuery(
-    { limit: 100, ...(hostelId ? { hostel: hostelId } : {}) },
+    { limit: 50, ...(hostelId ? { hostel: hostelId } : {}) },
     { enabled: Boolean(hostelId) },
   );
 

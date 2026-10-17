@@ -71,7 +71,7 @@ import { HintTooltip } from "@/components/ui/hint-tooltip";
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
 /** Admin grid does not need every historic draft at once — keep payload small. */
-const ROOMS_FETCH_LIMIT = 100;
+const ROOMS_FETCH_LIMIT = 50;
 
 const statusVariants = roomStatusStyles;
 

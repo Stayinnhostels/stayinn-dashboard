@@ -36,7 +36,7 @@ function PaymentsPage() {
 
   const { data, isLoading, isError } = usePaymentsQuery({
     page,
-    limit: 50,
+    limit: 25,
     status: paymentStatus,
     search: debouncedQuery || undefined,
     month,

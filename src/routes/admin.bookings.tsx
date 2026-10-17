@@ -27,7 +27,7 @@ import type { Booking, BookingStatus } from "@/types/domain/booking.types";
 
 export const Route = createFileRoute("/admin/bookings")({ component: BookingsAdminPage });
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 const STATUSES: BookingStatus[] = ["pending", "confirmed", "checked_in", "checked_out", "cancelled"];
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
