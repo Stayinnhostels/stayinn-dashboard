@@ -70,7 +70,8 @@ import { HintTooltip } from "@/components/ui/hint-tooltip";
 
 export const Route = createFileRoute("/admin/rooms")({ component: RoomsAdminPage });
 
-const ROOMS_FETCH_LIMIT = 500;
+/** Admin grid does not need every historic draft at once — keep payload small. */
+const ROOMS_FETCH_LIMIT = 100;
 
 const statusVariants = roomStatusStyles;
 
@@ -289,19 +290,22 @@ function RoomsListPage() {
   useEffect(() => {
     setLocalRooms(null);
     setSelected(new Set());
-  }, [statusFilter, debouncedQuery]);
+  }, [statusFilter, debouncedQuery, hostelId]);
 
   const listParams = useMemo(
     () => ({
       page: 1,
       limit: ROOMS_FETCH_LIMIT,
+      ...(hostelId ? { hostel: hostelId } : {}),
       ...(statusFilter !== "all" ? { status: statusFilter as RoomStatus } : {}),
       ...(debouncedQuery ? { search: debouncedQuery } : {}),
     }),
-    [statusFilter, debouncedQuery],
+    [hostelId, statusFilter, debouncedQuery],
   );
 
-  const { data, isLoading, isError, error } = useRoomsQuery(listParams);
+  const { data, isLoading, isError, error } = useRoomsQuery(listParams, {
+    enabled: Boolean(hostelId),
+  });
   const serverRooms = data?.rooms ?? [];
   const rooms = localRooms ?? serverRooms;
 

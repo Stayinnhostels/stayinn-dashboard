@@ -21,6 +21,7 @@ import {
 import { useBookingsQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
+import { useHostelScope } from "@/lib/use-hostel-scope";
 import { cn } from "@/lib/utils";
 import type { Booking, BookingStatus } from "@/types/domain/booking.types";
 
@@ -52,6 +53,7 @@ function BookingsAdminPage() {
 }
 
 function BookingsListPage() {
+  const { hostelId } = useHostelScope();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -64,7 +66,7 @@ function BookingsListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQuery]);
+  }, [debouncedQuery, statusFilter, moveInFrom, moveInTo, checkOutFrom, checkOutTo, hostelId]);
 
   const hasActiveFilters =
     statusFilter !== "all" ||
@@ -78,6 +80,7 @@ function BookingsListPage() {
     () => ({
       page,
       limit: PAGE_SIZE,
+      ...(hostelId ? { hostel: hostelId } : {}),
       ...(statusFilter !== "all" ? { status: statusFilter as BookingStatus } : {}),
       ...(debouncedQuery ? { search: debouncedQuery } : {}),
       ...(moveInFrom ? { move_in_from: moveInFrom } : {}),
@@ -85,7 +88,7 @@ function BookingsListPage() {
       ...(checkOutFrom ? { check_out_from: checkOutFrom } : {}),
       ...(checkOutTo ? { check_out_to: checkOutTo } : {}),
     }),
-    [page, statusFilter, debouncedQuery, moveInFrom, moveInTo, checkOutFrom, checkOutTo],
+    [page, hostelId, statusFilter, debouncedQuery, moveInFrom, moveInTo, checkOutFrom, checkOutTo],
   );
 
   function clearFilters() {
@@ -98,7 +101,9 @@ function BookingsListPage() {
     setPage(1);
   }
 
-  const { data, isLoading, isError, error } = useBookingsQuery(listParams);
+  const { data, isLoading, isError, error } = useBookingsQuery(listParams, {
+    enabled: Boolean(hostelId),
+  });
   const bookings = data?.bookings ?? [];
   const pagination = data?.pagination;
   const totalPages = pagination?.pages ?? 1;
