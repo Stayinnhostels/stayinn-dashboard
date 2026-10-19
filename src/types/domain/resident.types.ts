@@ -30,9 +30,12 @@ export type ResidentRegisterRow = {
   contact_number: string;
   guardian_contact: string;
   permanent_address: string;
+  room_id?: string | null;
   room_title: string;
   room_seat: string;
   seat_label: string;
+  seats_booked?: number;
+  hostel_id?: string | null;
   resident_type: ResidentType;
   check_in: string | null;
   check_out: string | null;

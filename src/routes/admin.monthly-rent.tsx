@@ -55,6 +55,7 @@ import {
   CnicImagesViewerModal,
 } from "@/components/admin/cnic-images";
 import { toast } from "sonner";
+import { ChangeRoomDialog } from "@/components/admin/change-room-dialog";
 import { ResidentDetailSheet } from "@/components/admin/resident-detail-sheet";
 import { RentInvoiceMonthsDialog } from "@/components/admin/rent-invoice-months-dialog";
 import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
@@ -379,6 +380,7 @@ function EditResidentDialog({
   const [monthlyRent, setMonthlyRent] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<RentPaymentStatus>("not_paid");
   const [applyRentForward, setApplyRentForward] = useState(false);
+  const [changeRoomOpen, setChangeRoomOpen] = useState(false);
 
   useEffect(() => {
     if (!row || !open) return;
@@ -481,6 +483,7 @@ function EditResidentDialog({
   if (!row) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
@@ -490,6 +493,19 @@ function EditResidentDialog({
           <p className="text-xs text-muted-foreground">
             Booking {row.booking_ref} · Rent for {month}
           </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Room
+              </p>
+              <p className="truncate text-sm font-semibold">{row.room_seat || row.room_title}</p>
+            </div>
+            {row.status !== "cancelled" && row.status !== "checked_out" ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => setChangeRoomOpen(true)}>
+                Change room
+              </Button>
+            ) : null}
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label>Full name</Label>
@@ -747,6 +763,18 @@ function EditResidentDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ChangeRoomDialog
+      open={changeRoomOpen}
+      onOpenChange={setChangeRoomOpen}
+      bookingId={row.booking_id}
+      currentRoomId={row.room_id ?? null}
+      currentRoomTitle={row.room_title}
+      seatsBooked={row.seats_booked ?? 1}
+      hostelId={row.hostel_id ?? null}
+      bookingStatus={row.status}
+    />
+    </>
   );
 }
 

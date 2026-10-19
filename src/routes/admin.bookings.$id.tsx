@@ -10,6 +10,7 @@ import { BookingDetailSkeleton } from "@/components/admin/bookings-page-skeleton
 import { BookingNotesDisplay } from "@/components/admin/booking-notes-display";
 import { BookingRefundDialog } from "@/components/admin/booking-refund-dialog";
 import { BookingSecurityCard } from "@/components/admin/booking-security-card";
+import { ChangeRoomDialog } from "@/components/admin/change-room-dialog";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { SECURITY_STATUS_LABELS, RESIDENT_TYPE_LABELS, affiliationForResident } from "@/types/domain/resident.types";
 import { bookingSecurityAmount, isMonthlyBooking } from "@/lib/security-deposit";
@@ -55,6 +56,7 @@ function BookingDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [changeRoomOpen, setChangeRoomOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading || !booking) return;
@@ -187,6 +189,17 @@ function BookingDetailPage() {
       </div>
 
       <EditBookingDialog booking={booking} open={editOpen} onOpenChange={setEditOpen} />
+
+      <ChangeRoomDialog
+        open={changeRoomOpen}
+        onOpenChange={setChangeRoomOpen}
+        bookingId={booking.id}
+        currentRoomId={booking.room_id}
+        currentRoomTitle={booking.room_title}
+        seatsBooked={booking.seats_booked}
+        hostelId={booking.hostel_id}
+        bookingStatus={booking.status}
+      />
 
       <BookingRefundDialog
         open={cancelOpen}
@@ -331,7 +344,7 @@ function BookingDetailPage() {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <BedDouble className="h-4 w-4" />
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-muted-foreground">Room</p>
                   <Link
                     to="/admin/rooms/$id"
@@ -346,6 +359,17 @@ function BookingDetailPage() {
                       ? `${booking.nights ?? "—"} night(s)`
                       : `${booking.months} month(s)`}
                   </p>
+                  {booking.status !== "cancelled" && booking.status !== "checked_out" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setChangeRoomOpen(true)}
+                    >
+                      Change room
+                    </Button>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

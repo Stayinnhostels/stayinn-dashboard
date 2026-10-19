@@ -159,7 +159,7 @@ function SortableRoomCard({
             <span className="text-xs font-normal">PKR</span>
           </p>
           <p className="text-xs text-muted-foreground">
-            {room.beds_available}/{room.beds_total} beds
+            {room.beds_available} free / {room.beds_total}
           </p>
         </div>
         <div className="mt-3 flex gap-2">
@@ -240,7 +240,7 @@ function SortableRoomRow({
         </div>
       </TableCell>
       <TableCell>
-        {room.beds_available}/{room.beds_total}
+        {room.beds_available} free / {room.beds_total}
       </TableCell>
       <TableCell>
         <Badge className={`rounded-full px-2.5 font-semibold capitalize ${statusVariants[room.status]}`}>

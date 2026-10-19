@@ -6,4 +6,5 @@ export {
   useUpdateBookingPricingMutation,
   useUpdateBookingStatusMutation,
   useUpdateBookingDetailsMutation,
+  useTransferBookingRoomMutation,
 } from "./useBookingMutations";

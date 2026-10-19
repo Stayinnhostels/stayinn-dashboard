@@ -12,6 +12,7 @@ import {
   downloadResidentDossierPdfApi,
   downloadResidentMonthInvoiceApi,
 } from "@/api/residents";
+import { ChangeRoomDialog } from "@/components/admin/change-room-dialog";
 import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
 import { ZoomableImageLightbox } from "@/components/admin/zoomable-image-lightbox";
 import { useResidentDetailQuery } from "@/queries/residents";
@@ -78,6 +79,7 @@ export function ResidentDetailSheet({
   const [invoiceMonth, setInvoiceMonth] = useState<string | null>(null);
   const [invoiceMonths, setInvoiceMonths] = useState<string[]>([]);
   const [downloadingCombined, setDownloadingCombined] = useState(false);
+  const [changeRoomOpen, setChangeRoomOpen] = useState(false);
 
   const r = data?.resident;
   const stay = data?.stay;
@@ -176,6 +178,7 @@ export function ResidentDetailSheet({
   }
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <SheetHeader className="border-b border-border/60 px-6 py-4 text-left">
@@ -530,6 +533,16 @@ export function ResidentDetailSheet({
                 <Button type="button" variant="outline" size="sm" onClick={onEdit}>
                   Edit record
                 </Button>
+                {r.status !== "cancelled" && r.status !== "checked_out" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setChangeRoomOpen(true)}
+                  >
+                    Change room
+                  </Button>
+                ) : null}
                 <Button type="button" variant="outline" size="sm" asChild>
                   <Link to="/admin/bookings/$id" params={{ id: r.booking_id }}>
                     Open booking
@@ -541,5 +554,25 @@ export function ResidentDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
+
+    {r ? (
+      <ChangeRoomDialog
+        open={changeRoomOpen}
+        onOpenChange={setChangeRoomOpen}
+        bookingId={r.booking_id}
+        currentRoomId={
+          r.room_id ??
+          (typeof data?.booking?.room_id === "string" ? data.booking.room_id : null)
+        }
+        currentRoomTitle={r.room_title}
+        seatsBooked={stay?.seats_booked ?? r.seats_booked ?? 1}
+        hostelId={
+          r.hostel_id ??
+          (typeof data?.booking?.hostel_id === "string" ? data.booking.hostel_id : null)
+        }
+        bookingStatus={r.status}
+      />
+    ) : null}
+    </>
   );
 }
