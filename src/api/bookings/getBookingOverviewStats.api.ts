@@ -39,7 +39,7 @@ export type ExtrasCollectedPoint = {
 export type BookingOverviewStats = {
   daily: { days: number; series: DailyBookingStatPoint[] };
   weekly: { weeks: number; series: WeeklyBookingStatPoint[] };
-  status: { total: number; breakdown: BookingStatusStatPoint[] };
+  status: { total: number; active: number; breakdown: BookingStatusStatPoint[] };
   monthly: { months: number; series: MonthlyBookingStatPoint[] };
   revenue: RevenueSummary;
   extras?: {

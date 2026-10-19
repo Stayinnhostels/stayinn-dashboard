@@ -160,7 +160,14 @@ function OverviewPage() {
   const availableRooms = rooms.filter((r) => r.status === "available").length;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const totalBookings = overviewStats?.status?.total ?? bookingsApi?.pagination?.total ?? 0;
+  const currentBookings =
+    overviewStats?.status?.active ??
+    overviewStats?.status?.breakdown
+      ?.filter((row) => row.status === "pending" || row.status === "confirmed" || row.status === "checked_in")
+      .reduce((sum, row) => sum + row.value, 0) ??
+    bookings.filter(
+      (b) => b.status === "pending" || b.status === "confirmed" || b.status === "checked_in",
+    ).length;
   const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
 
   const succeededBookings = bookings.filter(
@@ -233,8 +240,8 @@ function OverviewPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            label="Total Bookings"
-            value={totalBookings}
+            label="Current Bookings"
+            value={currentBookings}
             icon={CalendarCheck}
             accent="primary"
           />
