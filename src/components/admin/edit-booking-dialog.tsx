@@ -25,6 +25,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+type StayUnit = "month" | "night";
+
 function addMonthsIso(iso: string, months: number) {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return iso;
@@ -49,7 +51,6 @@ function addDaysIso(iso: string, days: number) {
 
 export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
   const updateDetails = useUpdateBookingDetailsMutation();
-  const isNightStay = booking.stay_unit === "night";
   const isCancelled = booking.status === "cancelled";
   const cur = normalizeMoneyCurrency(booking.currency);
 
@@ -61,6 +62,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
   const [company, setCompany] = useState(booking.guest_company ?? "");
   const [institution, setInstitution] = useState(booking.guest_institution ?? "");
   const [notes, setNotes] = useState(booking.notes ?? "");
+  const [stayUnit, setStayUnit] = useState<StayUnit>(
+    booking.stay_unit === "night" ? "night" : "month",
+  );
   const [moveIn, setMoveIn] = useState(booking.move_in?.slice(0, 10) ?? "");
   const [checkOut, setCheckOut] = useState(booking.check_out?.slice(0, 10) ?? "");
   const [months, setMonths] = useState(String(booking.months ?? 1));
@@ -70,6 +74,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
   const [totalAmount, setTotalAmount] = useState(String(booking.total_amount ?? 0));
   const [autoTotal, setAutoTotal] = useState(true);
   const [overrideCheckOut, setOverrideCheckOut] = useState(false);
+
+  const isNightStay = stayUnit === "night";
+  const originalStayUnit: StayUnit = booking.stay_unit === "night" ? "night" : "month";
 
   useEffect(() => {
     if (!open) return;
@@ -81,16 +88,41 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
     setCompany(booking.guest_company ?? "");
     setInstitution(booking.guest_institution ?? "");
     setNotes(booking.notes ?? "");
+    setStayUnit(booking.stay_unit === "night" ? "night" : "month");
     setMoveIn(booking.move_in?.slice(0, 10) ?? "");
     setCheckOut(booking.check_out?.slice(0, 10) ?? "");
-    setMonths(String(booking.months ?? 1));
-    setNights(String(booking.nights ?? 1));
+    setMonths(String(Math.max(1, booking.months ?? 1)));
+    setNights(String(Math.max(1, booking.nights ?? 1)));
     setSeats(String(booking.seats_booked ?? 1));
     setPricePerSeat(String(booking.price_per_seat ?? 0));
     setTotalAmount(String(booking.total_amount ?? 0));
     setAutoTotal(true);
     setOverrideCheckOut(false);
   }, [open, booking]);
+
+  function handleStayUnitChange(next: StayUnit) {
+    if (next === stayUnit) return;
+    setStayUnit(next);
+    setOverrideCheckOut(false);
+    setAutoTotal(true);
+    if (next === "night") {
+      // Sensible short-stay defaults when converting from monthly
+      if (originalStayUnit === "month") {
+        setNights("1");
+        if (!Number.isFinite(Number.parseFloat(pricePerSeat)) || Number(pricePerSeat) <= 0) {
+          setPricePerSeat("1500");
+        }
+      } else if (!Number.isFinite(Number.parseInt(nights, 10)) || Number(nights) < 1) {
+        setNights("1");
+      }
+    } else {
+      if (originalStayUnit === "night") {
+        setMonths("1");
+      } else if (!Number.isFinite(Number.parseInt(months, 10)) || Number(months) < 1) {
+        setMonths("1");
+      }
+    }
+  }
 
   const seatsNum = Number.parseInt(seats, 10);
   const monthsNum = Number.parseInt(months, 10);
@@ -165,10 +197,12 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
       input.price_per_seat = priceNum;
       input.total_amount = Number(totalAmount);
       input.recalculate_total = false;
+      input.stay_unit = stayUnit;
       if (isNightStay) {
         input.nights = nightsNum;
       } else {
         input.months = monthsNum;
+        input.clear_nights = true;
       }
       if (overrideCheckOut && checkOut) {
         input.check_out = checkOut;
@@ -179,7 +213,11 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
       { id: booking.id, input },
       {
         onSuccess: () => {
-          toast.success("Booking updated");
+          toast.success(
+            stayUnit !== originalStayUnit
+              ? `Booking switched to ${stayUnit === "night" ? "nightly" : "monthly"} stay`
+              : "Booking updated",
+          );
           onOpenChange(false);
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : "Update failed"),
@@ -200,7 +238,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label htmlFor="edit-guest-name" required>Guest name</Label>
+              <Label htmlFor="edit-guest-name" required>
+                Guest name
+              </Label>
               <Input
                 id="edit-guest-name"
                 value={guestName}
@@ -209,7 +249,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               />
             </div>
             <div>
-              <Label htmlFor="edit-guest-email" required>Email</Label>
+              <Label htmlFor="edit-guest-email" required>
+                Email
+              </Label>
               <Input
                 id="edit-guest-email"
                 type="email"
@@ -219,7 +261,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               />
             </div>
             <div>
-              <Label htmlFor="edit-guest-phone" required>Phone</Label>
+              <Label htmlFor="edit-guest-phone" required>
+                Phone
+              </Label>
               <Input
                 id="edit-guest-phone"
                 value={guestPhone}
@@ -254,7 +298,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
             </div>
             {residentType === "employee" ? (
               <div className="sm:col-span-2">
-                <Label htmlFor="edit-company" required>Company name</Label>
+                <Label htmlFor="edit-company" required>
+                  Company name
+                </Label>
                 <Input
                   id="edit-company"
                   value={company}
@@ -266,7 +312,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
             ) : null}
             {residentType === "student" ? (
               <div className="sm:col-span-2">
-                <Label htmlFor="edit-institution" required>Institution name</Label>
+                <Label htmlFor="edit-institution" required>
+                  Institution name
+                </Label>
                 <Input
                   id="edit-institution"
                   value={institution}
@@ -283,9 +331,31 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Stay
               </p>
+              <div>
+                <Label htmlFor="edit-stay-unit" required>
+                  Billing type
+                </Label>
+                <Select value={stayUnit} onValueChange={(v) => handleStayUnitChange(v as StayUnit)}>
+                  <SelectTrigger id="edit-stay-unit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="month">Monthly rent</SelectItem>
+                    <SelectItem value="night">Nightly / short visitor</SelectItem>
+                  </SelectContent>
+                </Select>
+                {stayUnit !== originalStayUnit ? (
+                  <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
+                    Switching will recalculate check-out, rent total, and the payment ledger for
+                    this stay.
+                  </p>
+                ) : null}
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="edit-move-in" required>Move-in</Label>
+                  <Label htmlFor="edit-move-in" required>
+                    Move-in
+                  </Label>
                   <Input
                     id="edit-move-in"
                     type="date"
@@ -311,7 +381,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-seats" required>Seats</Label>
+                  <Label htmlFor="edit-seats" required>
+                    Seats
+                  </Label>
                   <Input
                     id="edit-seats"
                     type="number"

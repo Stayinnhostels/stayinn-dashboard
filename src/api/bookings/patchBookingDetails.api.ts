@@ -12,8 +12,11 @@ export type UpdateBookingDetailsInput = {
   notes?: string;
   move_in?: string;
   check_out?: string;
+  /** Switch monthly ↔ nightly; backend rebuilds rent ledger and totals. */
+  stay_unit?: "month" | "night";
   months?: number;
   nights?: number;
+  clear_nights?: boolean;
   seats_booked?: number;
   price_per_seat?: number;
   total_amount?: number;
