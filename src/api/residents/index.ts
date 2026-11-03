@@ -175,6 +175,18 @@ export async function patchResidentApi(token: string, bookingId: string, input: 
   return data.resident;
 }
 
+export async function emailResidentMonthReceiptApi(token: string, bookingId: string, month: string) {
+  const data = await apiFetch<{ success: boolean; message: string }>(
+    `/api/v1/residents/${bookingId}/email-month-receipt`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({ month }),
+    }
+  );
+  return data;
+}
+
 export {
   downloadMonthRentRegisterPdfApi,
   downloadMonthRentRegisterExcelApi,

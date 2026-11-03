@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { FileSpreadsheet, FileText, Loader2, Receipt } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Mail, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   downloadResidentDossierExcelApi,
   downloadResidentDossierPdfApi,
   downloadResidentMonthInvoiceApi,
+  emailResidentMonthReceiptApi,
 } from "@/api/residents";
 import { ChangeRoomDialog } from "@/components/admin/change-room-dialog";
 import { ResidentExtrasEditor } from "@/components/admin/resident-extras-editor";
@@ -77,6 +78,7 @@ export function ResidentDetailSheet({
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [invoiceMonth, setInvoiceMonth] = useState<string | null>(null);
+  const [emailingMonth, setEmailingMonth] = useState<string | null>(null);
   const [invoiceMonths, setInvoiceMonths] = useState<string[]>([]);
   const [downloadingCombined, setDownloadingCombined] = useState(false);
   const [changeRoomOpen, setChangeRoomOpen] = useState(false);
@@ -143,6 +145,22 @@ export function ResidentDetailSheet({
       toast.error(err instanceof Error ? err.message : "Invoice download failed");
     } finally {
       setInvoiceMonth(null);
+    }
+  }
+
+  async function handleEmailMonthReceipt(monthKey: string) {
+    if (!token || !bookingId) {
+      toast.error("You must be signed in");
+      return;
+    }
+    setEmailingMonth(monthKey);
+    try {
+      const res = await emailResidentMonthReceiptApi(token, bookingId, monthKey);
+      toast.success(res.message || `Receipt for ${monthKey} emailed to resident`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to email receipt");
+    } finally {
+      setEmailingMonth(null);
     }
   }
 
@@ -446,21 +464,42 @@ export function ResidentDetailSheet({
                             {formatMoney(m.collected_amount ?? 0, summary.currency)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              disabled={invoiceMonth === m.month}
-                              onClick={() => void handleDownloadMonthInvoice(m.month)}
-                            >
-                              {invoiceMonth === m.month ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Receipt className="h-3.5 w-3.5" />
-                              )}
-                              <span className="sr-only">Download invoice</span>
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              {m.payment_status === "paid" ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-primary hover:text-primary"
+                                  title="Email PDF receipt to resident"
+                                  disabled={emailingMonth === m.month}
+                                  onClick={() => void handleEmailMonthReceipt(m.month)}
+                                >
+                                  {emailingMonth === m.month ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Mail className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="sr-only">Email receipt</span>
+                                </Button>
+                              ) : null}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2"
+                                title="Download invoice/receipt PDF"
+                                disabled={invoiceMonth === m.month}
+                                onClick={() => void handleDownloadMonthInvoice(m.month)}
+                              >
+                                {invoiceMonth === m.month ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Receipt className="h-3.5 w-3.5" />
+                                )}
+                                <span className="sr-only">Download invoice</span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

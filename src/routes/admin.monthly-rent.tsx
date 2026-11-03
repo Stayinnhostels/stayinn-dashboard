@@ -64,6 +64,7 @@ import {
   downloadMonthRentRegisterExcelApi,
   downloadMonthRentRegisterPdfApi,
   downloadResidentMonthInvoiceApi,
+  emailResidentMonthReceiptApi,
   type CnicOcrFields,
 } from "@/api/residents";
 import {
@@ -226,7 +227,13 @@ function InlineRentStatus({ row, month }: { row: ResidentRegisterRow; month: str
     update.mutate(
       { bookingId: row.booking_id, input: { month, payment_status: next } },
       {
-        onSuccess: () => toast.success(`Rent (${month}): ${RENT_PAYMENT_STATUS_LABELS[next]}`),
+        onSuccess: () => {
+          if (next === "paid") {
+            toast.success(`Rent (${month}): Paid — receipt emailed to resident!`);
+          } else {
+            toast.success(`Rent (${month}): ${RENT_PAYMENT_STATUS_LABELS[next]}`);
+          }
+        },
         onError: () => toast.error("Could not update rent status"),
       },
     );
@@ -472,7 +479,11 @@ function EditResidentDialog({
       { bookingId: row.booking_id, input },
       {
         onSuccess: () => {
-          toast.success("Resident record updated");
+          if (paymentStatus === "paid" && row.payment_status !== "paid") {
+            toast.success(`Resident updated: Rent for ${month} marked paid — receipt emailed to resident!`);
+          } else {
+            toast.success("Resident record updated");
+          }
           onOpenChange(false);
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : "Update failed"),
@@ -876,6 +887,22 @@ function MonthlyRentPage() {
     }
   }
 
+  async function handleEmailRowReceipt(bookingId: string) {
+    if (!token) {
+      toast.error("You must be signed in");
+      return;
+    }
+    setInvoiceBookingId(bookingId);
+    try {
+      const res = await emailResidentMonthReceiptApi(token, bookingId, month);
+      toast.success(res.message || `Receipt for ${monthLabel} emailed to resident`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to email receipt");
+    } finally {
+      setInvoiceBookingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -1173,8 +1200,15 @@ function MonthlyRentPage() {
                               <DropdownMenuItem
                                 onClick={() => void handleDownloadRowInvoice(r.booking_id)}
                               >
-                                This month ({monthLabel})
+                                Download invoice ({monthLabel})
                               </DropdownMenuItem>
+                              {r.payment_status === "paid" ? (
+                                <DropdownMenuItem
+                                  onClick={() => void handleEmailRowReceipt(r.booking_id)}
+                                >
+                                  Email receipt to resident ({monthLabel})
+                                </DropdownMenuItem>
+                              ) : null}
                               <DropdownMenuItem
                                 onClick={() =>
                                   setInvoicePicker({ bookingId: r.booking_id, name: r.name })
