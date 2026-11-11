@@ -89,6 +89,10 @@ function BookingDetailPage() {
         status,
         amount_refunded: amountRefunded,
         ...(status === "checked_out" &&
+        checkoutExtras?.rentCollected != null
+          ? { checkout_rent_collected: checkoutExtras.rentCollected }
+          : {}),
+        ...(status === "checked_out" &&
         checkoutExtras &&
         booking?.security_status === "paid"
           ? { security_returned: checkoutExtras.securityReturned }

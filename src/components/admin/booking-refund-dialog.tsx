@@ -24,6 +24,8 @@ import type { Booking } from "@/types/domain/booking.types";
 
 export type CheckoutConfirmExtras = {
   securityReturned: number;
+  /** Rent collected for the days stayed in the checkout month (0 = nothing collected). */
+  rentCollected?: number;
 };
 
 type BookingRefundDialogProps = {
@@ -58,6 +60,24 @@ export function BookingRefundDialog({
   const requiresRefund = booking ? PAID_STATUSES.has(booking.status) : false;
 
   const [refundText, setRefundText] = useState("0");
+  const [monthRentText, setMonthRentText] = useState("0");
+
+  // Checkout month = today's month; only ask when that month's rent is not already fully paid.
+  const checkoutMonthEntry = useMemo(() => {
+    if (!booking || mode !== "checkout") return null;
+    const now = new Date();
+    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const entry = buildBookingRentTimeline({
+      ...booking,
+      check_out: `${key}-${String(now.getDate()).padStart(2, "0")}`,
+    }).find((m) => m.month === key);
+    return entry && entry.payment_status !== "paid" ? entry : null;
+  }, [booking, mode]);
+  const showMonthRent = checkoutMonthEntry != null;
+  const monthRentNum = Number(monthRentText);
+  const monthRentValid =
+    !showMonthRent ||
+    (monthRentText.trim() !== "" && Number.isFinite(monthRentNum) && monthRentNum >= 0);
   const [securityReturnText, setSecurityReturnText] = useState("0");
 
   const securityAmount = booking ? bookingSecurityAmount(booking, cur) : null;
@@ -89,6 +109,7 @@ export function BookingRefundDialog({
     } else {
       setRefundText(mode === "cancel" ? String(rentBasis) : "0");
     }
+    setMonthRentText("0");
     if (showSecurityCheckout && securityPaid) {
       setSecurityReturnText(String(securityRemainingHeld));
     } else {
@@ -129,7 +150,7 @@ export function BookingRefundDialog({
       securityReturnNum >= 0 &&
       securityReturnNum <= securityRemainingHeld &&
       securityReturnText.trim() !== "");
-  const valid = rentValid && securityValid;
+  const valid = rentValid && securityValid && monthRentValid;
 
   const title = mode === "cancel" ? "Cancel booking" : "Check out";
   const description =
@@ -209,6 +230,25 @@ export function BookingRefundDialog({
               </p>
             )}
 
+            {showMonthRent && checkoutMonthEntry ? (
+              <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <Label htmlFor="month-rent-collected" required>
+                  Rent collected for {checkoutMonthEntry.label} (days stayed)
+                </Label>
+                <Input
+                  id="month-rent-collected"
+                  type="text"
+                  inputMode="decimal"
+                  value={monthRentText}
+                  onChange={(e) => setMonthRentText(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Counted as collected in {checkoutMonthEntry.label}. Enter 0 if nothing was
+                  collected — the guest will be removed from monthly rent.
+                </p>
+              </div>
+            ) : null}
+
             {showSecurityCheckout && securityAmount != null && (
               <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                 <p className="text-sm font-semibold">Security deposit</p>
@@ -282,8 +322,12 @@ export function BookingRefundDialog({
             disabled={!valid || submitting}
             onClick={() => {
               const rentRefunded = requiresRefund ? refundNum : 0;
-              if (mode === "checkout" && showSecurityCheckout && securityPaid) {
-                onConfirm(rentRefunded, { securityReturned: securityReturnNum });
+              if (mode === "checkout") {
+                onConfirm(rentRefunded, {
+                  securityReturned:
+                    showSecurityCheckout && securityPaid ? securityReturnNum : 0,
+                  ...(showMonthRent ? { rentCollected: monthRentNum } : {}),
+                });
               } else {
                 onConfirm(rentRefunded);
               }

@@ -10,6 +10,7 @@ export type UpdateBookingStatusInput = {
   status: BookingStatus;
   amount_refunded?: number;
   security_returned?: number;
+  checkout_rent_collected?: number;
 };
 
 export async function patchBookingStatusApi(token: string, id: string, input: UpdateBookingStatusInput) {
