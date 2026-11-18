@@ -7,10 +7,7 @@ type ReorderRoomsResponse = {
   rooms: Room[];
 };
 
-export async function reorderRoomsApi(
-  token: string,
-  orderedIds: string[],
-): Promise<Room[]> {
+export async function reorderRoomsApi(token: string, orderedIds: string[]): Promise<Room[]> {
   const data = await apiFetch<ReorderRoomsResponse>("/api/v1/rooms/reorder", {
     method: "PATCH",
     token,

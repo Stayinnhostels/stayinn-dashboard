@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/auth/auth.store";
 import { useLiveAlertsStore } from "@/stores/notifications/live-alerts.store";
 import { authKeys } from "@/queries/keys/auth.keys";
 import { clearDashboardThemeCache } from "@/lib/dashboard-theme-storage";
+import { markSessionEnded } from "@/lib/session-end";
 
 export type { AuthUser, UserRole } from "@/types/domain/auth.types";
 
@@ -35,6 +36,7 @@ export function useAuth() {
     } catch {
       // Still clear local session if the network fails or the token was already invalid.
     }
+    markSessionEnded("signed-out");
     storeLogout();
     clearDashboardThemeCache();
     try {

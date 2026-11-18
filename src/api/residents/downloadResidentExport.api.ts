@@ -11,11 +11,16 @@ async function downloadBinary(
 
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(typeof data.message === "string" ? data.message : `Download failed (${res.status})`);
+    throw new Error(
+      typeof data.message === "string" ? data.message : `Download failed (${res.status})`,
+    );
   }
 
   const blob = await res.blob();
-  const filename = filenameFromContentDisposition(res.headers.get("Content-Disposition"), fallbackFilename);
+  const filename = filenameFromContentDisposition(
+    res.headers.get("Content-Disposition"),
+    fallbackFilename,
+  );
   triggerBrowserDownload(blob, filename);
 }
 
@@ -37,11 +42,7 @@ export async function downloadMonthRentRegisterPdfApi(
   search?: string,
 ) {
   const prefix = cohort === "checkouts" ? "monthly-rent-checkouts" : "monthly-rent-active";
-  await downloadBinary(
-    token,
-    exportPath("pdf", month, cohort, search),
-    `${prefix}-${month}.pdf`,
-  );
+  await downloadBinary(token, exportPath("pdf", month, cohort, search), `${prefix}-${month}.pdf`);
 }
 
 export async function downloadMonthRentRegisterExcelApi(
@@ -89,9 +90,7 @@ export async function downloadResidentMonthInvoiceApi(
   bookingId: string,
   months: string | string[],
 ) {
-  const list = (Array.isArray(months) ? months : [months])
-    .map((m) => m.trim())
-    .filter(Boolean);
+  const list = (Array.isArray(months) ? months : [months]).map((m) => m.trim()).filter(Boolean);
   const params = new URLSearchParams();
   if (list.length <= 1) {
     params.set("month", list[0] ?? "");

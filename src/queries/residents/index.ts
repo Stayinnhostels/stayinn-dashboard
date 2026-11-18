@@ -4,3 +4,4 @@ export { useResidentsByRoomQuery } from "./useResidentsByRoomQuery";
 export { useResidentMonthsQuery } from "./useResidentMonthsQuery";
 export { useResidentDetailQuery } from "./useResidentDetailQuery";
 export { useUpdateResidentMutation } from "./useUpdateResidentMutation";
+export { useResidentsRollQuery, useMovedOutQuery, useRoomsBoardQuery, useSendResidentRemindersMutation, useEmailMonthReceiptMutation, useEmailResidentInvoiceMutation } from "./useResidentsRoll";

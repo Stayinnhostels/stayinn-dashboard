@@ -23,10 +23,9 @@ export async function getContactMessagesApi(token: string, params: ContactMessag
   if (params.limit) search.set("limit", String(params.limit));
 
   const q = search.toString();
-  const data = await apiFetch<ListContactMessagesResponse>(
-    `/api/v1/contact${q ? `?${q}` : ""}`,
-    { token },
-  );
+  const data = await apiFetch<ListContactMessagesResponse>(`/api/v1/contact${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.messages)) {
     throw new Error("Invalid contact messages response");
   }

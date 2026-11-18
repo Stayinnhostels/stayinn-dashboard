@@ -1,19 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Check, ImageIcon, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { getRoomApi } from "@/api/rooms";
 import { compressImageFile } from "@/lib/compress-image";
+import { useHostelScope } from "@/lib/use-hostel-scope";
+import { cn } from "@/lib/utils";
 import { RoomThumbnail } from "@/components/admin/room-thumbnail";
-import { ROOM_AMENITY_OPTIONS, ROOM_CATEGORIES, type Room, type RoomDraft } from "@/types/domain/room.types";
+import {
+  AmenityChip,
+  GlassButton,
+  GlassField,
+  GlassIconButton,
+  GlassInput,
+  GlassSelect,
+  GlassTextarea,
+} from "@/components/glass";
+import {
+  ROOM_AMENITY_OPTIONS,
+  ROOM_CATEGORIES,
+  type Room,
+  type RoomDraft,
+} from "@/types/domain/room.types";
 
 export type { RoomDraft };
+
+/**
+ * Figma 01.04 / 02.04 · Rooms — Add room. Glass-3 modal, 720 wide, sticky header and footer,
+ * sections Room / Pricing / Details / Amenities / Photos. Also used for Edit room.
+ */
 
 const blank: RoomDraft = {
   title: "",
@@ -31,12 +63,13 @@ const blank: RoomDraft = {
   images: [],
   badge: null,
   display_order: 100,
+  floor: null,
+  last_cleaned_at: null,
 };
 
-function roomToDraft(
-  room: Partial<Room> | null | undefined,
-  suggestedRoomNumber = 101,
-): RoomDraft {
+const DESCRIPTION_MAX = 5000;
+
+function roomToDraft(room: Partial<Room> | null | undefined, suggestedRoomNumber = 101): RoomDraft {
   if (!room) return { ...blank, room_number: suggestedRoomNumber };
   return {
     title: room.title ?? "",
@@ -54,13 +87,43 @@ function roomToDraft(
     images: room.images ?? [],
     badge: room.badge ?? null,
     display_order: room.display_order ?? 100,
+    floor: room.floor ?? null,
+    last_cleaned_at: room.last_cleaned_at ?? null,
   };
 }
 
-function parsePositiveInt(value: string, fallback = 0) {
-  const n = Number.parseInt(value.trim(), 10);
-  return Number.isFinite(n) ? n : fallback;
+function parseIntText(value: string) {
+  const t = value.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isInteger(n) ? n : Number.NaN;
 }
+
+function toDateInput(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+type Errors = Partial<
+  Record<
+    | "room_number"
+    | "floor"
+    | "title"
+    | "price_usd"
+    | "price_pkr"
+    | "category"
+    | "capacity"
+    | "beds_total"
+    | "beds_available"
+    | "display_order",
+    string
+  >
+>;
+
+/** Inputs in the modal sit on the inset fill (Figma), not the raised glass fill. */
+const insetInput = "bg-glass-inset!";
 
 export function RoomFormDialog({
   open,
@@ -78,146 +141,177 @@ export function RoomFormDialog({
   /** Next available number when creating a new room (defaults to 101). */
   suggestedRoomNumber?: number;
 }) {
+  const { activeHostel } = useHostelScope();
   const [draft, setDraft] = useState<RoomDraft>(blank);
-  const [priceUsdText, setPriceUsdText] = useState("0");
-  const [pricePkrText, setPricePkrText] = useState("0");
-  const [capacityText, setCapacityText] = useState("2");
-  const [bedsTotalText, setBedsTotalText] = useState("2");
-  const [bedsAvailableText, setBedsAvailableText] = useState("2");
-  const [displayOrderText, setDisplayOrderText] = useState("100");
-  const [roomNumberText, setRoomNumberText] = useState("101");
+  const [text, setText] = useState({
+    room_number: "101",
+    floor: "",
+    price_usd: "0",
+    price_pkr: "0",
+    capacity: "2",
+    beds_total: "2",
+    beds_available: "2",
+    display_order: "100",
+    last_cleaned: "",
+  });
+  const [imageUrl, setImageUrl] = useState("");
   const [loadingImages, setLoadingImages] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
     if (!open) return;
     const next = roomToDraft(initial, suggestedRoomNumber);
     setDraft(next);
-    setPriceUsdText(String(next.price_per_night_usd));
-    setPricePkrText(String(next.price_per_night_pkr));
-    setCapacityText(String(next.capacity));
-    setBedsTotalText(String(next.beds_total));
-    setBedsAvailableText(String(next.beds_available));
-    setDisplayOrderText(String(next.display_order));
-    setRoomNumberText(
-      next.room_number != null ? String(next.room_number) : String(suggestedRoomNumber),
-    );
+    setAttempted(false);
+    setImageUrl("");
+    setText({
+      room_number:
+        next.room_number != null
+          ? String(next.room_number)
+          : isEdit
+            ? ""
+            : String(suggestedRoomNumber),
+      floor: next.floor != null ? String(next.floor) : "",
+      price_usd: String(next.price_per_night_usd),
+      price_pkr: String(next.price_per_night_pkr),
+      capacity: String(next.capacity),
+      beds_total: String(next.beds_total),
+      beds_available: String(next.beds_available),
+      display_order: String(next.display_order),
+      last_cleaned: toDateInput(next.last_cleaned_at),
+    });
 
     const roomId = initial?.id;
     const needsImages =
       Boolean(roomId) &&
-      !(initial?.images?.length) &&
+      !initial?.images?.length &&
       Boolean(initial?.has_images || (initial?.image_count ?? 0) > 0);
-
     if (!needsImages || !roomId) {
       setLoadingImages(false);
       return;
     }
-
     let cancelled = false;
     setLoadingImages(true);
     void getRoomApi(roomId)
       .then((full) => {
-        if (cancelled) return;
-        setDraft((d) => ({ ...d, images: full.images ?? [] }));
+        if (!cancelled) setDraft((d) => ({ ...d, images: full.images ?? [] }));
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (!cancelled)
           toast.error(err instanceof Error ? err.message : "Could not load room photos");
-        }
       })
       .finally(() => {
         if (!cancelled) setLoadingImages(false);
       });
-
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, suggestedRoomNumber]);
 
   const amenityOptions = useMemo(() => {
     const base: string[] = [...ROOM_AMENITY_OPTIONS];
-    for (const a of draft.amenities) {
-      if (!base.includes(a)) base.push(a);
-    }
+    for (const a of draft.amenities) if (!base.includes(a)) base.push(a);
     return base.sort((a, b) => a.localeCompare(b));
   }, [draft.amenities]);
 
+  const categoryOptions = useMemo(() => {
+    const base: string[] = [...ROOM_CATEGORIES];
+    if (draft.category && !base.includes(draft.category)) base.push(draft.category);
+    return base;
+  }, [draft.category]);
+
   const parsed = useMemo(() => {
-    const priceUsdNum = Number(priceUsdText);
-    const pricePkrNum = Number(pricePkrText);
-    const capacityNum = parsePositiveInt(capacityText, 0);
-    const bedsTotalNum = parsePositiveInt(bedsTotalText, 0);
-    const bedsAvailableNum = parsePositiveInt(bedsAvailableText, 0);
-    const displayOrderNum = parsePositiveInt(displayOrderText, 100);
-    const roomNumberTrim = roomNumberText.trim();
-    const roomNumberNum =
-      roomNumberTrim === "" ? null : parsePositiveInt(roomNumberTrim, Number.NaN);
+    const usd = text.price_usd.trim() === "" ? Number.NaN : Number(text.price_usd);
+    const pkr =
+      text.price_pkr.trim() === "" ? Number.NaN : Number(text.price_pkr.replace(/,/g, ""));
     return {
-      priceUsdNum,
-      pricePkrNum,
-      capacityNum,
-      bedsTotalNum,
-      bedsAvailableNum,
-      displayOrderNum,
-      roomNumberNum,
-      roomNumberTrim,
+      roomNumber: parseIntText(text.room_number),
+      floor: parseIntText(text.floor),
+      usd,
+      pkr,
+      capacity: parseIntText(text.capacity),
+      bedsTotal: parseIntText(text.beds_total),
+      bedsAvailable: parseIntText(text.beds_available),
+      displayOrder: parseIntText(text.display_order),
     };
-  }, [
-    priceUsdText,
-    pricePkrText,
-    capacityText,
-    bedsTotalText,
-    bedsAvailableText,
-    displayOrderText,
-    roomNumberText,
-  ]);
+  }, [text]);
 
-  const canSave =
-    draft.title.trim().length > 0 &&
-    draft.category.trim().length > 0 &&
-    priceUsdText.trim() !== "" &&
-    pricePkrText.trim() !== "" &&
-    Number.isFinite(parsed.priceUsdNum) &&
-    parsed.priceUsdNum >= 0 &&
-    Number.isFinite(parsed.pricePkrNum) &&
-    parsed.pricePkrNum >= 0 &&
-    parsed.capacityNum >= 1 &&
-    parsed.bedsTotalNum >= 1 &&
-    parsed.bedsAvailableNum >= 0 &&
-    parsed.bedsAvailableNum <= parsed.bedsTotalNum &&
-    parsed.displayOrderNum >= 1 &&
-    (parsed.roomNumberTrim === "" ||
-      (parsed.roomNumberNum != null &&
-        Number.isFinite(parsed.roomNumberNum) &&
-        parsed.roomNumberNum >= 101));
+  const errors: Errors = useMemo(() => {
+    const e: Errors = {};
+    if (
+      parsed.roomNumber != null &&
+      (!Number.isFinite(parsed.roomNumber) || parsed.roomNumber < 101 || parsed.roomNumber > 9999)
+    )
+      e.room_number = "Use a number from 101 to 9999";
+    if (
+      parsed.floor != null &&
+      (!Number.isFinite(parsed.floor) || parsed.floor < 0 || parsed.floor > 200)
+    )
+      e.floor = "Use 0 (ground) to 200";
+    if (!draft.title.trim()) e.title = "Title is required";
+    if (!Number.isFinite(parsed.usd) || parsed.usd < 0) e.price_usd = "Enter a price of 0 or more";
+    if (!Number.isFinite(parsed.pkr) || parsed.pkr < 0) e.price_pkr = "Enter a price of 0 or more";
+    if (!draft.category.trim()) e.category = "Choose a category";
+    if (parsed.capacity == null || !Number.isFinite(parsed.capacity) || parsed.capacity < 1)
+      e.capacity = "At least 1";
+    if (parsed.bedsTotal == null || !Number.isFinite(parsed.bedsTotal) || parsed.bedsTotal < 1)
+      e.beds_total = "At least 1";
+    else if (
+      parsed.capacity != null &&
+      Number.isFinite(parsed.capacity) &&
+      parsed.capacity > parsed.bedsTotal
+    )
+      e.capacity = "Can’t exceed Beds total";
+    if (
+      parsed.bedsAvailable == null ||
+      !Number.isFinite(parsed.bedsAvailable) ||
+      parsed.bedsAvailable < 0
+    )
+      e.beds_available = "0 or more";
+    else if (
+      parsed.bedsTotal != null &&
+      Number.isFinite(parsed.bedsTotal) &&
+      parsed.bedsAvailable > parsed.bedsTotal
+    )
+      e.beds_available = "Beds available can’t exceed Beds total";
+    if (
+      parsed.displayOrder == null ||
+      !Number.isFinite(parsed.displayOrder) ||
+      parsed.displayOrder < 1
+    )
+      e.display_order = "1 or more";
+    return e;
+  }, [parsed, draft.title, draft.category]);
 
-  function toggleAmenity(name: string, checked: boolean) {
-    setDraft((d) => ({
-      ...d,
-      amenities: checked
-        ? d.amenities.includes(name)
-          ? d.amenities
-          : [...d.amenities, name]
-        : d.amenities.filter((a) => a !== name),
-    }));
-  }
+  const hasErrors = Object.keys(errors).length > 0;
+  const show = (k: keyof Errors) => (attempted ? errors[k] : undefined);
 
   function handleSubmit() {
-    if (!canSave) return;
+    setAttempted(true);
+    if (hasErrors) return;
     onSubmit({
       ...draft,
-      room_number:
-        parsed.roomNumberTrim === "" || parsed.roomNumberNum == null
-          ? null
-          : parsed.roomNumberNum,
-      price_per_night_usd: parsed.priceUsdNum,
-      price_per_night_pkr: parsed.pricePkrNum,
-      price_per_night: parsed.priceUsdNum,
-      capacity: parsed.capacityNum,
-      beds_total: parsed.bedsTotalNum,
-      beds_available: parsed.bedsAvailableNum,
-      display_order: parsed.displayOrderNum,
+      title: draft.title.trim(),
+      room_number: parsed.roomNumber,
+      floor: parsed.floor,
+      price_per_night_usd: parsed.usd,
+      price_per_night_pkr: parsed.pkr,
+      price_per_night: parsed.usd,
+      capacity: parsed.capacity ?? 1,
+      beds_total: parsed.bedsTotal ?? 1,
+      beds_available: parsed.bedsAvailable ?? 0,
+      display_order: parsed.displayOrder ?? 100,
+      ...(isEdit
+        ? {
+            last_cleaned_at: text.last_cleaned
+              ? new Date(`${text.last_cleaned}T12:00:00`).toISOString()
+              : null,
+          }
+        : {}),
     });
   }
 
@@ -231,221 +325,469 @@ export function RoomFormDialog({
     }
   }
 
+  function addImageUrl() {
+    const url = imageUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url) && !url.startsWith("data:image/")) {
+      toast.error("Enter an image link that starts with https://");
+      return;
+    }
+    setDraft((d) => ({ ...d, images: [...d.images, url] }));
+    setImageUrl("");
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const photoIds = draft.images.map((src, i) => `${i}:${src.slice(-24)}`);
+  function onPhotoDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = photoIds.indexOf(String(active.id));
+    const to = photoIds.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    setDraft((d) => ({ ...d, images: arrayMove(d.images, from, to) }));
+  }
+
+  const set = (k: keyof typeof text) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setText((t) => ({ ...t, [k]: e.target.value }));
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit room" : "Add room"}</DialogTitle>
-          <DialogDescription className="sr-only">Details</DialogDescription>
-        </DialogHeader>
+    <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            titleRef.current?.focus();
+          }}
+          className="glass-3 fixed top-1/2 left-1/2 z-50 flex max-h-[min(92svh,1400px)] w-[calc(100%-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] font-geist text-ink outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        >
+          <header className="flex shrink-0 items-center justify-between gap-4 border-b border-glass-divider px-6 py-5">
+            <div className="min-w-0">
+              <Dialog.Title className="text-hero text-ink">
+                {isEdit ? "Edit room" : "Add room"}
+              </Dialog.Title>
+              <p className="truncate text-body text-ink-2">
+                {isEdit
+                  ? `Update ${initial?.room_number != null ? `Room ${initial.room_number}` : (initial?.title ?? "this room")}`
+                  : `Create a room for ${activeHostel?.name ?? "this property"}`}
+              </p>
+            </div>
+            <Dialog.Close asChild>
+              <GlassIconButton aria-label="Close">
+                <X />
+              </GlassIconButton>
+            </Dialog.Close>
+          </header>
 
-        <div className="grid gap-4">
-          <div className="grid gap-3 sm:grid-cols-[7.5rem_1fr]">
-            <div className="grid gap-2">
-              <Label htmlFor="room-number">Room no.</Label>
-              <Input
-                id="room-number"
-                name="room-number"
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                value={roomNumberText}
-                onChange={(e) => setRoomNumberText(e.target.value)}
-                placeholder="101"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="room-title" required>Title</Label>
-              <Input
-                id="room-title"
-                name="room-title"
-                type="text"
-                autoComplete="off"
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label>Description</Label>
-            <Textarea
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="grid gap-2">
-              <Label required>Price / seat / month (USD)</Label>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={priceUsdText}
-                onChange={(e) => setPriceUsdText(e.target.value)}
-                placeholder="e.g. 120"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label required>Price / seat / month (PKR)</Label>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={pricePkrText}
-                onChange={(e) => setPricePkrText(e.target.value)}
-                placeholder="e.g. 35000"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label required>Category</Label>
-              <Select value={draft.category} onValueChange={(v) => setDraft({ ...draft, category: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROOM_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label required>Capacity</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={capacityText}
-                onChange={(e) => setCapacityText(e.target.value)}
-                placeholder="e.g. 2"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label required>Beds total</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={bedsTotalText}
-                onChange={(e) => setBedsTotalText(e.target.value)}
-                placeholder="e.g. 2"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Beds available</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={bedsAvailableText}
-                onChange={(e) => setBedsAvailableText(e.target.value)}
-                placeholder="e.g. 1"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v as RoomDraft["status"] })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="full">Full</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {!canSave && (
-            <p className="text-xs text-destructive">
-              Check required fields.
-            </p>
-          )}
-
-          <div className="grid gap-2">
-            <Label required>Display order</Label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              value={displayOrderText}
-              onChange={(e) => setDisplayOrderText(e.target.value)}
-              placeholder="e.g. 1"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Badge</Label>
-            <Input
-              type="text"
-              value={draft.badge ?? ""}
-              onChange={(e) => setDraft({ ...draft, badge: e.target.value.trim() || null })}
-              placeholder="e.g. Most Popular"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Amenities</Label>
-            <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
-              {amenityOptions.map((a) => (
-                <label key={a} className="flex cursor-pointer items-center gap-2 text-sm">
-                  <Checkbox checked={draft.amenities.includes(a)} onCheckedChange={(c) => toggleAmenity(a, !!c)} />
-                  <span>{a}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Images</Label>
-            {loadingImages ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading photos…
+          <form
+            id="room-form"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4 sm:p-6"
+          >
+            <FormSection title="Room">
+              <div className="grid gap-3 sm:grid-cols-[180px_120px_minmax(0,1fr)]">
+                <GlassField label="Room number" error={show("room_number")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.room_number}
+                      onChange={set("room_number")}
+                      placeholder="101"
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Floor" error={show("floor")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.floor}
+                      onChange={set("floor")}
+                      placeholder="e.g. 3"
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Title" required error={show("title")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      ref={titleRef}
+                      className={insetInput}
+                      value={draft.title}
+                      onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                      placeholder="e.g. Private double"
+                      maxLength={200}
+                    />
+                  )}
+                </GlassField>
               </div>
-            ) : null}
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {draft.images.map((src, i) => (
-                <div key={src + i} className="relative aspect-square overflow-hidden rounded-lg border">
-                  <RoomThumbnail src={src} className="h-full w-full" iconClassName="h-8 w-8" />
-                  <button
-                    type="button"
-                    onClick={() => setDraft({ ...draft, images: draft.images.filter((_, idx) => idx !== i) })}
-                    className="absolute right-1 top-1 rounded-full bg-background/80 p-1 hover:bg-background"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-muted">
-                <ImagePlus className="h-5 w-5" />
-                <span>Upload</span>
-                <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
-              </label>
-            </div>
-            <Input
-              type="text"
-              placeholder="Image URL"
-              onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                const url = (e.target as HTMLInputElement).value.trim();
-                if (!url) return;
-                setDraft((d) => ({ ...d, images: [...d.images, url] }));
-                (e.target as HTMLInputElement).value = "";
-              }}
-            />
-          </div>
-        </div>
+              <GlassField label="Description">
+                {(p) => (
+                  <div className="relative">
+                    <GlassTextarea
+                      {...p}
+                      className={cn(insetInput, "h-24 resize-none pb-7")}
+                      value={draft.description}
+                      maxLength={DESCRIPTION_MAX}
+                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                      placeholder="What makes this room nice to stay in?"
+                    />
+                    <span className="pointer-events-none absolute right-3.5 bottom-3 text-label text-ink-3">
+                      {draft.description.length} / {DESCRIPTION_MAX}
+                    </span>
+                  </div>
+                )}
+              </GlassField>
+            </FormSection>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !canSave}>
-            {submitting ? "Saving…" : isEdit ? "Save changes" : "Create room"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <FormSection title="Pricing">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <GlassField label="Price / seat / month (USD)" required error={show("price_usd")}>
+                  {(p) => (
+                    <PrefixInput prefix="$">
+                      <GlassInput
+                        {...p}
+                        inputMode="decimal"
+                        className={cn(insetInput, "pl-8")}
+                        value={text.price_usd}
+                        onChange={set("price_usd")}
+                      />
+                    </PrefixInput>
+                  )}
+                </GlassField>
+                <GlassField label="Price / seat / month (PKR)" required error={show("price_pkr")}>
+                  {(p) => (
+                    <PrefixInput prefix="Rs">
+                      <GlassInput
+                        {...p}
+                        inputMode="decimal"
+                        className={cn(insetInput, "pl-10")}
+                        value={text.price_pkr}
+                        onChange={set("price_pkr")}
+                      />
+                    </PrefixInput>
+                  )}
+                </GlassField>
+                <GlassField label="Category" required error={show("category")}>
+                  {(p) => (
+                    <GlassSelect
+                      {...p}
+                      className={insetInput}
+                      value={draft.category}
+                      onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                    >
+                      {categoryOptions.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </GlassSelect>
+                  )}
+                </GlassField>
+              </div>
+              <p className="text-label font-medium text-ink-3">
+                Tip: PKR is not auto-converted — keep both prices in sync.
+              </p>
+            </FormSection>
+
+            <FormSection title="Details">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <GlassField label="Capacity" required error={show("capacity")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.capacity}
+                      onChange={set("capacity")}
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Beds total" required error={show("beds_total")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.beds_total}
+                      onChange={set("beds_total")}
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Beds available" error={show("beds_available")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.beds_available}
+                      onChange={set("beds_available")}
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Status">
+                  {(p) => (
+                    <GlassSelect
+                      {...p}
+                      className={insetInput}
+                      value={draft.status}
+                      onChange={(e) =>
+                        setDraft({ ...draft, status: e.target.value as RoomDraft["status"] })
+                      }
+                    >
+                      <option value="available">Available</option>
+                      <option value="full">Full</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="draft">Draft</option>
+                    </GlassSelect>
+                  )}
+                </GlassField>
+                <GlassField label="Display order" required error={show("display_order")}>
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      inputMode="numeric"
+                      className={insetInput}
+                      value={text.display_order}
+                      onChange={set("display_order")}
+                    />
+                  )}
+                </GlassField>
+                <GlassField label="Badge">
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      className={insetInput}
+                      value={draft.badge ?? ""}
+                      maxLength={80}
+                      onChange={(e) => setDraft({ ...draft, badge: e.target.value || null })}
+                      placeholder="e.g. Most Popular"
+                    />
+                  )}
+                </GlassField>
+                {isEdit ? (
+                  <GlassField label="Last cleaned">
+                    {(p) => (
+                      <GlassInput
+                        {...p}
+                        type="date"
+                        className={insetInput}
+                        value={text.last_cleaned}
+                        onChange={set("last_cleaned")}
+                      />
+                    )}
+                  </GlassField>
+                ) : null}
+              </div>
+            </FormSection>
+
+            <FormSection title="Amenities">
+              <div className="flex flex-wrap gap-2">
+                {amenityOptions.map((a) => (
+                  <AmenityChip
+                    key={a}
+                    selected={draft.amenities.includes(a)}
+                    onSelectedChange={(on) =>
+                      setDraft((d) => ({
+                        ...d,
+                        amenities: on
+                          ? [...d.amenities.filter((x) => x !== a), a]
+                          : d.amenities.filter((x) => x !== a),
+                      }))
+                    }
+                  >
+                    {a}
+                  </AmenityChip>
+                ))}
+              </div>
+            </FormSection>
+
+            <FormSection title="Photos">
+              <p className="text-label font-medium text-ink-3">
+                Add more than one photo of the room. The first photo is the cover; drag to reorder.
+              </p>
+              {loadingImages ? (
+                <p className="flex items-center gap-2 text-label text-ink-2">
+                  <Loader2 className="size-4 animate-spin" /> Loading photos…
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex size-[104px] shrink-0 flex-col items-center justify-center gap-1 rounded-[14px] border-[1.2px] border-dashed border-brand-border bg-brand-tint text-brand-text outline-none hover:brightness-105 focus-visible:ring-2 focus-visible:ring-brand-border"
+                >
+                  <Plus aria-hidden className="size-5" />
+                  <span className="text-label font-medium">Add</span>
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleUpload(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onPhotoDragEnd}
+                >
+                  <SortableContext items={photoIds} strategy={horizontalListSortingStrategy}>
+                    {draft.images.map((src, i) => (
+                      <PhotoTile
+                        key={photoIds[i]}
+                        id={photoIds[i]}
+                        src={src}
+                        cover={i === 0}
+                        onRemove={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            images: d.images.filter((_, idx) => idx !== i),
+                          }))
+                        }
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+                {draft.images.length < 4 ? (
+                  <span
+                    aria-hidden
+                    className="flex size-[104px] shrink-0 items-center justify-center rounded-[14px] border border-dashed border-glass-divider bg-glass-inset text-ink-3"
+                  >
+                    <ImageIcon className="size-5" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-end gap-2.5">
+                <GlassField label="Image URL" className="min-w-0 flex-1">
+                  {(p) => (
+                    <GlassInput
+                      {...p}
+                      className={insetInput}
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addImageUrl();
+                        }
+                      }}
+                      placeholder="https://"
+                    />
+                  )}
+                </GlassField>
+                <GlassButton variant="glass" onClick={addImageUrl} className="mb-0.5">
+                  <Plus /> Add
+                </GlassButton>
+              </div>
+            </FormSection>
+          </form>
+
+          <footer className="flex shrink-0 items-center justify-end gap-2.5 border-t border-glass-divider px-6 py-4">
+            <p className="min-w-0 flex-1 text-label font-medium text-ink-3">
+              {attempted && hasErrors ? (
+                <span className="text-danger">Fix the highlighted fields</span>
+              ) : (
+                "* Required"
+              )}
+            </p>
+            <Dialog.Close asChild>
+              <GlassButton variant="ghost">Cancel</GlassButton>
+            </Dialog.Close>
+            <GlassButton type="submit" form="room-form" disabled={submitting}>
+              {submitting ? <Loader2 className="animate-spin" /> : isEdit ? <Check /> : <Plus />}
+              {submitting ? "Saving…" : isEdit ? "Save changes" : "Create room"}
+            </GlassButton>
+          </footer>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3.5 rounded-[18px] border border-glass-divider bg-glass-1 p-[18px]">
+      <h3 className="text-eyebrow text-ink-2">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function PrefixInput({ prefix, children }: { prefix: string; children: ReactNode }) {
+  return (
+    <div className="relative">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-body text-ink"
+      >
+        {prefix}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function PhotoTile({
+  id,
+  src,
+  cover,
+  onRemove,
+}: {
+  id: string;
+  src: string;
+  cover: boolean;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+      }}
+      className={cn(
+        "relative size-[104px] shrink-0 cursor-grab touch-none overflow-hidden rounded-[14px] border border-glass-divider active:cursor-grabbing",
+        isDragging && "opacity-80 shadow-glass-3",
+      )}
+      {...attributes}
+      {...listeners}
+      aria-label={cover ? "Cover photo — drag to reorder" : "Photo — drag to reorder"}
+    >
+      <RoomThumbnail src={src} className="rounded-[14px]" iconClassName="size-6" />
+      <button
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={onRemove}
+        aria-label="Remove photo"
+        className="glass-3 absolute top-[5px] right-[5px] flex size-6 items-center justify-center rounded-full text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+      >
+        <X className="size-3" />
+      </button>
+      {cover ? (
+        <span className="absolute bottom-[5px] left-[5px] rounded-full bg-brand px-2 py-0.5 text-label font-medium text-on-brand">
+          Cover
+        </span>
+      ) : null}
+    </div>
   );
 }

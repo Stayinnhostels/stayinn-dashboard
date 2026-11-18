@@ -7,7 +7,9 @@ type GetBookingResponse = {
 };
 
 export async function getBookingApi(token: string, id: string): Promise<Booking> {
-  const data = await apiFetch<GetBookingResponse>(`/api/v1/bookings/${encodeURIComponent(id)}`, { token });
+  const data = await apiFetch<GetBookingResponse>(`/api/v1/bookings/${encodeURIComponent(id)}`, {
+    token,
+  });
   if (!data.success || !data.booking) {
     throw new Error("Invalid booking response");
   }

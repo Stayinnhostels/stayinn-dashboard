@@ -53,6 +53,8 @@ export function roomToDraft(room: Room): RoomDraft {
     images: room.images ?? [],
     badge: room.badge ?? null,
     display_order: room.display_order ?? 100,
+    floor: room.floor ?? null,
+    last_cleaned_at: room.last_cleaned_at ?? null,
   };
 }
 
@@ -86,6 +88,19 @@ export type Room = {
   has_images?: boolean;
   badge: string | null;
   display_order: number;
+  /** Building floor (0 = ground); null when not set. */
+  floor?: number | null;
+  /** ISO timestamp of the last housekeeping clean; null when not recorded. */
+  last_cleaned_at?: string | null;
+  /** Guests staying today (admin list + detail only). */
+  occupants?: RoomOccupant[];
+  gender_policy?: "mixed" | "male" | "female";
+  beds_out_of_service?: number[];
+  housekeeping_status?: "ready" | "needs_cleaning";
+  /** Daily-guest (visitor) nightly rate, per seat. */
+  visitor_nightly_rate?: number | null;
+  visitor_nightly_rate_usd?: number | null;
+  visitor_nightly_rate_pkr?: number | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -106,7 +121,18 @@ export type RoomDraft = {
   images: string[];
   badge?: string | null;
   display_order: number;
+  floor?: number | null;
+  last_cleaned_at?: string | null;
 };
+
+export type RoomOccupant = {
+  booking_id: string;
+  guest_name: string;
+  seats: number;
+  status: string;
+};
+
+export type RoomStatusCounts = Record<"all" | RoomStatus, number>;
 
 export type RoomsListParams = {
   page?: number;

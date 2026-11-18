@@ -13,11 +13,14 @@ export async function postSecurityMovementApi(
   bookingId: string,
   input: RecordSecurityMovementInput,
 ) {
-  const data = await apiFetch<PostSecurityMovementResponse>(`/api/v1/bookings/${bookingId}/security`, {
-    method: "POST",
-    token,
-    body: JSON.stringify(input),
-  });
+  const data = await apiFetch<PostSecurityMovementResponse>(
+    `/api/v1/bookings/${bookingId}/security`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    },
+  );
   if (!data.success || !data.booking) {
     throw new Error(data.message ?? "Could not update security payment");
   }

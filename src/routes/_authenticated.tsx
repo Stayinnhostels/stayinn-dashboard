@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { LoadingScreen } from "@/components/system/system-screens";
 import { useAuth } from "@/lib/auth-context";
 
 /**
@@ -21,11 +21,7 @@ function AuthenticatedLayout() {
   }, [user, navigate]);
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return <Outlet />;

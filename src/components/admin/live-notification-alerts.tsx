@@ -1,14 +1,13 @@
 import { useLayoutEffect, useState, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
-import { Bell, BellRing } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { NotificationCard } from "@/components/admin/notification-card";
+import { Bell, BellRing, X } from "lucide-react";
 import { useMarkNotificationReadMutation } from "@/queries/notifications";
-import { useLiveAlertsStore } from "@/stores/notifications/live-alerts.store";
+import { AUTO_DISMISS_MS, MISSED_DISMISS_MS, useLiveAlertsStore, type LiveAlert } from "@/stores/notifications/live-alerts.store";
+import { getNotificationKind, notificationAgo, notificationDetail } from "@/lib/notification-kind";
 import { cn } from "@/lib/utils";
 
-const PANEL_WIDTH = 288;
+const PANEL_WIDTH = 380;
 const GAP_LEFT_OF_BELL = 10;
 
 type LiveNotificationAlertsProps = {
@@ -61,69 +60,74 @@ export function LiveNotificationAlerts({ anchorRef }: LiveNotificationAlertsProp
       ? `${alerts.length} new · bulk`
       : `${alerts.length} new`;
 
+  const amber = bulkMode || missedMode;
+  const headerLink = "rounded-[8px] px-2 py-1 text-label font-medium outline-none hover:bg-glass-inset focus-visible:ring-2 focus-visible:ring-brand-border";
+
   return createPortal(
     <div
-      className="pointer-events-none fixed top-0 z-[200] flex flex-col items-end gap-2 pt-2"
-      style={{ right: panelRight, width: PANEL_WIDTH }}
+      className="pointer-events-none fixed top-0 z-[200] flex max-w-[calc(100vw-24px)] flex-col items-end gap-2 pt-3 font-geist"
+      style={{ right: Math.max(12, panelRight), width: PANEL_WIDTH }}
       aria-live="polite"
       aria-label="Live notifications"
     >
-      <div
-        className={cn(
-          "pointer-events-auto flex h-7 w-full items-center justify-between gap-2 rounded-lg border px-2 shadow-sm backdrop-blur-sm",
-          bulkMode || missedMode
-            ? "border-amber-500/40 bg-amber-500/10"
-            : "border-border/60 bg-card/95",
-        )}
-      >
-        <span
-          className={cn(
-            "flex items-center gap-1 text-[10px] font-semibold",
-            bulkMode || missedMode ? "text-amber-800 dark:text-amber-200" : "text-foreground",
-          )}
-        >
-          {bulkMode ? (
-            <BellRing className={cn("h-3 w-3", missedMode ? "text-amber-700" : "text-amber-600")} />
-          ) : (
-            <Bell className="h-3 w-3 text-primary" />
-          )}
-          {headerLabel}
+      <div className="glass-3 pointer-events-auto flex h-10 w-full items-center gap-2 rounded-[14px] pr-1.5 pl-3 text-ink">
+        <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px] [&_svg]:size-3.5", amber ? "bg-warning-tint text-warning" : "bg-brand-tint text-brand-text")}>
+          {bulkMode ? <BellRing aria-hidden /> : <Bell aria-hidden />}
         </span>
-        <div className="flex gap-0.5">
-          <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary" asChild>
-            <Link to="/admin/bookings">Bookings</Link>
-          </Button>
-          <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-primary" asChild>
-            <Link to="/admin/notifications">All</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 px-1.5 text-[10px] text-muted-foreground"
-            onClick={clear}
-          >
-            Clear
-          </Button>
-        </div>
+        <span className="min-w-0 flex-1 truncate text-label font-semibold text-ink">{headerLabel}</span>
+        <Link to="/admin/bookings" className={cn(headerLink, "text-brand-text")}>Bookings</Link>
+        <Link to="/admin/notifications" className={cn(headerLink, "text-brand-text")}>All</Link>
+        <button type="button" onClick={clear} className={cn(headerLink, "cursor-pointer text-ink-2 hover:text-ink")}>Clear</button>
       </div>
 
       {alerts.map((alert) => (
-        <div
-          key={alert.alertId}
-          className={cn(
-            "pointer-events-auto h-[5.75rem] w-full animate-in slide-in-from-top fade-in duration-300",
-            bulkMode && "ring-1 ring-amber-500/30 rounded-xl",
-          )}
-        >
-          <NotificationCard
-            notification={alert}
-            variant="alert"
-            onDismiss={() => dismiss(alert.alertId)}
-            onMarkRead={() => markRead.mutate(alert.id)}
-          />
-        </div>
+        <LiveToast key={alert.alertId} alert={alert} onDismiss={() => dismiss(alert.alertId)} onOpen={() => { dismiss(alert.alertId); markRead.mutate(alert.id); }} />
       ))}
     </div>,
     document.body,
+  );
+}
+
+/** Figma Toast (00 · design system): solid icon tile, title, detail, × and a draining progress bar. */
+function LiveToast({ alert, onDismiss, onOpen }: { alert: LiveAlert; onDismiss: () => void; onOpen: () => void }) {
+  const kind = getNotificationKind(alert);
+  const Icon = kind.icon;
+  const detail = notificationDetail(alert);
+  const missed = alert.source === "missed";
+  const duration = missed ? MISSED_DISMISS_MS : AUTO_DISMISS_MS;
+  const tone = kind.urgent ? "bg-danger" : missed ? "bg-warning" : "bg-brand";
+
+  const body = (
+    <div className="flex items-start gap-3 px-3.5 py-3">
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px] text-on-brand [&_svg]:size-[18px]", tone)}>
+        <Icon aria-hidden />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="truncate text-body font-semibold text-ink">{alert.title}</p>
+        {detail ? <p className="line-clamp-2 text-label font-medium text-ink-2">{detail}</p> : null}
+      </div>
+      <span className="shrink-0 pt-0.5 text-label font-medium text-brand-text">{missed ? notificationAgo(alert.created_at) : "Now"}</span>
+    </div>
+  );
+
+  return (
+    <div role="status" className="glass-3 group pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-[16px] text-ink animate-in fade-in slide-in-from-top-2 duration-300">
+      {alert.link ? (
+        <Link to={alert.link} onClick={onOpen} className="block pr-8 outline-none focus-visible:ring-2 focus-visible:ring-brand-border">{body}</Link>
+      ) : (
+        <button type="button" onClick={onOpen} className="block cursor-pointer pr-8 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-border">{body}</button>
+      )}
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={onDismiss}
+        className="absolute top-2.5 right-2.5 flex size-6 cursor-pointer items-center justify-center rounded-md text-ink-2 outline-none hover:bg-glass-inset hover:text-ink focus-visible:ring-2 focus-visible:ring-brand-border"
+      >
+        <X className="size-4" aria-hidden />
+      </button>
+      <div className="h-[3px] w-full bg-glass-inset">
+        <div className={cn("h-full", kind.urgent ? "bg-danger" : missed ? "bg-warning" : "bg-brand")} style={{ animation: `walkin-toast-progress ${duration}ms linear forwards` }} />
+      </div>
+    </div>
   );
 }

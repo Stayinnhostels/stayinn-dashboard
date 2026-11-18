@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2, Check, ChevronDown } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Building2, Check, ChevronDown, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
 
-export function HostelSwitcher() {
+/** Figma "Property switcher" — glass-2, 40px, 12 radius, building + name + chevron. */
+export function HostelSwitcher({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const { activeHostel, hostels, isLoading, setSelectedHostelId, hostelId } = useHostelScope();
@@ -18,18 +18,21 @@ export function HostelSwitcher() {
     setOpen(false);
   }
 
+  const triggerClass = cn(
+    "glass-2 flex h-10 shrink-0 items-center gap-2 rounded-[12px] px-3 font-geist text-body font-medium text-ink outline-none",
+    "hover:bg-glass-inset focus-visible:ring-2 focus-visible:ring-brand-border data-[state=open]:bg-glass-inset",
+    compact ? "w-10 justify-center px-0" : "max-w-[15rem]",
+  );
+
   if (isLoading) {
-    return <Skeleton className="h-9 w-36 rounded-lg" />;
+    return <span aria-hidden className={cn(triggerClass, compact ? "animate-pulse" : "w-[180px] animate-pulse")} />;
   }
 
   if (hostels.length === 0) {
     return (
-      <Link
-        to="/admin/hostels"
-        className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
-      >
-        <Building2 className="h-4 w-4" />
-        Add property
+      <Link to="/admin/hostels" className={triggerClass} aria-label="Add property">
+        <Plus aria-hidden className="size-4 shrink-0 text-ink-2" />
+        {compact ? null : "Add property"}
       </Link>
     );
   }
@@ -42,48 +45,63 @@ export function HostelSwitcher() {
         <button
           type="button"
           data-tour="hostel-switcher"
-          className={cn(
-            "inline-flex h-9 max-w-[12rem] items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3",
-            "text-sm font-medium text-foreground transition-colors",
-            "hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            "data-[state=open]:bg-primary/15",
-          )}
+          aria-label={`Property: ${label}. Switch property`}
+          className={triggerClass}
         >
-          <Building2 className="h-4 w-4 shrink-0 text-primary" />
-          <span className="truncate">{label}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Building2 aria-hidden className={cn("shrink-0", compact ? "size-[18px] text-brand-text" : "size-4 text-ink-2")} />
+          {compact ? null : (
+            <>
+              <span className="min-w-0 truncate">{label}</span>
+              <ChevronDown aria-hidden className="size-4 shrink-0 text-ink-2" />
+            </>
+          )}
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" sideOffset={6} className="w-56 rounded-lg p-1 shadow-md">
-        <ul className="py-0.5">
+      <PopoverContent
+        align={compact ? "end" : "start"}
+        sideOffset={8}
+        className="glass-3 w-64 rounded-[16px] border-glass-stroke p-1.5 font-geist text-ink shadow-none"
+      >
+        <p className="px-2.5 pt-1.5 pb-1 text-eyebrow text-ink-3">Properties</p>
+        <ul role="listbox" aria-label="Properties">
           {hostels.map((hostel) => {
             const selected = hostel.id === hostelId;
             return (
               <li key={hostel.id}>
                 <button
                   type="button"
+                  role="option"
+                  aria-selected={selected}
                   onClick={() => switchHostel(hostel.id)}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm",
-                    selected ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted",
+                    "flex h-10 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-left text-body outline-none focus-visible:ring-2 focus-visible:ring-brand-border",
+                    selected
+                      ? "bg-brand-tint font-medium text-ink"
+                      : "text-ink-2 hover:bg-glass-inset hover:text-ink",
                   )}
                 >
-                  <Check className={cn("h-4 w-4 shrink-0", selected ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    aria-hidden
+                    className={cn(
+                      "size-4 shrink-0 text-brand-text",
+                      selected ? "opacity-100" : "opacity-0",
+                    )}
+                  />
                   <span className="min-w-0 flex-1 truncate">{hostel.name}</span>
                   {hostel.status === "inactive" ? (
-                    <span className="shrink-0 text-[10px] text-muted-foreground">Paused</span>
+                    <span className="shrink-0 text-label text-ink-3">Paused</span>
                   ) : null}
                 </button>
               </li>
             );
           })}
         </ul>
-        <div className="mt-0.5 border-t border-border/60 pt-0.5">
+        <div className="mt-1 border-t border-glass-divider pt-1">
           <Link
             to="/admin/hostels"
             onClick={() => setOpen(false)}
-            className="block rounded-md px-2.5 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-9 items-center rounded-[10px] px-2.5 text-label font-medium text-brand-text outline-none hover:bg-glass-inset focus-visible:ring-2 focus-visible:ring-brand-border"
           >
             Manage properties
           </Link>

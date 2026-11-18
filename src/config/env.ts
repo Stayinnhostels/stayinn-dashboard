@@ -11,6 +11,9 @@ function readIntEnv(key: string, fallback: number): number {
 export const appEnv = {
   apiBaseUrl: (import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:3000").replace(/\/$/, ""),
 
+  /** Set `VITE_MAINTENANCE_MODE=true` to replace the whole app with the Maintenance screen. */
+  maintenanceMode: import.meta.env.VITE_MAINTENANCE_MODE === "true",
+
   /** Default `staleTime` for `useQuery` (ms). */
   queryStaleTimeMs: readIntEnv("VITE_QUERY_STALE_TIME_MS", 60_000),
 

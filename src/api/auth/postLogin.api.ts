@@ -1,6 +1,10 @@
+import { ApiError } from "@/api/apiFetch";
 import { getApiBaseUrl } from "@/api/client";
 import type { LoginApiRequestBody } from "@/types/api/auth/login.request.types";
-import type { LoginApiResponseJson, LoginApiSuccessResponse } from "@/types/api/auth/login.response.types";
+import type {
+  LoginApiResponseJson,
+  LoginApiSuccessResponse,
+} from "@/types/api/auth/login.response.types";
 
 function assertProductionApiConfigured() {
   if (!import.meta.env.PROD) return;
@@ -33,11 +37,19 @@ export async function postLoginApi(body: LoginApiRequestBody): Promise<LoginApiS
 
   if (!res.ok) {
     const msg = typeof data.message === "string" ? data.message : `Sign in failed (${res.status})`;
-    throw new Error(msg);
+    const retryRaw = res.headers.get("Retry-After") ?? res.headers.get("RateLimit-Reset");
+    const retryAfter = retryRaw != null && retryRaw !== "" ? Number(retryRaw) : Number.NaN;
+    throw new ApiError(
+      msg,
+      res.status,
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+    );
   }
 
   if (!data.success || !data.token || !data.refreshToken || !data.user) {
-    throw new Error(typeof data.message === "string" ? data.message : "Invalid response from server");
+    throw new Error(
+      typeof data.message === "string" ? data.message : "Invalid response from server",
+    );
   }
 
   return {

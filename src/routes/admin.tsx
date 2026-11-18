@@ -1,11 +1,15 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useGlassDark } from "@/lib/glass-theme";
+import { PageHeader } from "@/components/admin/page-header";
 import { useAuth } from "@/lib/auth-context";
-import { AdminSidebar, AdminMobileSidebar } from "@/components/admin/admin-sidebar";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminMobileNav } from "@/components/admin/shell/admin-mobile-nav";
+import { CommandMenuProvider } from "@/components/admin/shell/admin-command-menu";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { OnboardingTour } from "@/components/admin/onboarding-tour";
 import { NotFoundView } from "@/components/not-found-view";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingScreen, NoAccessScreen, SystemAction } from "@/components/system/system-screens";
 import { NotificationSocketProvider } from "@/providers/notification-socket-provider";
 import { DashboardThemeProvider } from "@/providers/dashboard-theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +27,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin": { title: "Dashboard", subtitle: "" },
   "/admin/rooms": { title: "Rooms", subtitle: "" },
   "/admin/bookings": { title: "Bookings", subtitle: "" },
-  "/admin/booking-requests": { title: "Guest Requests", subtitle: "Cancel, room change & seat requests" },
+  "/admin/booking-requests": {
+    title: "Guest Requests",
+    subtitle: "Cancel, room change & seat requests",
+  },
   "/admin/users": { title: "Users", subtitle: "" },
   "/admin/messages": { title: "Messages", subtitle: "" },
   "/admin/payments": { title: "Payments", subtitle: "" },
@@ -46,7 +53,11 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/notifications": { title: "Notifications", subtitle: "" },
   "/admin/hostels": { title: "Properties", subtitle: "Manage hostel locations" },
   "/admin/settings": { title: "Settings", subtitle: "" },
+  "/admin/design-system": { title: "Design system", subtitle: "Glass tokens & components" },
 };
+
+/** Pages that render their own PageHeader (custom subtitle / actions, per the Figma). */
+const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$/;
 
 function resolveMeta(pathname: string) {
   if (TITLES[pathname]) return TITLES[pathname];
@@ -60,23 +71,46 @@ function resolveMeta(pathname: string) {
 }
 
 function AdminLayout() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [mobileNav, setMobileNav] = useState(false);
 
   useEffect(() => {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
-    else if (!isAdmin) navigate({ to: "/" });
-  }, [loading, user, isAdmin, navigate]);
+  }, [loading, user, navigate]);
 
-  if (loading || !user || !isAdmin) {
+  // Dark Glass: put `.dark` on <html> while inside the admin so portals (dialogs, menus) follow.
+  const dark = useGlassDark();
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", dark);
+    root.style.colorScheme = dark ? "dark" : "light";
+    return () => {
+      root.classList.remove("dark");
+      root.style.colorScheme = "";
+    };
+  }, [dark]);
+
+  if (loading || !user) {
+    return <LoadingScreen />;
+  }
+
+  // Signed in, but this account may not use the admin console.
+  if (!isAdmin) {
     return (
-      <div className="container mx-auto px-4 py-16 space-y-4 max-w-2xl">
-        <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-64 w-full rounded-3xl" />
-      </div>
+      <NoAccessScreen
+        primary={
+          <SystemAction
+            onClick={async () => {
+              await logout();
+              navigate({ to: "/login" });
+            }}
+          >
+            Use a different account
+          </SystemAction>
+        }
+      />
     );
   }
 
@@ -86,21 +120,25 @@ function AdminLayout() {
     <DashboardThemeProvider>
       <TooltipProvider delayDuration={200}>
         <NotificationSocketProvider>
-          <div className="flex h-svh min-h-0 w-full overflow-hidden bg-muted/30">
-            <OnboardingTour />
-            <AdminSidebar />
-            <AdminMobileSidebar open={mobileNav} onOpenChange={setMobileNav} />
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <AdminHeader
-                title={meta.title}
-                subtitle={meta.subtitle}
-                onOpenMobileNav={() => setMobileNav(true)}
-              />
-              <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8">
-                <Outlet />
-              </main>
+          <CommandMenuProvider>
+            {/* Figma "02 · Desktop · Light Glass": floating sidebar + glass main shell, 24px gutters */}
+            <div className="glass-root flex h-svh min-h-0 w-full gap-5 overflow-hidden md:p-6">
+              <OnboardingTour />
+              <AdminSidebar />
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:glass-1 md:rounded-[28px]">
+                <div className="px-4 pt-3 md:p-0">
+                  <AdminHeader />
+                </div>
+                <main className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-[calc(104px+env(safe-area-inset-bottom))] md:p-6">
+                  {CUSTOM_HEADER_ROUTES.test(pathname) ? null : (
+                    <PageHeader title={meta.title} subtitle={meta.subtitle} />
+                  )}
+                  <Outlet />
+                </main>
+              </div>
+              <AdminMobileNav />
             </div>
-          </div>
+          </CommandMenuProvider>
         </NotificationSocketProvider>
       </TooltipProvider>
     </DashboardThemeProvider>

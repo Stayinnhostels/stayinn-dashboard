@@ -7,6 +7,8 @@ import "./styles.css";
 
 const router = getRouter();
 
+// backend
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

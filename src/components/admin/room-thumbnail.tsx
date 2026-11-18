@@ -25,8 +25,10 @@ export function RoomThumbnail({
 
   if (!resolved) {
     return (
-      <div className={cn("flex h-full w-full items-center justify-center bg-muted", className)}>
-        <BedDouble className={cn("h-12 w-12 text-muted-foreground/40", iconClassName)} />
+      <div
+        className={cn("flex h-full w-full items-center justify-center bg-glass-inset", className)}
+      >
+        <BedDouble className={cn("h-12 w-12 text-ink-3 opacity-60", iconClassName)} />
       </div>
     );
   }

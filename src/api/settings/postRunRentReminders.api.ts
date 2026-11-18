@@ -23,11 +23,13 @@ export async function postRunRentReminders(
   token: string,
   options?: { day?: number },
 ): Promise<RentReminderRunResult> {
-  const qs =
-    options?.day != null && Number.isFinite(options.day) ? `?day=${options.day}` : "";
-  const data = await apiFetch<RunRentRemindersResponse>(`/api/v1/settings/rent-reminders/run${qs}`, {
-    method: "POST",
-    token,
-  });
+  const qs = options?.day != null && Number.isFinite(options.day) ? `?day=${options.day}` : "";
+  const data = await apiFetch<RunRentRemindersResponse>(
+    `/api/v1/settings/rent-reminders/run${qs}`,
+    {
+      method: "POST",
+      token,
+    },
+  );
   return data.result;
 }

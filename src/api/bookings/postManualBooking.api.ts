@@ -36,6 +36,15 @@ export type CreateManualBookingInput = {
   security_returnable?: number;
   price_per_seat?: number;
   currency?: "pkr" | "usd";
+  /** Figma 05 walk-in */
+  status?: "confirmed" | "checked_in";
+  seat_label?: string;
+  expected_arrival_time?: string;
+  id_type?: "cnic" | "b_form" | "passport";
+  guest_passport?: string;
+  guest_guardian_name?: string;
+  payment_method?: "cash" | "card" | "bank_transfer" | "jazzcash" | "easypaisa";
+  amount_received?: number;
 };
 
 type PostManualBookingResponse = {

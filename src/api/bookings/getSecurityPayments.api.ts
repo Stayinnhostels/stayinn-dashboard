@@ -13,7 +13,10 @@ type GetSecurityPaymentsResponse = {
   pagination: SecurityPaymentsPagination;
 };
 
-export async function getSecurityPaymentsApi(token: string, params: SecurityPaymentsListParams = {}) {
+export async function getSecurityPaymentsApi(
+  token: string,
+  params: SecurityPaymentsListParams = {},
+) {
   const search = new URLSearchParams();
   if (params.page) search.set("page", String(params.page));
   if (params.limit) search.set("limit", String(params.limit));

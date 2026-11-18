@@ -31,7 +31,9 @@ export async function getResidentsRegisterApi(token: string, params: ResidentReg
   if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
-  const data = await apiFetch<ListResidentsResponse>(`/api/v1/residents${q ? `?${q}` : ""}`, { token });
+  const data = await apiFetch<ListResidentsResponse>(`/api/v1/residents${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.residents)) {
     throw new Error("Invalid residents register response");
   }
@@ -50,7 +52,10 @@ type DirectoryResponse = {
   pagination: { page: number; limit: number; total: number; pages: number };
 };
 
-export async function getResidentsDirectoryApi(token: string, params: ResidentDirectoryParams = {}) {
+export async function getResidentsDirectoryApi(
+  token: string,
+  params: ResidentDirectoryParams = {},
+) {
   const search = new URLSearchParams();
   if (params.page != null) search.set("page", String(params.page));
   if (params.limit != null) search.set("limit", String(params.limit));
@@ -111,7 +116,9 @@ type ResidentDetailResponse = { success: boolean } & ResidentDetail;
 
 export async function getResidentDetailApi(token: string, bookingId: string, month?: string) {
   const search = month ? `?month=${encodeURIComponent(month)}` : "";
-  const data = await apiFetch<ResidentDetailResponse>(`/api/v1/residents/${bookingId}${search}`, { token });
+  const data = await apiFetch<ResidentDetailResponse>(`/api/v1/residents/${bookingId}${search}`, {
+    token,
+  });
   if (!data.success || !data.resident) {
     throw new Error("Invalid resident detail response");
   }
@@ -163,7 +170,11 @@ export async function ocrCnicApi(
 
 type UpdateResidentResponse = { success: boolean; resident: ResidentRegisterRow };
 
-export async function patchResidentApi(token: string, bookingId: string, input: UpdateResidentInput) {
+export async function patchResidentApi(
+  token: string,
+  bookingId: string,
+  input: UpdateResidentInput,
+) {
   const data = await apiFetch<UpdateResidentResponse>(`/api/v1/residents/${bookingId}`, {
     method: "PATCH",
     token,
@@ -175,14 +186,18 @@ export async function patchResidentApi(token: string, bookingId: string, input: 
   return data.resident;
 }
 
-export async function emailResidentMonthReceiptApi(token: string, bookingId: string, month: string) {
+export async function emailResidentMonthReceiptApi(
+  token: string,
+  bookingId: string,
+  month: string,
+) {
   const data = await apiFetch<{ success: boolean; message: string }>(
     `/api/v1/residents/${bookingId}/email-month-receipt`,
     {
       method: "POST",
       token,
       body: JSON.stringify({ month }),
-    }
+    },
   );
   return data;
 }

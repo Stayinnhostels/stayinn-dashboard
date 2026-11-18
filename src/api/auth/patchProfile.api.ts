@@ -12,6 +12,7 @@ type MeResponse = {
 export type UpdateProfileInput = {
   name?: string;
   avatar?: string | null;
+  jobTitle?: string;
 };
 
 export async function getMeApi(token: string): Promise<AuthUser> {

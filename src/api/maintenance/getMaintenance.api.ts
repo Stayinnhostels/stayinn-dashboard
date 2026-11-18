@@ -1,5 +1,9 @@
 import { apiFetch } from "@/api/apiFetch";
-import type { MaintenanceListParams, MaintenanceStats, MaintenanceTicket } from "@/types/domain/maintenance.types";
+import type {
+  MaintenanceListParams,
+  MaintenanceStats,
+  MaintenanceTicket,
+} from "@/types/domain/maintenance.types";
 
 type ListMaintenanceResponse = {
   success: boolean;
@@ -13,10 +17,9 @@ export async function getMaintenanceApi(token: string, params: MaintenanceListPa
   if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
-  const data = await apiFetch<ListMaintenanceResponse>(
-    `/api/v1/maintenance${q ? `?${q}` : ""}`,
-    { token },
-  );
+  const data = await apiFetch<ListMaintenanceResponse>(`/api/v1/maintenance${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.maintenance)) {
     throw new Error("Invalid maintenance list response");
   }

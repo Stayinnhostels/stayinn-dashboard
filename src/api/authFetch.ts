@@ -2,7 +2,11 @@ import { getApiBaseUrl } from "@/api/client";
 import { refreshDashboardSession } from "@/lib/refresh-session";
 
 /** Authenticated fetch with one automatic refresh+retry on 401. */
-export async function authFetch(path: string, init: RequestInit = {}, token?: string | null): Promise<Response> {
+export async function authFetch(
+  path: string,
+  init: RequestInit = {},
+  token?: string | null,
+): Promise<Response> {
   const headers = new Headers(init.headers);
   const access = token?.trim();
   if (access) headers.set("Authorization", `Bearer ${access}`);

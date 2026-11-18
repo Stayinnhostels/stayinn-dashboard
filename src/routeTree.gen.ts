@@ -9,7 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
+import { Route as ScreensRouteImport } from './routes/screens'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -33,6 +37,7 @@ import { Route as AdminHostelsRouteImport } from './routes/admin.hostels'
 import { Route as AdminFinancialsRouteImport } from './routes/admin.financials'
 import { Route as AdminFacilitiesRouteImport } from './routes/admin.facilities'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
+import { Route as AdminDesignSystemRouteImport } from './routes/admin.design-system'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminBookingRequestsRouteImport } from './routes/admin.booking-requests'
@@ -42,11 +47,32 @@ import { Route as AdminWebsiteBookingRulesRouteImport } from './routes/admin.web
 import { Route as AdminWebsiteAboutRouteImport } from './routes/admin.website.about'
 import { Route as AdminUsersIdRouteImport } from './routes/admin.users.$id'
 import { Route as AdminRoomsIdRouteImport } from './routes/admin.rooms.$id'
+import { Route as AdminResidentsIdRouteImport } from './routes/admin.residents.$id'
 import { Route as AdminBookingsIdRouteImport } from './routes/admin.bookings.$id'
 
+const SetPasswordRoute = SetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScreensRoute = ScreensRouteImport.update({
+  id: '/screens',
+  path: '/screens',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -163,6 +189,11 @@ const AdminExpensesRoute = AdminExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDesignSystemRoute = AdminDesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCouponsRoute = AdminCouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
@@ -209,6 +240,11 @@ const AdminRoomsIdRoute = AdminRoomsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminRoomsRoute,
 } as any)
+const AdminResidentsIdRoute = AdminResidentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminResidentsRoute,
+} as any)
 const AdminBookingsIdRoute = AdminBookingsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -218,11 +254,16 @@ const AdminBookingsIdRoute = AdminBookingsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/screens': typeof ScreensRoute
+  '/set-password': typeof SetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
@@ -233,7 +274,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
-  '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents': typeof AdminResidentsRouteWithChildren
   '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
@@ -244,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
+  '/admin/residents/$id': typeof AdminResidentsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
@@ -252,11 +294,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/screens': typeof ScreensRoute
+  '/set-password': typeof SetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
@@ -267,7 +314,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
-  '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents': typeof AdminResidentsRouteWithChildren
   '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
@@ -278,6 +325,7 @@ export interface FileRoutesByTo {
   '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
+  '/admin/residents/$id': typeof AdminResidentsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
@@ -289,11 +337,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/screens': typeof ScreensRoute
+  '/set-password': typeof SetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/booking-requests': typeof AdminBookingRequestsRoute
   '/admin/bookings': typeof AdminBookingsRouteWithChildren
   '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/design-system': typeof AdminDesignSystemRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/facilities': typeof AdminFacilitiesRoute
   '/admin/financials': typeof AdminFinancialsRoute
@@ -304,7 +357,7 @@ export interface FileRoutesById {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/profit-loss': typeof AdminProfitLossRoute
-  '/admin/residents': typeof AdminResidentsRoute
+  '/admin/residents': typeof AdminResidentsRouteWithChildren
   '/admin/residents-by-room': typeof AdminResidentsByRoomRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/rooms': typeof AdminRoomsRouteWithChildren
@@ -315,6 +368,7 @@ export interface FileRoutesById {
   '/admin/website': typeof AdminWebsiteRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
+  '/admin/residents/$id': typeof AdminResidentsIdRoute
   '/admin/rooms/$id': typeof AdminRoomsIdRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/website/about': typeof AdminWebsiteAboutRoute
@@ -326,11 +380,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/screens'
+    | '/set-password'
     | '/dashboard'
     | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/design-system'
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
@@ -352,6 +411,7 @@ export interface FileRouteTypes {
     | '/admin/website'
     | '/admin/'
     | '/admin/bookings/$id'
+    | '/admin/residents/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
@@ -360,11 +420,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/screens'
+    | '/set-password'
     | '/dashboard'
     | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/design-system'
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
@@ -386,6 +451,7 @@ export interface FileRouteTypes {
     | '/admin/website'
     | '/admin'
     | '/admin/bookings/$id'
+    | '/admin/residents/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
@@ -396,11 +462,16 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/admin'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
+    | '/screens'
+    | '/set-password'
     | '/_authenticated/dashboard'
     | '/admin/booking-requests'
     | '/admin/bookings'
     | '/admin/coupons'
+    | '/admin/design-system'
     | '/admin/expenses'
     | '/admin/facilities'
     | '/admin/financials'
@@ -422,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/website'
     | '/admin/'
     | '/admin/bookings/$id'
+    | '/admin/residents/$id'
     | '/admin/rooms/$id'
     | '/admin/users/$id'
     | '/admin/website/about'
@@ -433,16 +505,48 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  ScreensRoute: typeof ScreensRoute
+  SetPasswordRoute: typeof SetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/set-password': {
+      id: '/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/screens': {
+      id: '/screens'
+      path: '/screens'
+      fullPath: '/screens'
+      preLoaderRoute: typeof ScreensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -606,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExpensesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/design-system': {
+      id: '/admin/design-system'
+      path: '/design-system'
+      fullPath: '/admin/design-system'
+      preLoaderRoute: typeof AdminDesignSystemRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/coupons': {
       id: '/admin/coupons'
       path: '/coupons'
@@ -669,6 +780,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRoomsIdRouteImport
       parentRoute: typeof AdminRoomsRoute
     }
+    '/admin/residents/$id': {
+      id: '/admin/residents/$id'
+      path: '/$id'
+      fullPath: '/admin/residents/$id'
+      preLoaderRoute: typeof AdminResidentsIdRouteImport
+      parentRoute: typeof AdminResidentsRoute
+    }
     '/admin/bookings/$id': {
       id: '/admin/bookings/$id'
       path: '/$id'
@@ -701,6 +819,18 @@ const AdminBookingsRouteChildren: AdminBookingsRouteChildren = {
 
 const AdminBookingsRouteWithChildren = AdminBookingsRoute._addFileChildren(
   AdminBookingsRouteChildren,
+)
+
+interface AdminResidentsRouteChildren {
+  AdminResidentsIdRoute: typeof AdminResidentsIdRoute
+}
+
+const AdminResidentsRouteChildren: AdminResidentsRouteChildren = {
+  AdminResidentsIdRoute: AdminResidentsIdRoute,
+}
+
+const AdminResidentsRouteWithChildren = AdminResidentsRoute._addFileChildren(
+  AdminResidentsRouteChildren,
 )
 
 interface AdminRoomsRouteChildren {
@@ -747,6 +877,7 @@ interface AdminRouteChildren {
   AdminBookingRequestsRoute: typeof AdminBookingRequestsRoute
   AdminBookingsRoute: typeof AdminBookingsRouteWithChildren
   AdminCouponsRoute: typeof AdminCouponsRoute
+  AdminDesignSystemRoute: typeof AdminDesignSystemRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminFacilitiesRoute: typeof AdminFacilitiesRoute
   AdminFinancialsRoute: typeof AdminFinancialsRoute
@@ -757,7 +888,7 @@ interface AdminRouteChildren {
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProfitLossRoute: typeof AdminProfitLossRoute
-  AdminResidentsRoute: typeof AdminResidentsRoute
+  AdminResidentsRoute: typeof AdminResidentsRouteWithChildren
   AdminResidentsByRoomRoute: typeof AdminResidentsByRoomRoute
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminRoomsRoute: typeof AdminRoomsRouteWithChildren
@@ -773,6 +904,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingRequestsRoute: AdminBookingRequestsRoute,
   AdminBookingsRoute: AdminBookingsRouteWithChildren,
   AdminCouponsRoute: AdminCouponsRoute,
+  AdminDesignSystemRoute: AdminDesignSystemRoute,
   AdminExpensesRoute: AdminExpensesRoute,
   AdminFacilitiesRoute: AdminFacilitiesRoute,
   AdminFinancialsRoute: AdminFinancialsRoute,
@@ -783,7 +915,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProfitLossRoute: AdminProfitLossRoute,
-  AdminResidentsRoute: AdminResidentsRoute,
+  AdminResidentsRoute: AdminResidentsRouteWithChildren,
   AdminResidentsByRoomRoute: AdminResidentsByRoomRoute,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminRoomsRoute: AdminRoomsRouteWithChildren,
@@ -801,7 +933,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  ScreensRoute: ScreensRoute,
+  SetPasswordRoute: SetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,439 +1,529 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  BedDouble,
-  CalendarCheck,
-  Users,
-  Wallet,
-  ArrowLeft,
-  Star,
-  Bell,
-  Wrench,
-  TicketPercent,
-  Shield,
-  Settings,
-  TrendingUp,
-  ClipboardList,
-  Globe,
-  Sparkles,
-  MessageSquare,
-  ShieldCheck,
-  Receipt,
-  ChevronDown,
-  ContactRound,
-  Building2,
-  type LucideIcon,
-} from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { ChevronRight, Ellipsis, PanelLeft, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ADMIN_NAV_LOGO_CLASS, ADMIN_NAV_LOGO_COMPACT_CLASS, TAB_LOGO_SRC } from "@/lib/brand-assets";
+import {
+  CountBadge,
+  GlassIconButton,
+  Kbd,
+  LogoMark,
+  NavGroupLabel,
+  NavItem,
+  PlanCard,
+  SubNav,
+  SubNavItem,
+} from "@/components/glass";
+import { useNavCountsQuery } from "@/queries/admin/useNavCountsQuery";
+import type { NavCounts } from "@/api/admin/getNavCounts.api";
 import { cn } from "@/lib/utils";
+import {
+  NAV_GROUPS,
+  PRINCIPAL_NAV,
+  badgeLabel,
+  groupCount,
+  groupHasActive,
+  isNavItemActive,
+  itemCount,
+  type AdminNavGroup,
+  type AdminNavItem,
+} from "./shell/admin-nav";
+import { AccountAvatar, AccountMenu, useAccountInfo } from "./shell/admin-account";
+import { usePlanQuery } from "@/queries/admin/usePlanQuery";
+import { useCommandMenu } from "./shell/admin-command-menu";
+
+/**
+ * Figma "Sidebar / Expanded" (264px) and "Sidebar / Collapsed" (76px rail):
+ * floating glass-1 panel, 28 radius, 16 padding.
+ */
 
 const SIDEBAR_COLLAPSED_KEY = "stay-inn-admin-sidebar-collapsed";
 const SIDEBAR_SECTIONS_KEY = "stay-inn-admin-sidebar-sections";
 
-const frontendBase = (import.meta.env.VITE_PUBLIC_FRONTEND_URL as string | undefined)?.replace(/\/$/, "");
-
-type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean };
-
-type NavSection = {
-  id: string;
-  label: string;
-  items: NavItem[];
-};
-
-const overviewItem: NavItem = {
-  to: "/admin",
-  label: "Dashboard",
-  icon: LayoutDashboard,
-  exact: true,
-};
-
-const navSections: NavSection[] = [
-  {
-    id: "operations",
-    label: "Operations",
-    items: [
-      { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
-      { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
-      { to: "/admin/booking-requests", label: "Guest Requests", icon: ClipboardList },
-      { to: "/admin/residents", label: "Residents", icon: ContactRound, exact: true },
-      { to: "/admin/residents-by-room", label: "Residents by Room", icon: Building2 },
-      { to: "/admin/monthly-rent", label: "Monthly Rent", icon: ClipboardList },
-      { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
-      { to: "/admin/facilities", label: "Facilities", icon: Sparkles },
-    ],
-  },
-  {
-    id: "people",
-    label: "People",
-    items: [
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/staff", label: "Staff", icon: Shield },
-      { to: "/admin/messages", label: "Messages", icon: MessageSquare },
-      { to: "/admin/reviews", label: "Reviews", icon: Star },
-    ],
-  },
-  {
-    id: "finance",
-    label: "Finance",
-    items: [
-      { to: "/admin/payments", label: "Payments", icon: Wallet },
-      { to: "/admin/security-payments", label: "Security", icon: ShieldCheck },
-      { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
-      { to: "/admin/expenses", label: "Monthly Expenses", icon: Receipt },
-      { to: "/admin/coupons", label: "Coupons", icon: TicketPercent },
-    ],
-  },
-  {
-    id: "system",
-    label: "System",
-    items: [
-      { to: "/admin/notifications", label: "Notifications", icon: Bell },
-      { to: "/admin/hostels", label: "Properties", icon: Building2 },
-      { to: "/admin/website", label: "Website Content", icon: Globe },
-      { to: "/admin/settings", label: "Settings", icon: Settings },
-    ],
-  },
-];
-
-function isItemActive(pathname: string, item: NavItem) {
-  return item.exact ? pathname === item.to : pathname.startsWith(item.to);
-}
-
-function sectionHasActive(pathname: string, section: NavSection) {
-  return section.items.some((item) => isItemActive(pathname, item));
-}
-
-function readCollapsedPreference() {
+function readCollapsed() {
   try {
-    if (typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
-      return true;
-    }
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
   } catch {
-    /* ignore */
+    return false;
   }
-  return false;
 }
 
-function readOpenSections(): Record<string, boolean> {
+function readOpenGroups(): Record<string, boolean> {
   try {
-    if (typeof window === "undefined") return {};
     const raw = window.localStorage.getItem(SIDEBAR_SECTIONS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    const parsed = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
-function NavLink({
-  item,
-  active,
-  compact,
-  onNavigate,
-}: {
-  item: NavItem;
-  active: boolean;
-  compact: boolean;
-  onNavigate?: () => void;
-}) {
-  const link = (
-    <Link
-      to={item.to as "/admin"}
-      onClick={onNavigate}
+function saveOpenGroups(value: Record<string, boolean>) {
+  try {
+    window.localStorage.setItem(SIDEBAR_SECTIONS_KEY, JSON.stringify(value));
+  } catch {
+    /* ignore */
+  }
+}
+
+function usePathname() {
+  return useRouterState({ select: (s) => s.location.pathname });
+}
+
+export function AdminSidebar() {
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+
+  const toggle = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  // One panel whose width animates (264 ↔ 76). Both layouts stay mounted on top of
+  // each other: the outgoing one fades out first, then the incoming one fades in,
+  // so nothing reflows or jumps while the panel resizes.
+  return (
+    <aside
+      aria-label="Main navigation"
       className={cn(
-        "group flex items-center rounded-xl text-sm font-medium transition-all",
-        compact ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
-        active
-          ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        "glass-1 relative hidden h-full shrink-0 overflow-hidden rounded-[28px] font-geist md:block",
+        "transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+        collapsed ? "w-[76px]" : "w-[264px]",
       )}
     >
-      <item.icon className="h-4 w-4 shrink-0" />
-      {!compact ? <span className="truncate">{item.label}</span> : null}
-    </Link>
+      <SidebarLayer visible={!collapsed} width={264}>
+        <ExpandedSidebar onCollapse={toggle} />
+      </SidebarLayer>
+      <SidebarLayer visible={collapsed} width={76}>
+        <CollapsedRail onExpand={toggle} />
+      </SidebarLayer>
+    </aside>
   );
+}
 
-  if (!compact) return link;
+function SidebarLayer({
+  visible,
+  width,
+  children,
+}: {
+  visible: boolean;
+  width: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      inert={!visible}
+      aria-hidden={!visible || undefined}
+      style={{ width }}
+      className={cn(
+        "absolute inset-y-0 left-0 transition-opacity motion-reduce:transition-none",
+        visible
+          ? "opacity-100 delay-150 duration-200 ease-out"
+          : "pointer-events-none opacity-0 duration-100 ease-in",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ───────────────────────── Expanded ───────────────────────── */
+
+function ExpandedSidebar({ onCollapse }: { onCollapse: () => void }) {
+  const pathname = usePathname();
+  const { setOpen: openSearch } = useCommandMenu();
+  const { name, title } = useAccountInfo();
+  const { data: counts } = useNavCountsQuery();
+  const { data: plan } = usePlanQuery();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(readOpenGroups);
+
+  // The group holding the current page opens by itself.
+  const activeGroupId = useMemo(
+    () => NAV_GROUPS.find((g) => groupHasActive(pathname, g))?.id,
+    [pathname],
+  );
+  useEffect(() => {
+    if (!activeGroupId) return;
+    setOpenGroups((prev) => {
+      if (prev[activeGroupId]) return prev;
+      const next = { ...prev, [activeGroupId]: true };
+      saveOpenGroups(next);
+      return next;
+    });
+  }, [activeGroupId]);
+
+  const toggleGroup = (id: string) =>
+    setOpenGroups((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveOpenGroups(next);
+      return next;
+    });
 
   return (
+    <div className="flex h-full flex-col gap-1 p-4">
+      <div className="flex items-center justify-between px-1 pb-2">
+        <Link
+          to="/admin"
+          className="flex items-center gap-2.5 rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+        >
+          <LogoMark />
+          <span className="text-[18px] leading-5 font-semibold text-ink">stayinn</span>
+        </Link>
+        <GlassIconButton aria-label="Collapse sidebar" size="sm" onClick={onCollapse}>
+          <PanelLeft />
+        </GlassIconButton>
+      </div>
+
+      <button
+        type="button"
+        data-tour="sidebar-search"
+        onClick={() => openSearch(true)}
+        className="glass-inset flex h-10 w-full shrink-0 items-center gap-2.5 rounded-[12px] px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+      >
+        <Search aria-hidden className="size-4 shrink-0 text-ink-3" />
+        <span className="min-w-0 flex-1 text-body text-ink-3">Search</span>
+        <Kbd>⌘K</Kbd>
+      </button>
+
+      <nav className="-mx-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-4 pb-2 [&>*]:shrink-0">
+        <NavGroupLabel>Principal</NavGroupLabel>
+        <div data-tour="nav-principal" className="flex flex-col gap-1 [&>*]:shrink-0">
+          {PRINCIPAL_NAV.map((item) => (
+            <SidebarLink
+              key={item.to}
+              item={item}
+              count={itemCount(item, counts)}
+              active={isNavItemActive(pathname, item)}
+              tour={item.to === "/admin" ? "nav-dashboard" : undefined}
+            />
+          ))}
+        </div>
+
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup
+            key={group.id}
+            group={group}
+            pathname={pathname}
+            counts={counts}
+            open={!!openGroups[group.id]}
+            onToggle={() => toggleGroup(group.id)}
+          />
+        ))}
+      </nav>
+
+      {plan ? (
+        <PlanCard
+          className="shrink-0"
+          title={plan.plan_name}
+          caption={
+            plan.room_limit
+              ? `${plan.rooms_used} of ${plan.room_limit} rooms used`
+              : `${plan.rooms_used} room${plan.rooms_used === 1 ? "" : "s"} · no limit`
+          }
+          used={plan.rooms_used}
+          total={plan.room_limit ?? 0}
+          showPercent={plan.room_limit != null}
+        />
+      ) : null}
+
+      <AccountMenu side="top" align="start">
+        <button
+          type="button"
+          data-tour="header-account"
+          className="flex w-full items-center gap-2.5 rounded-[14px] px-2 pt-2.5 pb-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+        >
+          <AccountAvatar />
+          <span className="flex min-w-0 flex-1 flex-col whitespace-nowrap">
+            <span className="truncate text-body font-semibold text-ink">{name}</span>
+            <span className="truncate text-label font-medium text-ink-2">{title}</span>
+          </span>
+          <Ellipsis aria-hidden className="size-[18px] shrink-0 text-ink-2" />
+          <span className="sr-only">Account menu</span>
+        </button>
+      </AccountMenu>
+    </div>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  count = 0,
+  tour,
+}: {
+  item: AdminNavItem;
+  active: boolean;
+  count?: number;
+  tour?: string;
+}) {
+  return (
+    <NavItem
+      asChild
+      active={active}
+      icon={<item.icon />}
+      data-tour={tour}
+      badge={count > 0 ? badgeLabel(count) : undefined}
+    >
+      <Link
+        to={item.to as "/admin"}
+        aria-label={count > 0 ? `${item.label}, ${count} need attention` : undefined}
+      >
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+      </Link>
+    </NavItem>
+  );
+}
+
+function SidebarGroup({
+  group,
+  pathname,
+  counts,
+  open,
+  onToggle,
+}: {
+  group: AdminNavGroup;
+  pathname: string;
+  counts?: NavCounts;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const panelId = `sidebar-group-${group.id}`;
+  const hasActive = groupHasActive(pathname, group);
+  const total = groupCount(group, counts);
+  return (
+    <div className="flex flex-col gap-1" data-tour={`nav-section-${group.id}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex w-full items-center gap-2 rounded-[8px] px-3 pt-4 pb-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+      >
+        <span
+          className={cn(
+            "min-w-0 flex-1 text-eyebrow",
+            hasActive && !open ? "text-ink" : "text-ink-3",
+          )}
+        >
+          {group.label}
+        </span>
+        {/* Figma: the group total shows while the group is closed; open groups badge each row. */}
+        {total > 0 && !open ? (
+          <CountBadge className="min-w-0 px-1.5 py-px" aria-label={`${total} need attention`}>
+            {badgeLabel(total)}
+          </CountBadge>
+        ) : null}
+        <ChevronRight
+          aria-hidden
+          className={cn(
+            "size-4 shrink-0 text-ink-2 transition-transform duration-200",
+            open && "rotate-90",
+          )}
+        />
+      </button>
+      <div
+        id={panelId}
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden" inert={!open}>
+          {/* Figma sub-nav: 22px indent, 1px left rule, 32px rows, active row on the inset fill. */}
+          <SubNav className="[&>div]:gap-0.5">
+            {group.items.map((item) => {
+              const n = itemCount(item, counts);
+              const active = isNavItemActive(pathname, item);
+              return (
+                <SubNavItem
+                  key={item.to}
+                  asChild
+                  active={active}
+                  badge={n > 0 ? badgeLabel(n) : undefined}
+                >
+                  <Link
+                    to={item.to as "/admin"}
+                    aria-label={n > 0 ? `${item.label}, ${n} need attention` : undefined}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                  </Link>
+                </SubNavItem>
+              );
+            })}
+          </SubNav>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Collapsed rail ───────────────────────── */
+
+function RailDivider() {
+  return <span aria-hidden className="h-px w-8 shrink-0 bg-glass-divider" />;
+}
+
+function RailButton({
+  label,
+  active,
+  tour,
+  children,
+  asChild,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  tour?: string;
+  children: React.ReactNode;
+  asChild?: boolean;
+  onClick?: () => void;
+}) {
+  const cls = cn(
+    "relative flex size-11 shrink-0 items-center justify-center rounded-[12px] border border-transparent outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-border [&_svg]:size-5",
+    active
+      ? "border-brand-border bg-brand-tint text-brand-text"
+      : "text-ink-2 hover:bg-glass-inset hover:text-ink",
+  );
+  return (
     <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8}>
-        {item.label}
+      <TooltipTrigger asChild>
+        {asChild ? (
+          <span className={cls} data-tour={tour}>
+            {children}
+          </span>
+        ) : (
+          <button
+            type="button"
+            aria-label={label}
+            onClick={onClick}
+            className={cls}
+            data-tour={tour}
+          >
+            {children}
+          </button>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={10} className="font-geist">
+        {label}
       </TooltipContent>
     </Tooltip>
   );
 }
 
-function SidebarBody({
-  onNavigate,
-  collapsed = false,
-  showCollapseToggle = false,
+function RailLink({
+  item,
+  pathname,
+  count = 0,
+  tour,
 }: {
-  onNavigate?: () => void;
-  collapsed?: boolean;
-  showCollapseToggle?: boolean;
+  item: AdminNavItem;
+  pathname: string;
+  count?: number;
+  tour?: string;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const compact = showCollapseToggle && collapsed;
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(readOpenSections);
-
-  const activeSectionIds = useMemo(
-    () => navSections.filter((s) => sectionHasActive(pathname, s)).map((s) => s.id),
-    [pathname],
+  const active = isNavItemActive(pathname, item);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          to={item.to as "/admin"}
+          aria-label={item.label}
+          aria-current={active ? "page" : undefined}
+          data-tour={tour}
+          className={cn(
+            "relative flex size-11 shrink-0 items-center justify-center rounded-[12px] border border-transparent outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-border",
+            active
+              ? "border-brand-border bg-brand-tint text-brand-text"
+              : "text-ink-2 hover:bg-glass-inset hover:text-ink",
+          )}
+        >
+          <item.icon aria-hidden className="size-5" />
+          {count > 0 ? (
+            <span
+              aria-hidden
+              className="absolute top-[7px] left-[27px] size-2 rounded-full bg-danger-solid"
+            />
+          ) : null}
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={10} className="font-geist">
+        {item.label}
+        {count > 0 ? ` · ${count}` : ""}
+      </TooltipContent>
+    </Tooltip>
   );
+}
 
-  useEffect(() => {
-    if (activeSectionIds.length === 0) return;
-    setOpenSections((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const id of activeSectionIds) {
-        if (next[id] !== true) {
-          next[id] = true;
-          changed = true;
-        }
-      }
-      if (!changed) return prev;
-      try {
-        window.localStorage.setItem(SIDEBAR_SECTIONS_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, [activeSectionIds]);
-
-  function isSectionOpen(section: NavSection) {
-    if (openSections[section.id] != null) return openSections[section.id];
-    // First visit (no saved prefs): keep groups expanded so nav stays discoverable.
-    return true;
-  }
-
-  function toggleSection(sectionId: string) {
-    setOpenSections((prev) => {
-      const currentlyOpen = prev[sectionId] ?? true;
-      const next = { ...prev, [sectionId]: !currentlyOpen };
-      try {
-        window.localStorage.setItem(SIDEBAR_SECTIONS_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
+function CollapsedRail({ onExpand }: { onExpand: () => void }) {
+  const pathname = usePathname();
+  const { setOpen: openSearch } = useCommandMenu();
+  const { name } = useAccountInfo();
+  const { data: counts } = useNavCountsQuery();
 
   return (
-    <>
-      <div
-        className={cn(
-          "flex shrink-0 items-center border-b border-border/60",
-          compact ? "flex-col gap-2 px-2 py-3" : "min-h-20 justify-between gap-3 px-4 py-3",
-        )}
+    <div className="flex h-full flex-col items-center gap-1.5 px-3.5 py-4">
+      <Link
+        to="/admin"
+        aria-label="Dashboard"
+        className="rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
       >
-        <div className={cn("flex items-center gap-3", compact && "flex-col")}>
-          <img
-            src={TAB_LOGO_SRC}
-            alt="Stay Inn"
-            className={cn("shrink-0", compact ? ADMIN_NAV_LOGO_COMPACT_CLASS : ADMIN_NAV_LOGO_CLASS)}
-          />
-          {!compact ? (
-            <div className="min-w-0 leading-tight">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Admin Console
-              </p>
-            </div>
-          ) : null}
+        <LogoMark className="size-9 rounded-[10.8px] [&_svg]:size-[19.8px]" />
+      </Link>
+      <GlassIconButton aria-label="Expand sidebar" className="size-9" onClick={onExpand}>
+        <PanelLeft />
+      </GlassIconButton>
+      <RailDivider />
+      <RailButton label="Search (⌘K)" tour="sidebar-search" onClick={() => openSearch(true)}>
+        <Search />
+      </RailButton>
+      <RailDivider />
+
+      <nav className="-mx-3.5 flex min-h-0 w-[calc(100%+28px)] flex-1 flex-col items-center gap-1.5 overflow-y-auto overscroll-contain px-3.5 [&>*]:shrink-0">
+        <div data-tour="nav-principal" className="flex flex-col items-center gap-1.5 [&>*]:shrink-0">
+          {PRINCIPAL_NAV.map((item) => (
+            <RailLink
+              key={item.to}
+              item={item}
+              pathname={pathname}
+              count={itemCount(item, counts)}
+              tour={item.to === "/admin" ? "nav-dashboard" : undefined}
+            />
+          ))}
         </div>
-        {showCollapseToggle ? (
-          <SidebarTrigger className={cn("shrink-0", compact && "h-8 w-8")} />
-        ) : null}
-      </div>
-
-      <nav className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto py-4", compact ? "px-2" : "px-3")}>
-        <div className="space-y-1" data-tour="nav-dashboard">
-          <NavLink
-            item={overviewItem}
-            active={isItemActive(pathname, overviewItem)}
-            compact={compact}
-            onNavigate={onNavigate}
-          />
-        </div>
-
-        {navSections.map((section) => {
-          const open = compact ? true : isSectionOpen(section);
-          const sectionActive = sectionHasActive(pathname, section);
-
-          return (
-            <div key={section.id} className="space-y-1" data-tour={`nav-section-${section.id}`}>
-              {!compact ? (
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.id)}
-                  aria-expanded={open}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors",
-                    sectionActive
-                      ? "text-foreground"
-                      : "text-muted-foreground/80 hover:text-foreground",
-                  )}
-                >
-                  <span>{section.label}</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 shrink-0 transition-transform duration-300 ease-in-out",
-                      open ? "rotate-0" : "-rotate-90",
-                    )}
-                  />
-                </button>
-              ) : (
-                <div className="mx-auto h-px w-6 bg-border/70" aria-hidden />
-              )}
-
-              <div
-                className={cn(
-                  "grid transition-[grid-template-rows] duration-300 ease-in-out",
-                  open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-                )}
-              >
-                <div className="min-h-0 overflow-hidden">
-                  <div
-                    className={cn(
-                      "transition-opacity duration-300 ease-in-out",
-                      open ? "opacity-100" : "opacity-0",
-                      compact
-                        ? "space-y-1 pt-0.5"
-                        : "ml-5 space-y-0.5 border-l border-border/80 pl-4 pt-1",
-                    )}
-                  >
-                    {section.items.map((item) => (
-                      <NavLink
-                        key={item.to}
-                        item={item}
-                        active={isItemActive(pathname, item)}
-                        compact={compact}
-                        onNavigate={onNavigate}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {NAV_GROUPS.map((group) => (
+          <div
+            key={group.id}
+            className="flex flex-col items-center gap-1.5"
+            data-tour={`nav-section-${group.id}`}
+          >
+            <RailDivider />
+            {group.items.map((item) => (
+              <RailLink
+                key={item.to}
+                item={item}
+                pathname={pathname}
+                count={itemCount(item, counts)}
+              />
+            ))}
+          </div>
+        ))}
       </nav>
 
-      <div className={cn("shrink-0 space-y-1 border-t border-border/60 p-3", compact && "px-2")}>
-        {compact ? (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  to="/dashboard"
-                  onClick={onNavigate}
-                  className="flex items-center justify-center rounded-xl px-0 py-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8}>
-                Account dashboard
-              </TooltipContent>
-            </Tooltip>
-            {frontendBase ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href={frontendBase}
-                    onClick={onNavigate}
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center rounded-xl px-0 py-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    <Globe className="h-4 w-4" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>
-                  Public website
-                </TooltipContent>
-              </Tooltip>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Link
-              to="/dashboard"
-              onClick={onNavigate}
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Account dashboard
-            </Link>
-            {frontendBase ? (
-              <a
-                href={frontendBase}
-                onClick={onNavigate}
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <Globe className="h-3.5 w-3.5" /> Public website
-              </a>
-            ) : null}
-          </>
-        )}
-      </div>
-    </>
-  );
-}
-
-export function AdminSidebar() {
-  const [collapsed, setCollapsed] = useState(readCollapsedPreference);
-
-  function handleOpenChange(open: boolean) {
-    const nextCollapsed = !open;
-    setCollapsed(nextCollapsed);
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, nextCollapsed ? "1" : "0");
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  return (
-    <SidebarProvider
-      open={!collapsed}
-      onOpenChange={handleOpenChange}
-      className="hidden h-full min-h-0 w-auto shrink-0 md:block"
-    >
-      <aside
-        className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden border-r border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-200 ease-out",
-          collapsed ? "w-[4.5rem]" : "w-64 lg:w-72",
-        )}
-      >
-        <SidebarBody collapsed={collapsed} showCollapseToggle />
-      </aside>
-    </SidebarProvider>
-  );
-}
-
-export function AdminMobileSidebar({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="flex w-72 flex-col p-0">
-        <SidebarBody onNavigate={() => onOpenChange(false)} />
-      </SheetContent>
-    </Sheet>
+      <AccountMenu side="right" align="end">
+        <button
+          type="button"
+          aria-label={`Account menu — ${name}`}
+          data-tour="header-account"
+          className="mt-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+        >
+          <AccountAvatar size={40} />
+        </button>
+      </AccountMenu>
+    </div>
   );
 }

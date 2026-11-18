@@ -214,6 +214,9 @@ export type ResidentRegisterParams = {
 };
 
 export type UpdateResidentInput = {
+  rent_reminders_enabled?: boolean;
+  /** Amount collected when payment_status is "partial" (Figma 07.03). */
+  collected_amount?: number;
   guest_name?: string;
   guest_email?: string;
   guest_phone?: string;

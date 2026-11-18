@@ -59,7 +59,9 @@ export async function getExpensesApi(token: string, params: ExpenseListParams = 
   if (params.limit != null) search.set("limit", String(params.limit));
 
   const q = search.toString();
-  const data = await apiFetch<ListExpensesResponse>(`/api/v1/expenses${q ? `?${q}` : ""}`, { token });
+  const data = await apiFetch<ListExpensesResponse>(`/api/v1/expenses${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.expenses)) {
     throw new Error("Invalid expenses list response");
   }

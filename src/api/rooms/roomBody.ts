@@ -1,7 +1,9 @@
 import type { RoomDraft } from "@/types/domain/room.types";
 
 /** Map form draft to API body fields (USD + PKR required by backend). */
-export function roomPricesToApi(draft: Pick<RoomDraft, "price_per_night" | "price_per_night_usd" | "price_per_night_pkr">) {
+export function roomPricesToApi(
+  draft: Pick<RoomDraft, "price_per_night" | "price_per_night_usd" | "price_per_night_pkr">,
+) {
   const usd = Number(draft.price_per_night_usd ?? draft.price_per_night);
   const pkr = Number(draft.price_per_night_pkr ?? draft.price_per_night);
   return {
@@ -27,6 +29,8 @@ export function roomDraftToApiBody(draft: RoomDraft, hostelId?: string): Record<
     display_order: draft.display_order,
   };
   body.room_number = draft.room_number ?? null;
+  if (draft.floor !== undefined) body.floor = draft.floor;
+  if (draft.last_cleaned_at !== undefined) body.last_cleaned_at = draft.last_cleaned_at;
   if (hostelId) body.hostel = hostelId;
   if (draft.badge?.trim()) body.badge = draft.badge.trim();
   return body;
@@ -48,9 +52,13 @@ const PATCH_KEYS = [
   "images",
   "badge",
   "display_order",
+  "floor",
+  "last_cleaned_at",
 ] as const;
 
-export function roomDraftToPatchPayload(draft: RoomDraft | Partial<RoomDraft>): Record<string, unknown> {
+export function roomDraftToPatchPayload(
+  draft: RoomDraft | Partial<RoomDraft>,
+): Record<string, unknown> {
   if ("title" in draft && draft.title !== undefined && typeof draft.title === "string") {
     return roomDraftToApiBody(draft as RoomDraft);
   }

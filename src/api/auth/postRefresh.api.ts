@@ -25,7 +25,8 @@ export async function postRefreshApi(refreshToken: string): Promise<RefreshApiSu
   const data = (await res.json().catch(() => ({}))) as RefreshApiResponseJson;
 
   if (!res.ok) {
-    const msg = typeof data.message === "string" ? data.message : `Session refresh failed (${res.status})`;
+    const msg =
+      typeof data.message === "string" ? data.message : `Session refresh failed (${res.status})`;
     throw new Error(msg);
   }
 

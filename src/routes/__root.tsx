@@ -1,13 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-} from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, useRouter, HeadContent } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { NotFoundView } from "@/components/not-found-view";
+import { ErrorScreen, MaintenanceScreen, OfflineGate } from "@/components/system/system-screens";
+import { appEnv } from "@/config/env";
 import { AuthProvider } from "@/lib/auth-context";
 import { TAB_LOGO_SRC } from "@/lib/brand-assets";
 import { hydrateDashboardThemeFromStorage } from "@/lib/dashboard-theme-storage";
@@ -25,33 +21,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <Link
-            to="/login"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Sign in
-          </Link>
-        </div>
-      </div>
-    </div>
+    <ErrorScreen
+      onRetry={() => {
+        router.invalidate();
+        reset();
+      }}
+    />
   );
 }
 
@@ -87,6 +62,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  if (appEnv.maintenanceMode) {
+    return (
+      <>
+        <HeadContent />
+        <MaintenanceScreen />
+      </>
+    );
+  }
+
   return (
     <>
       <HeadContent />
@@ -96,6 +80,7 @@ function RootComponent() {
           <Toaster richColors position="top-right" />
         </AuthProvider>
       </QueryClientProvider>
+      <OfflineGate />
     </>
   );
 }

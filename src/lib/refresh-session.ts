@@ -1,5 +1,6 @@
 import { postRefreshApi } from "@/api/auth/postRefresh.api";
 import { assertSuperAdminConsoleUser, mapLoginUserDtoToAuthUser } from "@/lib/auth-map-user";
+import { markSessionEnded } from "@/lib/session-end";
 import { useAuthStore } from "@/stores/auth/auth.store";
 
 let refreshInFlight: Promise<string | null> | null = null;
@@ -26,6 +27,7 @@ export async function refreshDashboardSession(): Promise<string | null> {
       });
       return data.token;
     } catch {
+      markSessionEnded("expired");
       useAuthStore.getState().logout();
       return null;
     } finally {

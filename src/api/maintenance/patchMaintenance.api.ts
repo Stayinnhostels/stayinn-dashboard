@@ -12,11 +12,14 @@ export async function patchMaintenanceApi(
   id: string,
   input: Partial<MaintenanceDraft>,
 ) {
-  const data = await apiFetch<PatchMaintenanceResponse>(`/api/v1/maintenance/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    token,
-    body: JSON.stringify(input),
-  });
+  const data = await apiFetch<PatchMaintenanceResponse>(
+    `/api/v1/maintenance/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(input),
+    },
+  );
   if (!data.success || !data.maintenance) {
     throw new Error(data.message ?? "Could not update ticket");
   }

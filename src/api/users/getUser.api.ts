@@ -7,7 +7,9 @@ type GetUserResponse = {
 };
 
 export async function getUserApi(token: string, id: string): Promise<AdminUser> {
-  const data = await apiFetch<GetUserResponse>(`/api/v1/users/${encodeURIComponent(id)}`, { token });
+  const data = await apiFetch<GetUserResponse>(`/api/v1/users/${encodeURIComponent(id)}`, {
+    token,
+  });
   if (!data.success || !data.user) {
     throw new Error("Invalid user response");
   }

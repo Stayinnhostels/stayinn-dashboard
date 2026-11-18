@@ -2,8 +2,8 @@ import { create } from "zustand";
 import type { Notification } from "@/types/domain/notification.types";
 
 const MAX_ALERTS = 8;
-const AUTO_DISMISS_MS = 12_000;
-const MISSED_DISMISS_MS = 45_000;
+export const AUTO_DISMISS_MS = 12_000;
+export const MISSED_DISMISS_MS = 45_000;
 
 export type LiveAlertSource = "live" | "missed";
 

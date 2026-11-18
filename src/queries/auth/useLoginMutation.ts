@@ -3,6 +3,7 @@ import { postLoginApi } from "@/api/auth/postLogin.api";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { authKeys } from "@/queries/keys/auth.keys";
 import { assertSuperAdminConsoleUser, mapLoginUserDtoToAuthUser } from "@/lib/auth-map-user";
+import { clearSessionEnded, rememberLastEmail } from "@/lib/session-end";
 
 export type LoginMutationVariables = {
   email: string;
@@ -26,6 +27,8 @@ export function useLoginMutation() {
         refreshToken: data.refreshToken,
         remember: variables.remember ?? true,
       });
+      rememberLastEmail(user.email);
+      clearSessionEnded();
       queryClient.setQueryData(authKeys.session(), {
         user,
         token: data.token,

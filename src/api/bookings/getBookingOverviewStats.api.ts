@@ -36,6 +36,42 @@ export type ExtrasCollectedPoint = {
   due_usd: number;
 };
 
+export type CheckinWeekPoint = {
+  key: number;
+  label: string;
+  week_start: string;
+  week_end: string;
+  checkins: number;
+};
+
+export type DashboardInsights = {
+  today: string;
+  arrivals_today: number;
+  checkouts_today: number;
+  check_in_time: string;
+  check_out_time: string;
+  checkins: {
+    weeks: number;
+    series: CheckinWeekPoint[];
+    on_time: number;
+    late: number;
+    /** Check-ins with a real check-in moment (on_time + late). */
+    measured: number;
+  };
+  sources: {
+    days: number;
+    total: number;
+    breakdown: { source: string; label: string; value: number }[];
+  };
+  occupancy: {
+    rooms_total: number;
+    rooms_available: number;
+    beds_total: number;
+    beds_occupied: number;
+    rate: number;
+  };
+};
+
 export type BookingOverviewStats = {
   daily: { days: number; series: DailyBookingStatPoint[] };
   weekly: { weeks: number; series: WeeklyBookingStatPoint[] };
@@ -46,6 +82,7 @@ export type BookingOverviewStats = {
     monthly: { months: number; series: ExtrasCollectedPoint[] };
     weekly: { weeks: number; series: ExtrasCollectedPoint[] };
   };
+  insights?: DashboardInsights;
 };
 
 type GetBookingOverviewStatsResponse = {
@@ -89,5 +126,6 @@ export async function getBookingOverviewStatsApi(
       monthly: { months: 0, series: [] },
       weekly: { weeks: 0, series: [] },
     },
+    insights: data.insights,
   };
 }

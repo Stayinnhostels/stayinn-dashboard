@@ -38,6 +38,7 @@ export function NotificationSocketProvider({ children }: NotificationSocketProvi
 
     socket.on("connect", () => {
       void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
     });
 
     socket.on("notification", (notification: Notification) => {
@@ -48,6 +49,7 @@ export function NotificationSocketProvider({ children }: NotificationSocketProvi
       };
       pushAlert(normalized);
       void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
 
       if (normalized.type === "booking") {
         const now = Date.now();

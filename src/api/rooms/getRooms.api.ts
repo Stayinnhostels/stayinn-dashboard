@@ -1,9 +1,16 @@
 import { apiFetch } from "@/api/apiFetch";
-import type { Room, RoomsListParams, RoomsPagination } from "@/types/domain/room.types";
+import type {
+  Room,
+  RoomStatusCounts,
+  RoomsListParams,
+  RoomsPagination,
+} from "@/types/domain/room.types";
 
 type GetRoomsResponse = {
   success: boolean;
   rooms: Room[];
+  /** Per-status totals for the filter tabs (ignores the status filter). */
+  status_counts?: RoomStatusCounts;
   pagination: RoomsPagination;
 };
 

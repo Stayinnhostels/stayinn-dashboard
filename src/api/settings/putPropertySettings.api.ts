@@ -8,10 +8,7 @@ type PutPropertySettingsResponse = {
   settings: PropertySettings;
 };
 
-export async function putPropertySettingsApi(
-  token: string,
-  input: Partial<PropertySettings>,
-) {
+export async function putPropertySettingsApi(token: string, input: Partial<PropertySettings>) {
   const data = await apiFetch<PutPropertySettingsResponse>("/api/v1/settings", {
     method: "PUT",
     token,

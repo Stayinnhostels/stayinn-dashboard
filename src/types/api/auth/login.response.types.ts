@@ -7,6 +7,7 @@ export interface LoginApiUserDto {
   role: string;
   emailVerified?: boolean;
   avatar?: string | null;
+  jobTitle?: string | null;
 }
 
 /** Successful `POST /api/auth/login` response body (after HTTP 200). */

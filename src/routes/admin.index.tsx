@@ -1,492 +1,385 @@
-import type { ReactNode } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { StatCard } from "@/components/admin/stat-card";
-import { StatCardsRowSkeleton } from "@/components/admin/admin-page-skeletons";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
-import { BedDouble, CalendarCheck, LogOut, DoorOpen } from "lucide-react";
+import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BedDouble, CalendarDays, Check, ChevronDown, DoorOpen, LogOut, Plus } from "lucide-react";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
-  Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
-} from "recharts";
-import { useBookingsQuery } from "@/queries/bookings";
-import { useRoomsQuery } from "@/queries/rooms";
-import { chartTooltipMoney, formatMoney } from "@/lib/payments";
-import type { Room } from "@/types/domain/room.types";
-import { ExtrasCollectedCharts } from "@/components/admin/extras-collected-charts";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { GlassButton, KpiCard } from "@/components/glass";
+import { PageHeader } from "@/components/admin/page-header";
+import { glassMenuClass } from "@/components/admin/shell/admin-account";
+import {
+  ChartCard,
+  GlassAreaChart,
+  GlassBarChart,
+  GlassDonut,
+  LegendItem,
+  type BarPoint,
+  type DonutSlice,
+  type LinePoint,
+} from "@/components/admin/dashboard/glass-charts";
+import { useBookingOverviewStatsQuery } from "@/queries/bookings/useBookingOverviewStatsQuery";
 import { useHostelScope } from "@/lib/use-hostel-scope";
-import { HintTooltip } from "@/components/ui/hint-tooltip";
+import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/admin/")({ component: OverviewPage });
+export const Route = createFileRoute("/admin/")({ component: DashboardPage });
 
-const PIE_COLORS = ["#0066B2", "#0ea5e9", "#facc15", "#22c55e", "#a855f7", "#ec4899"];
-const chartCard = "border-border/60 bg-card/60 backdrop-blur";
+/**
+ * Figma 01.01 / 02.01 · Dashboard — Expanded (Dark / Light Glass).
+ * All numbers come from GET /bookings/stats/overview (incl. `insights`).
+ */
 
-function topNamedSlices(items: { name: string; value: number }[], limit = 6) {
-  const sorted = [...items]
-    .map((row) => ({
-      name: (row.name || "Unknown").trim() || "Unknown",
-      value: row.value,
-    }))
-    .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value);
-  if (sorted.length <= limit) return sorted;
-  const head = sorted.slice(0, limit);
-  const rest = sorted.slice(limit).reduce((sum, row) => sum + row.value, 0);
-  return [...head, { name: "Other", value: rest }];
+const PERIODS = [7, 30, 90] as const;
+const WEEKS = 8;
+const MONTHS = 6;
+
+const SOURCE_COLORS = [
+  "var(--gl-brand-primary)",
+  "color-mix(in srgb, var(--gl-brand-primary) 45%, transparent)",
+  "var(--gl-warning)",
+  "var(--gl-success)",
+  "var(--gl-info)",
+  "var(--gl-text-tertiary)",
+];
+
+const dayMonth = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const longDay = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+const monthLong = new Intl.DateTimeFormat("en-GB", { month: "long" });
+const monthShort = new Intl.DateTimeFormat("en-GB", { month: "short" });
+
+function parseDay(key: string) {
+  const [y, m, d] = key.slice(0, 10).split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
-function OverviewPie({
-  data,
-  valueFormatter,
-}: {
-  data: { name: string; value: number }[];
-  valueFormatter?: (value: number, name: string) => [string, string];
-}) {
+function parseMonth(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, 1);
+}
+
+function pct(part: number, total: number) {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
+}
+
+function DashboardPage() {
+  const { hostelId, activeHostel } = useHostelScope();
+  const [days, setDays] = useState<(typeof PERIODS)[number]>(30);
+  const { data, isLoading, isError, error } = useBookingOverviewStatsQuery(
+    days,
+    WEEKS,
+    MONTHS,
+    hostelId,
+  );
+  const insights = data?.insights;
+
+  const subtitle = `${longDay.format(new Date())}${activeHostel?.name ? ` · ${activeHostel.name}` : ""}`;
+
+  const weekly: BarPoint[] = useMemo(
+    () =>
+      (data?.weekly.series ?? []).map((w, i) => ({
+        key: w.key,
+        label: `W${i + 1}`,
+        value: w.bookings,
+        eyebrow: `Week ${i + 1}`,
+        unit: w.bookings === 1 ? "booking" : "bookings",
+      })),
+    [data?.weekly.series],
+  );
+  const weeklyTotal = weekly.reduce((s, w) => s + w.value, 0);
+  const weeklyRange = (() => {
+    const series = data?.weekly.series ?? [];
+    if (!series.length) return "";
+    return `${dayMonth.format(parseDay(series[0].week_start))} – ${dayMonth.format(parseDay(series[series.length - 1].week_end))}`;
+  })();
+
+  const checkins: BarPoint[] = useMemo(
+    () =>
+      (insights?.checkins.series ?? []).map((w) => ({
+        key: w.key,
+        label: w.label,
+        value: w.checkins,
+        eyebrow: dayMonth.format(parseDay(w.week_start)),
+        unit: w.checkins === 1 ? "check-in" : "check-ins",
+      })),
+    [insights?.checkins.series],
+  );
+
+  const monthly: LinePoint[] = useMemo(() => {
+    const series = data?.monthly.series ?? [];
+    const thisMonth = new Date();
+    return series.map((m, i) => {
+      const d = parseMonth(m.key);
+      return {
+        key: m.key,
+        label: monthShort.format(d),
+        value: m.bookings,
+        eyebrow: monthLong.format(d),
+        partial:
+          i === series.length - 1 &&
+          d.getFullYear() === thisMonth.getFullYear() &&
+          d.getMonth() === thisMonth.getMonth(),
+      };
+    });
+  }, [data?.monthly.series]);
+
+  const daily: LinePoint[] = useMemo(
+    () =>
+      (data?.daily.series ?? []).map((p) => ({
+        key: p.date,
+        label: p.label,
+        value: p.bookings,
+        eyebrow: dayMonth.format(parseDay(p.date)),
+      })),
+    [data?.daily.series],
+  );
+  const dailyTotal = daily.reduce((s, d) => s + d.value, 0);
+
+  const onTime = insights?.checkins.on_time ?? 0;
+  const late = insights?.checkins.late ?? 0;
+  const measured = onTime + late;
+  const onTimeSlices: DonutSlice[] = [
+    { key: "on", label: "On time", value: onTime, color: "var(--gl-brand-primary)" },
+    { key: "late", label: "Late", value: late, color: "var(--gl-warning)" },
+  ];
+
+  const sources = insights?.sources.breakdown ?? [];
+  const sourcesTotal = insights?.sources.total ?? 0;
+  const sourceSlices: DonutSlice[] = sources.map((s, i) => ({
+    key: s.source,
+    label: s.label,
+    value: s.value,
+    color: SOURCE_COLORS[i % SOURCE_COLORS.length],
+  }));
+
+  const occ = insights?.occupancy;
+  const checkoutsToday = insights?.checkouts_today ?? 0;
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius="38%"
-              outerRadius="68%"
-              paddingAngle={2}
-            >
-              {data.map((row, i) => (
-                <Cell key={`${row.name}-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={
-                valueFormatter ??
-                ((value, name) => [`${value}`, String(name)] as [string, string])
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        className="mb-0 md:mb-0"
+        title="Dashboard"
+        subtitle={subtitle}
+        actions={
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassButton variant="glass" aria-label={`Period: last ${days} days`}>
+                  <CalendarDays /> Last {days} days <ChevronDown className="-mr-1 text-ink-2" />
+                </GlassButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className={cn("w-48", glassMenuClass)}
+              >
+                {PERIODS.map((p) => (
+                  <DropdownMenuItem key={p} className="cursor-pointer" onSelect={() => setDays(p)}>
+                    <Check className={cn(p === days ? "opacity-100" : "opacity-0")} />
+                    Last {p} days
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <GlassButton asChild>
+              <Link to="/admin/rooms">
+                <Plus /> New booking
+              </Link>
+            </GlassButton>
+          </>
+        }
+      />
+
+      {isError ? (
+        <div
+          role="alert"
+          className="rounded-[14px] bg-danger-tint px-4 py-3 text-body font-medium text-ink"
+        >
+          {error instanceof Error ? error.message : "Could not load the dashboard numbers."}
+        </div>
+      ) : null}
+
+      {/* KPI row */}
+      <div data-tour="dashboard-kpis" className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
+        <KpiCard
+          icon={<CalendarDays />}
+          label="Current bookings"
+          value={isLoading ? "—" : (data?.status.active ?? 0)}
+          context={insights ? `Arriving tonight: ${insights.arrivals_today}` : undefined}
+        />
+        <KpiCard
+          icon={<LogOut />}
+          label="Check-outs today"
+          value={isLoading ? "—" : checkoutsToday}
+          context={
+            insights
+              ? checkoutsToday > 0
+                ? `Leaves at ${insights.check_out_time}`
+                : "None today"
+              : undefined
+          }
+        />
+        <KpiCard
+          icon={<DoorOpen />}
+          label="Total rooms"
+          value={isLoading ? "—" : (occ?.rooms_total ?? 0)}
+          context={occ ? `${occ.rooms_available} available` : undefined}
+        />
+        <KpiCard
+          icon={<BedDouble />}
+          label="Occupancy"
+          value={isLoading ? "—" : `${occ?.rate ?? 0}%`}
+          context={occ ? `${occ.beds_occupied} / ${occ.beds_total} bookable beds` : undefined}
+        />
+      </div>
+
+      {/* Hero row */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <ChartCard
+          title="Weekly bookings"
+          subtitle={`Last ${WEEKS} weeks${weeklyRange ? ` · ${weeklyRange}` : ""}`}
+          legend={<LegendItem label="Bookings" value={`${weeklyTotal} total`} />}
+        >
+          <GlassBarChart
+            data={weekly}
+            height={300}
+            barSize={46}
+            deltaLabel={(prev) => `vs ${prev.label}`}
+            empty={isLoading ? "Loading…" : "No bookings in these weeks"}
+          />
+        </ChartCard>
+
+        <ChartCard title="On-time check-ins" subtitle={`Last ${WEEKS} weeks`}>
+          <div className="flex flex-1 flex-col items-center justify-center gap-5">
+            <GlassDonut
+              size={200}
+              thickness={18}
+              slices={onTimeSlices}
+              ariaLabel={`${pct(onTime, measured)}% of ${measured} check-ins were on time`}
+              center={
+                measured > 0 ? (
+                  <>
+                    <span className="text-kpi text-ink">{pct(onTime, measured)}%</span>
+                    <span className="text-label font-medium text-ink-2">
+                      {onTime} of {measured} check-ins
+                    </span>
+                  </>
+                ) : (
+                  <span className="max-w-[130px] text-label font-medium text-ink-3">
+                    {isLoading ? "Loading…" : "Check-ins appear here once guests are checked in"}
+                  </span>
+                )
               }
             />
-          </PieChart>
-        </ResponsiveContainer>
+            <div className="flex items-center gap-3.5">
+              <LegendItem label="On time" value={onTime} />
+              <LegendItem color="var(--gl-warning)" label="Late" value={late} />
+            </div>
+          </div>
+        </ChartCard>
       </div>
-      <ul className="mt-2 flex max-h-[4.75rem] flex-wrap content-start justify-center gap-x-3 gap-y-1 overflow-y-auto px-1">
-        {data.map((row, i) => (
-          <li
-            key={`${row.name}-${i}`}
-            className="flex max-w-[9.5rem] items-center gap-1.5 text-[11px] leading-tight text-foreground"
-          >
-            <span
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+
+      {/* Trends row */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        <ChartCard title="Weekly check-ins" subtitle={`Last ${WEEKS} weeks`}>
+          <GlassBarChart
+            data={checkins}
+            height={210}
+            barSize={20}
+            steps={2}
+            showEveryLabel={2}
+            empty={isLoading ? "Loading…" : "No check-ins yet"}
+          />
+        </ChartCard>
+
+        <ChartCard title="Monthly bookings" subtitle={`Last ${MONTHS} months`}>
+          <GlassAreaChart
+            data={monthly}
+            height={210}
+            unit="bookings"
+            steps={3}
+            dots
+            partialLabel="Partial month"
+            deltaLabel={(prev) => `vs ${prev.label}`}
+            empty={isLoading ? "Loading…" : "No bookings in these months"}
+          />
+        </ChartCard>
+
+        <ChartCard title="Booking sources" subtitle={`Last ${days} days`}>
+          <div className="flex flex-1 items-center gap-5">
+            <GlassDonut
+              size={150}
+              thickness={16}
+              slices={sourceSlices}
+              ariaLabel={`${sourcesTotal} bookings by source`}
+              center={
+                <>
+                  <span className="text-kpi text-ink">{isLoading ? "—" : sourcesTotal}</span>
+                  <span className="text-label font-medium text-ink-2">
+                    {sourcesTotal === 1 ? "booking" : "bookings"}
+                  </span>
+                </>
+              }
             />
-            <HintTooltip label={row.name} className="min-w-0">
-              <span className="truncate">{row.name}</span>
-            </HintTooltip>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ChartState({
-  loading,
-  error,
-  errorMessage,
-  empty,
-  emptyMessage,
-  children,
-}: {
-  loading: boolean;
-  error: boolean;
-  errorMessage: string;
-  empty: boolean;
-  emptyMessage: string;
-  children: ReactNode;
-}) {
-  if (loading) return <Skeleton className="h-full w-full rounded-lg" />;
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-        {errorMessage}
-      </div>
-    );
-  }
-  if (empty) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </div>
-    );
-  }
-  return <div className="h-full min-h-0">{children}</div>;
-}
-
-function OverviewPage() {
-  const { hostelId } = useHostelScope();
-  const {
-    data: overviewStats,
-    isLoading: overviewLoading,
-    isError: overviewError,
-    error: overviewErr,
-  } = useBookingOverviewStatsQuery(30, 8, 6, hostelId);
-  // Lean list slices only — overview charts come from /stats/overview (not full ledgers).
-  const { data: roomsApi, isLoading: roomsLoading } = useRoomsQuery(
-    { limit: 50, ...(hostelId ? { hostel: hostelId } : {}) },
-    { enabled: Boolean(hostelId) },
-  );
-  const { data: bookingsApi, isLoading: bookingsLoading } = useBookingsQuery(
-    { limit: 50, ...(hostelId ? { hostel: hostelId } : {}) },
-    { enabled: Boolean(hostelId) },
-  );
-
-  const chartErrorMessage =
-    overviewErr instanceof Error ? overviewErr.message : "Could not load booking stats";
-
-  const rooms = roomsApi?.rooms ?? [];
-  const bookings = bookingsApi?.bookings ?? [];
-  const roomById = new Map<string, Room>(rooms.map((room) => [room.id, room]));
-  const statsLoading = overviewLoading || roomsLoading || bookingsLoading;
-
-  const totalBeds = rooms.reduce((s, r) => s + r.beds_total, 0);
-  const availableBeds = rooms.reduce((s, r) => s + r.beds_available, 0);
-  const occupiedBeds = totalBeds - availableBeds;
-  const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
-
-  const totalRooms = roomsApi?.pagination?.total ?? rooms.length;
-  const availableRooms = rooms.filter((r) => r.status === "available").length;
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const currentBookings =
-    overviewStats?.status?.active ??
-    overviewStats?.status?.breakdown
-      ?.filter((row) => row.status === "pending" || row.status === "confirmed" || row.status === "checked_in")
-      .reduce((sum, row) => sum + row.value, 0) ??
-    bookings.filter(
-      (b) => b.status === "pending" || b.status === "confirmed" || b.status === "checked_in",
-    ).length;
-  const checkOutsToday = bookings.filter((b) => b.check_out === todayStr).length;
-
-  const succeededBookings = bookings.filter(
-    (b) => b.status === "confirmed" || b.status === "checked_in" || b.status === "checked_out",
-  );
-
-  const dailyBookings =
-    overviewStats?.daily.series.map((p) => ({ key: p.date, label: p.label, bookings: p.bookings })) ?? [];
-
-  const weeklyBookings =
-    overviewStats?.weekly.series.map((p) => ({
-      key: p.key,
-      label: p.label,
-      week_start: p.week_start,
-      week_end: p.week_end,
-      bookings: p.bookings,
-    })) ?? [];
-
-  const statusData = overviewStats?.status.breakdown ?? [];
-
-  const monthlyBookings =
-    overviewStats?.monthly.series.map((m) => ({
-      key: m.key,
-      label: m.label,
-      bookings: m.bookings,
-    })) ?? [];
-
-  const monthlyRevenueSeries =
-    overviewStats?.monthly.series.map((m) => ({
-      key: m.key,
-      label: m.label,
-      revenue_pkr: m.revenue_pkr ?? m.revenue,
-      revenue_usd: m.revenue_usd ?? 0,
-    })) ?? [];
-
-  const sourceMap: Record<string, number> = {};
-  bookings.forEach((b) => {
-    const name = (b.source || "Unknown").trim() || "Unknown";
-    sourceMap[name] = (sourceMap[name] ?? 0) + 1;
-  });
-  const sourceData = topNamedSlices(
-    Object.entries(sourceMap).map(([name, value]) => ({ name, value })),
-  );
-
-  const revByCategory: Record<string, number> = {};
-  succeededBookings.forEach((b) => {
-    const room = b.room_id ? roomById.get(b.room_id) : undefined;
-    const cat = room?.category ?? "other";
-    revByCategory[cat] = (revByCategory[cat] ?? 0) + b.total_amount;
-  });
-  const revCategoryData = Object.entries(revByCategory).map(([name, value]) => ({ name, value }));
-
-  const bookingsByRoom: Record<string, number> = {};
-  bookings.forEach((b) => { if (b.room_id) bookingsByRoom[b.room_id] = (bookingsByRoom[b.room_id] ?? 0) + 1; });
-  const topRooms = Object.entries(bookingsByRoom)
-    .map(([id, count]) => ({ name: roomById.get(id)?.title ?? "—", bookings: count }))
-    .sort((a, b) => b.bookings - a.bookings).slice(0, 6);
-
-  const dayOfWeek = Array.from({ length: 7 }).map((_, i) => ({ label: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i], bookings: 0 }));
-  bookings.forEach((b) => {
-    const dateStr = "move_in" in b && b.move_in ? b.move_in : "check_in" in b ? (b as { check_in?: string }).check_in : "";
-    const d = new Date(dateStr ?? "");
-    if (!Number.isNaN(d.getTime())) dayOfWeek[d.getDay()].bookings += 1;
-  });
-
-  return (
-    <div className="space-y-6">
-      {statsLoading ? (
-        <StatCardsRowSkeleton count={4} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Current Bookings"
-            value={currentBookings}
-            icon={CalendarCheck}
-            accent="primary"
-          />
-          <StatCard label="Check-outs Today" value={checkOutsToday} icon={LogOut} accent="warning" />
-          <StatCard
-            label="Total Rooms"
-            value={totalRooms}
-            delta={`${availableRooms} available`}
-            icon={DoorOpen}
-            accent="info"
-          />
-          <StatCard
-            label="Occupancy"
-            value={`${occupancyRate}%`}
-            delta={`${occupiedBeds} / ${totalBeds} beds`}
-            icon={BedDouble}
-            accent="primary"
-          />
-        </div>
-      )}
-
-      <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-muted-foreground">Booking Analytics</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className={`lg:col-span-2 ${chartCard}`}>
-            <CardHeader>
-              <CardTitle className="text-base">Daily bookings — last 30 days</CardTitle>
-              {!overviewLoading && !overviewError && overviewStats ? (
-                <p className="text-xs text-muted-foreground">
-                  {overviewStats.daily.series.reduce((s, p) => s + p.bookings, 0)} bookings in this period
-                </p>
-              ) : null}
-            </CardHeader>
-            <CardContent className="h-[260px]">
-              <ChartState
-                loading={overviewLoading}
-                error={overviewError}
-                errorMessage={chartErrorMessage}
-                empty={!overviewLoading && !overviewError && dailyBookings.every((d) => d.bookings === 0)}
-                emptyMessage="No booking data for the last 30 days"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={dailyBookings}>
-                    <defs><linearGradient id="bk-daily" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="oklch(0.62 0.22 35)" stopOpacity={0.55} /><stop offset="100%" stopColor="oklch(0.62 0.22 35)" stopOpacity={0} /></linearGradient></defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
-                    <Tooltip
-                      labelFormatter={(_, payload) => {
-                        const row = payload?.[0]?.payload as { key?: string; label?: string } | undefined;
-                        return row?.key ?? row?.label ?? "";
-                      }}
-                      formatter={(value) => [`${value}`, "Bookings"]}
-                    />
-                    <Area type="monotone" dataKey="bookings" stroke="oklch(0.62 0.22 35)" fill="url(#bk-daily)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartState>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader>
-              <CardTitle className="text-base">Booking status</CardTitle>
-              {!overviewLoading && !overviewError && overviewStats ? (
-                <p className="text-xs text-muted-foreground">{overviewStats.status.total} total bookings</p>
-              ) : null}
-            </CardHeader>
-            <CardContent className="h-[260px]">
-              <ChartState
-                loading={overviewLoading}
-                error={overviewError}
-                errorMessage={chartErrorMessage}
-                empty={!overviewLoading && !overviewError && statusData.length === 0}
-                emptyMessage="No bookings yet"
-              >
-                <OverviewPie
-                  data={statusData}
-                  valueFormatter={(value, name) => [`${value}`, String(name)]}
-                />
-              </ChartState>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader>
-              <CardTitle className="text-base">Weekly bookings</CardTitle>
-              {!overviewLoading && !overviewError && overviewStats ? (
-                <p className="text-xs text-muted-foreground">Last {overviewStats.weekly.weeks} weeks</p>
-              ) : null}
-            </CardHeader>
-            <CardContent className="h-[240px]">
-              <ChartState
-                loading={overviewLoading}
-                error={overviewError}
-                errorMessage={chartErrorMessage}
-                empty={!overviewLoading && !overviewError && weeklyBookings.every((w) => w.bookings === 0)}
-                emptyMessage="No bookings in the last 8 weeks"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyBookings}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
-                    <Tooltip
-                      labelFormatter={(_, payload) => {
-                        const row = payload?.[0]?.payload as { week_start?: string; week_end?: string } | undefined;
-                        if (row?.week_start && row?.week_end) return `${row.week_start} – ${row.week_end}`;
-                        return "";
-                      }}
-                      formatter={(value) => [`${value}`, "Bookings"]}
-                    />
-                    <Bar dataKey="bookings" fill="oklch(0.62 0.22 35)" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartState>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader>
-              <CardTitle className="text-base">Monthly bookings</CardTitle>
-              {!overviewLoading && !overviewError && overviewStats ? (
-                <p className="text-xs text-muted-foreground">Last {overviewStats.monthly.months} months</p>
-              ) : null}
-            </CardHeader>
-            <CardContent className="h-[240px]">
-              <ChartState
-                loading={overviewLoading}
-                error={overviewError}
-                errorMessage={chartErrorMessage}
-                empty={!overviewLoading && !overviewError && monthlyBookings.every((m) => m.bookings === 0)}
-                emptyMessage="No bookings in this period"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyBookings}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
-                    <Tooltip formatter={(value) => [`${value}`, "Bookings"]} />
-                    <Line type="monotone" dataKey="bookings" stroke="oklch(0.55 0.13 200)" strokeWidth={2.5} dot={{ r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartState>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader><CardTitle className="text-base">Booking sources</CardTitle></CardHeader>
-            <CardContent className="h-[280px]">
-              <ChartState
-                loading={bookingsLoading}
-                error={false}
-                errorMessage=""
-                empty={!bookingsLoading && sourceData.length === 0}
-                emptyMessage="No booking sources yet"
-              >
-                <OverviewPie data={sourceData} />
-              </ChartState>
-            </CardContent>
-          </Card>
-        </div>
+            <ul className="flex min-w-0 flex-1 flex-col gap-3">
+              {sourceSlices.length === 0 ? (
+                <li className="text-label text-ink-3">
+                  {isLoading ? "Loading…" : "No bookings in this period"}
+                </li>
+              ) : (
+                sourceSlices.slice(0, 4).map((s) => (
+                  <li key={s.key} className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ background: s.color }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-label font-medium text-ink-2">
+                        {s.label}
+                      </span>
+                      <span className="text-body font-semibold text-ink">
+                        {pct(s.value, sourcesTotal)}%
+                      </span>
+                    </span>
+                    <span className="text-label text-ink-3">
+                      {s.value} {s.value === 1 ? "booking" : "bookings"}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </ChartCard>
       </div>
 
-      <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-muted-foreground">Revenue Analytics</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className={`lg:col-span-2 ${chartCard}`}>
-            <CardHeader>
-              <CardTitle className="text-base">Monthly revenue (PKR & USD)</CardTitle>
-              {!overviewLoading && !overviewError && overviewStats ? (
-                <p className="text-xs text-muted-foreground">
-                  {formatMoney(monthlyRevenueSeries.reduce((s, m) => s + m.revenue_pkr, 0), "pkr")} ·{" "}
-                  {formatMoney(monthlyRevenueSeries.reduce((s, m) => s + m.revenue_usd, 0), "usd")} (excl. cancelled)
-                </p>
-              ) : null}
-            </CardHeader>
-            <CardContent className="h-[280px]">
-              <ChartState
-                loading={overviewLoading}
-                error={overviewError}
-                errorMessage={chartErrorMessage}
-                empty={
-                  !overviewLoading &&
-                  !overviewError &&
-                  monthlyRevenueSeries.every((m) => m.revenue_pkr === 0 && m.revenue_usd === 0)
-                }
-                emptyMessage="No revenue in this period"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyRevenueSeries}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} />
-                    <Tooltip formatter={(v, name) => chartTooltipMoney(v, name)} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="revenue_pkr" name="PKR" fill="oklch(0.62 0.22 35)" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="revenue_usd" name="USD" fill="oklch(0.55 0.13 200)" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartState>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader><CardTitle className="text-base">Revenue by room type</CardTitle></CardHeader>
-            <CardContent className="h-[280px]">
-              <OverviewPie
-                data={revCategoryData}
-                valueFormatter={(value, name) => [formatMoney(Number(value), "pkr"), String(name)]}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className={`${chartCard} lg:col-span-2`}>
-            <CardHeader><CardTitle className="text-base">Top booked rooms</CardTitle></CardHeader>
-            <CardContent className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topRooms} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} fontSize={11} width={140} />
-                  <Tooltip /><Bar dataKey="bookings" fill="oklch(0.62 0.22 35)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className={chartCard}>
-            <CardHeader><CardTitle className="text-base">Peak booking days</CardTitle></CardHeader>
-            <CardContent className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dayOfWeek}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} allowDecimals={false} /><Tooltip />
-                  <Bar dataKey="bookings" fill="oklch(0.55 0.13 200)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <ExtrasCollectedCharts
-        extras={overviewStats?.extras}
-        loading={overviewLoading}
-        error={overviewError}
-        errorMessage={chartErrorMessage}
-      />
+      {/* Daily bookings */}
+      <ChartCard
+        title={`Daily bookings — last ${days} days`}
+        subtitle={`${dailyTotal} ${dailyTotal === 1 ? "booking" : "bookings"} in this period`}
+        legend={
+          <>
+            <LegendItem label="Bookings" />
+            <LegendItem label="Peak day" />
+          </>
+        }
+      >
+        <GlassAreaChart
+          data={daily}
+          height={220}
+          unit="bookings"
+          smooth
+          markPeak
+          showEveryLabel={Math.max(1, Math.round(daily.length / 15))}
+          empty={isLoading ? "Loading…" : "No bookings in this period"}
+        />
+      </ChartCard>
     </div>
   );
 }

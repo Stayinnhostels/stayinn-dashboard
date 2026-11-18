@@ -1,141 +1,127 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Bell, Trash2 } from "lucide-react";
-import { NotificationsGridSkeleton } from "@/components/admin/admin-page-skeletons";
+import { useState, type ReactNode } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Bell, Check, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { NotificationCard } from "@/components/admin/notification-card";
+import { GlassButton } from "@/components/glass";
+import { PageHeader } from "@/components/admin/page-header";
+import {
+  NotificationFilterTabs as FilterTabs,
+  NotificationGroup,
+  useNotificationActions,
+} from "@/components/admin/notifications/notification-row";
+import { groupNotificationsByDay } from "@/lib/notification-kind";
 import {
   useNotificationsQuery,
-  useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
-  useDeleteNotificationMutation,
 } from "@/queries/notifications";
+import type { NotificationCategory } from "@/types/domain/notification.types";
 
 export const Route = createFileRoute("/admin/notifications")({ component: NotificationsPage });
 
-function NotificationTile({
-  notification,
-  onDelete,
-  onMarkRead,
-}: {
-  notification: Parameters<typeof NotificationCard>[0]["notification"];
-  onDelete: () => void;
-  onMarkRead?: () => void;
-}) {
+const EMPTY_COPY: Record<NotificationCategory, string> = {
+  all: "No notifications yet",
+  unread: "You're all caught up",
+  payments: "No payment notifications",
+  bookings: "No booking notifications",
+  alerts: "No alerts",
+};
+
+/** Figma 16.01 · Desktop · Notifications */
+function NotificationsPage() {
+  const [category, setCategory] = useState<NotificationCategory>("all");
+  const { data, isLoading, isError, refetch } = useNotificationsQuery({ limit: 100, category });
+  const markAll = useMarkAllNotificationsReadMutation();
+  const actions = useNotificationActions();
+
+  const items = data?.notifications ?? [];
+  const unread = data?.unread_count ?? 0;
+  const groups = groupNotificationsByDay(items);
+
   return (
-    <div className="group relative h-[5.75rem]">
-      <NotificationCard
-        notification={notification}
-        variant="tile"
-        onMarkRead={onMarkRead}
+    <div className="flex flex-col">
+      <PageHeader
+        className="lg:items-center"
+        title="Notifications"
+        subtitle="Everything that happened · bookings, payments, requests and alerts"
+        actions={
+          <>
+            <FilterTabs value={category} onChange={setCategory} counts={data?.counts ?? null} />
+            <GlassButton
+              variant="glass"
+              onClick={() =>
+                markAll.mutate(undefined, {
+                  onSuccess: () => toast.success("All marked as read"),
+                })
+              }
+              disabled={unread === 0 || markAll.isPending}
+            >
+              <Check aria-hidden /> Mark all read
+            </GlassButton>
+            <Link
+              to="/admin/settings"
+              aria-label="Notification settings"
+              className="glass-2 inline-flex size-10 shrink-0 items-center justify-center rounded-[12px] text-ink outline-none hover:bg-glass-inset focus-visible:ring-2 focus-visible:ring-brand-border [&_svg]:size-[18px]"
+            >
+              <Settings aria-hidden />
+            </Link>
+          </>
+        }
       />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="absolute right-1.5 top-1.5 h-6 w-6 rounded-full text-primary-foreground/0 opacity-0 transition-opacity group-hover:opacity-100 group-hover:text-primary-foreground hover:bg-white/20"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onDelete();
-        }}
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
+
+      {isLoading ? (
+        <LoadingGroups />
+      ) : isError ? (
+        <StateCard>
+          <p className="text-body font-medium text-danger">Could not load notifications.</p>
+          <GlassButton variant="glass" size="sm" onClick={() => void refetch()}>
+            Try again
+          </GlassButton>
+        </StateCard>
+      ) : items.length === 0 ? (
+        <StateCard>
+          <span className="flex size-10 items-center justify-center rounded-[12px] bg-glass-inset text-ink-3 [&_svg]:size-[18px]">
+            <Bell aria-hidden />
+          </span>
+          <p className="text-body font-medium text-ink-2">{EMPTY_COPY[category]}</p>
+        </StateCard>
+      ) : (
+        <div className="flex flex-col gap-5">
+          {groups.map((g) => (
+            <NotificationGroup key={g.day} label={g.label} items={g.items} actions={actions} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function NotificationsPage() {
-  const { data, isLoading, isError } = useNotificationsQuery({ limit: 100 });
-  const markRead = useMarkNotificationReadMutation();
-  const markAll = useMarkAllNotificationsReadMutation();
-  const remove = useDeleteNotificationMutation();
-
-  const items = data?.notifications ?? [];
-  const unread = data?.unread_count ?? 0;
-  const unreadItems = items.filter((n) => !n.read);
-  const readItems = items.filter((n) => n.read);
-
+function StateCard({ children }: { children: ReactNode }) {
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-bold text-foreground">{unread}</span> unread ·{" "}
-          <span className="font-bold text-foreground">{items.length}</span> total
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            markAll.mutate(undefined, {
-              onSuccess: () => toast.success("All marked as read"),
-            })
-          }
-          disabled={unread === 0 || markAll.isPending}
-        >
-          Mark all read
-        </Button>
+    <div className="glass-1 flex flex-col items-center justify-center gap-3 rounded-[22px] px-6 py-16 text-center">
+      {children}
+    </div>
+  );
+}
+
+function LoadingGroups() {
+  return (
+    <div className="flex flex-col gap-5" aria-busy="true" aria-label="Loading notifications">
+      <span className="h-4 w-12 animate-pulse rounded bg-glass-inset" />
+      <div className="glass-1 overflow-hidden rounded-[22px]">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3.5 border-b border-glass-divider px-[18px] py-3.5"
+          >
+            <span className="size-10 animate-pulse rounded-[12px] bg-glass-inset" />
+            <div className="flex flex-1 flex-col gap-2">
+              <span className="h-3.5 w-40 animate-pulse rounded bg-glass-inset" />
+              <span className="h-3 w-64 animate-pulse rounded bg-glass-inset" />
+            </div>
+            <span className="h-3 w-14 animate-pulse rounded bg-glass-inset" />
+          </div>
+        ))}
       </div>
-
-      {isLoading ? (
-        <NotificationsGridSkeleton />
-      ) : isError ? (
-        <Card className="border-border/60">
-          <CardContent className="py-16 text-center text-sm text-destructive">
-            Could not load notifications.
-          </CardContent>
-        </Card>
-      ) : items.length === 0 ? (
-        <Card className="border-border/60">
-          <CardContent className="py-16 text-center">
-            <Bell className="mx-auto h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-2 font-bold">No notifications</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {unreadItems.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Unread
-              </h2>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {unreadItems.map((n) => (
-                  <NotificationTile
-                    key={n.id}
-                    notification={n}
-                    onMarkRead={() => markRead.mutate(n.id)}
-                    onDelete={() =>
-                      remove.mutate(n.id, { onSuccess: () => toast.success("Deleted") })
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {readItems.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Earlier
-              </h2>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {readItems.map((n) => (
-                  <NotificationTile
-                    key={n.id}
-                    notification={n}
-                    onDelete={() =>
-                      remove.mutate(n.id, { onSuccess: () => toast.success("Deleted") })
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      )}
     </div>
   );
 }

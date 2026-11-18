@@ -68,13 +68,8 @@ export function useUpdateBookingStatusMutation() {
   return useMutation({
     mutationFn: (input: { id: string } & UpdateBookingStatusInput) => {
       if (!token) throw new Error("You must be signed in");
-      const { id, status, amount_refunded, security_returned, checkout_rent_collected } = input;
-      return patchBookingStatusApi(token, id, {
-        status,
-        amount_refunded,
-        security_returned,
-        checkout_rent_collected,
-      });
+      const { id, ...rest } = input;
+      return patchBookingStatusApi(token, id, rest);
     },
     onSuccess: (_, { id }) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });

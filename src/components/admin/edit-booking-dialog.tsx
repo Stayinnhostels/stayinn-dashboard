@@ -1,19 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { AlertTriangle, CalendarDays, Loader2, Minus, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GlassButton, GlassCheckbox, Tag } from "@/components/glass";
+import { Banner, FieldLabel, InputShell, Section, SegmentedField, StepBtn, TextField } from "@/components/admin/walk-in/walk-in-modal";
+import { cn } from "@/lib/utils";
 import { useUpdateBookingDetailsMutation } from "@/queries/bookings";
 import { formatMoney, normalizeMoneyCurrency } from "@/lib/payments";
 import type { Booking } from "@/types/domain/booking.types";
@@ -74,6 +65,8 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
   const [totalAmount, setTotalAmount] = useState(String(booking.total_amount ?? 0));
   const [autoTotal, setAutoTotal] = useState(true);
   const [overrideCheckOut, setOverrideCheckOut] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const isNightStay = stayUnit === "night";
   const originalStayUnit: StayUnit = booking.stay_unit === "night" ? "night" : "month";
@@ -98,6 +91,7 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
     setTotalAmount(String(booking.total_amount ?? 0));
     setAutoTotal(true);
     setOverrideCheckOut(false);
+    setShowErrors(false);
   }, [open, booking]);
 
   function handleStayUnitChange(next: StayUnit) {
@@ -178,7 +172,11 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSave) return;
+    if (!canSave) {
+      setShowErrors(true);
+      requestAnimationFrame(() => bodyRef.current?.querySelector('[aria-invalid="true"]')?.scrollIntoView({ block: "center", behavior: "smooth" }));
+      return;
+    }
 
     const input: Parameters<typeof updateDetails.mutate>[0]["input"] = {
       guest_name: guestName.trim(),
@@ -225,263 +223,166 @@ export function EditBookingDialog({ booking, open, onOpenChange }: Props) {
     );
   }
 
+  const errors: Record<string, string> = {};
+  if (!guestName.trim()) errors.name = "Guest name is required";
+  if (!guestEmail.trim().includes("@")) errors.email = "Enter a valid email";
+  if (guestPhone.trim().length < 5) errors.phone = "Enter a phone number";
+  if (residentType === "employee" && !company.trim()) errors.company = "Company name is required";
+  if (residentType === "student" && !institution.trim()) errors.institution = "Institution name is required";
+  if (!isCancelled) {
+    if (moveIn.length !== 10) errors.moveIn = "Move-in is required";
+    if (checkOut.length !== 10) errors.checkOut = "Check-out is required";
+    if (!(Number.isFinite(priceNum) && priceNum >= 0)) errors.price = "Enter a price";
+    if (!(Number.isFinite(Number(totalAmount)) && Number(totalAmount) >= 0)) errors.total = "Enter a total";
+  }
+  const errorCount = Object.keys(errors).length;
+  const err = (k: string) => (showErrors ? errors[k] : undefined);
+  const durNum = isNightStay ? nightsNum : monthsNum;
+  const setDur = (n: number) => (isNightStay ? setNights(String(n)) : setMonths(String(n)));
+  const roomLine = [booking.booking_code, booking.room_number != null ? `Room ${booking.room_number}` : booking.room_title, booking.seat_label].filter(Boolean).join(" · ");
+  const pretty = (iso: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="h-4 w-4" /> Edit booking
-          </DialogTitle>
-          <DialogDescription className="sr-only">Details</DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Label htmlFor="edit-guest-name" required>
-                Guest name
-              </Label>
-              <Input
-                id="edit-guest-name"
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-guest-email" required>
-                Email
-              </Label>
-              <Input
-                id="edit-guest-email"
-                type="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-guest-phone" required>
-                Phone
-              </Label>
-              <Input
-                id="edit-guest-phone"
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                required
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="edit-source">Source / channel</Label>
-              <Input
-                id="edit-source"
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                placeholder="website, walk_in…"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="edit-type">Type</Label>
-              <Select
-                value={residentType || "employee"}
-                onValueChange={(v) => setResidentType(v as ResidentType)}
-              >
-                <SelectTrigger id="edit-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {residentType === "employee" ? (
-              <div className="sm:col-span-2">
-                <Label htmlFor="edit-company" required>
-                  Company name
-                </Label>
-                <Input
-                  id="edit-company"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="Employer or company"
-                  required
-                />
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="glass-3 fixed inset-x-0 bottom-0 z-50 flex max-h-[94svh] flex-col overflow-hidden rounded-t-[28px] font-geist text-ink outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-h-[calc(100svh-48px)] md:w-[min(760px,calc(100vw-48px))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[28px]"
+        >
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center gap-3 border-b border-glass-divider px-6 py-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-brand-tint text-brand-text [&_svg]:size-[18px]"><Pencil aria-hidden /></span>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Dialog.Title className="text-hero text-ink">Edit booking</Dialog.Title>
+                  {isCancelled ? <Tag tone="neutral" showDot>Cancelled · guest details only</Tag> : null}
+                </div>
+                <p className="truncate text-label text-ink-2">{[booking.guest_name, roomLine].filter(Boolean).join(" · ")}</p>
               </div>
-            ) : null}
-            {residentType === "student" ? (
-              <div className="sm:col-span-2">
-                <Label htmlFor="edit-institution" required>
-                  Institution name
-                </Label>
-                <Input
-                  id="edit-institution"
-                  value={institution}
-                  onChange={(e) => setInstitution(e.target.value)}
-                  placeholder="College, university, or institute"
-                  required
-                />
-              </div>
-            ) : null}
-          </div>
+              <Dialog.Close aria-label="Close" className="glass-2 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-ink outline-none hover:bg-glass-inset focus-visible:ring-2 focus-visible:ring-brand-border"><X className="size-[18px]" aria-hidden /></Dialog.Close>
+            </div>
 
-          {!isCancelled && (
-            <div className="space-y-3 rounded-md border border-border/60 p-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Stay
+            <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-6 pt-4 pb-6">
+              {!isCancelled ? (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[18px] border border-glass-divider bg-glass-inset px-[18px] py-3.5">
+                  {[
+                    [isNightStay ? "Rate / night" : "Rent / month", Number.isFinite(priceNum) ? formatMoney(priceNum * (Number.isFinite(seatsNum) ? seatsNum : 1), cur) : "—"],
+                    ["Stay", `${Number.isFinite(durNum) ? durNum : "—"} ${isNightStay ? "night(s)" : "month(s)"} · ${Number.isFinite(seatsNum) ? seatsNum : "—"} seat(s)`],
+                    ["Check-out", pretty(checkOut)],
+                  ].map(([l, v]) => (
+                    <div key={l} className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-label text-ink-3">{l}</span>
+                      <span className="truncate text-body font-semibold text-ink">{v}</span>
+                    </div>
+                  ))}
+                  <span className="flex-1" />
+                  <div className="flex flex-col items-end">
+                    <span className="text-label font-medium text-ink-2">Rent total</span>
+                    <span className="text-kpi text-ink">{Number.isFinite(Number(totalAmount)) ? formatMoney(Number(totalAmount), cur) : "—"}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {showErrors && errorCount ? (
+                <Banner tone="danger" icon={<AlertTriangle />}>Fix {errorCount} field{errorCount === 1 ? "" : "s"} before saving.</Banner>
+              ) : null}
+
+              <Section num={1} title="Guest">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="md:col-span-2"><TextField label="Guest name" required value={guestName} onChange={setGuestName} error={err("name")} /></div>
+                  <TextField label="Email" required value={guestEmail} onChange={setGuestEmail} inputMode="email" placeholder="guest@email.com" error={err("email")} />
+                  <TextField label="Phone" required value={guestPhone} onChange={setGuestPhone} inputMode="tel" placeholder="+92 300 1234567" error={err("phone")} />
+                </div>
+              </Section>
+
+              <Section num={2} title="Occupation & channel">
+                <SegmentedField label="Type" value={residentType || "employee"} onChange={(v) => setResidentType(v as ResidentType)} options={[["student", "Student"], ["employee", "Employee"], ["other", "Other"]]} />
+                {residentType === "employee" ? <TextField label="Company name" required value={company} onChange={setCompany} placeholder="Employer or company" error={err("company")} /> : null}
+                {residentType === "student" ? <TextField label="Institution name" required value={institution} onChange={setInstitution} placeholder="College, university, or institute" error={err("institution")} /> : null}
+                <TextField label="Source / channel" value={source} onChange={setSource} placeholder="website, walk_in…" />
+              </Section>
+
+              {!isCancelled ? (
+                <Section num={3} title="Stay & billing">
+                  <div className="flex flex-col gap-1.5">
+                    <SegmentedField label="Billing type" value={stayUnit} onChange={(v) => handleStayUnitChange(v as StayUnit)} options={[["month", "Monthly rent"], ["night", "Nightly / short visitor"]]} />
+                    {stayUnit !== originalStayUnit ? (
+                      <p className="text-label text-warning">Switching will recalculate check-out, rent total, and the payment ledger for this stay.</p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-start gap-3">
+                    <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+                      <FieldLabel required>Move-in</FieldLabel>
+                      <InputShell icon={<CalendarDays />} invalid={Boolean(err("moveIn"))}>
+                        <input type="date" value={moveIn} onChange={(e) => setMoveIn(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} aria-invalid={err("moveIn") ? true : undefined} className="w-full cursor-pointer bg-transparent text-body text-ink outline-none [&::-webkit-calendar-picker-indicator]:hidden" />
+                      </InputShell>
+                      {err("moveIn") ? <span className="text-label font-medium text-danger">{err("moveIn")}</span> : null}
+                    </label>
+                    <Stepper label={isNightStay ? "Nights" : "Months"} value={Number.isFinite(durNum) ? durNum : 1} min={1} max={isNightStay ? 60 : 24} onChange={setDur} />
+                    <Stepper label="Seats" value={Number.isFinite(seatsNum) ? seatsNum : 1} min={1} max={20} onChange={(n) => setSeats(String(n))} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel required={overrideCheckOut}>{overrideCheckOut ? "Check-out" : "Check-out (auto)"}</FieldLabel>
+                    <InputShell icon={<CalendarDays />} muted={!overrideCheckOut} invalid={Boolean(err("checkOut"))}>
+                      <input type="date" value={checkOut} disabled={!overrideCheckOut} onChange={(e) => setCheckOut(e.target.value)} onClick={(e) => overrideCheckOut && e.currentTarget.showPicker?.()} className="w-full cursor-pointer bg-transparent text-body text-ink outline-none disabled:cursor-default disabled:text-ink-2 [&::-webkit-calendar-picker-indicator]:hidden" />
+                    </InputShell>
+                    <label className="flex cursor-pointer items-center gap-2 text-label text-ink-2">
+                      <GlassCheckbox checked={overrideCheckOut} onCheckedChange={setOverrideCheckOut} aria-label="Set check-out manually" /> Set check-out manually
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <TextField label={isNightStay ? "Price per seat / night" : "Price per seat / month"} value={pricePerSeat} onChange={(v) => setPricePerSeat(v.replace(/[^\d.]/g, ""))} inputMode="decimal" error={err("price")} />
+                    <div className="flex flex-col gap-1.5">
+                      <FieldLabel>Rent total</FieldLabel>
+                      <InputShell muted={autoTotal} invalid={Boolean(err("total"))}>
+                        <input value={totalAmount} disabled={autoTotal} inputMode="decimal" onChange={(e) => setTotalAmount(e.target.value.replace(/[^\d.]/g, ""))} aria-invalid={err("total") ? true : undefined} className="w-full bg-transparent text-body text-ink outline-none disabled:text-ink-2" />
+                      </InputShell>
+                      <label className="flex cursor-pointer items-center gap-2 text-label text-ink-2">
+                        <GlassCheckbox checked={autoTotal} onCheckedChange={setAutoTotal} aria-label="Auto-calculate total" />
+                        Auto-calculate total{previewTotal != null ? ` (${formatMoney(previewTotal, cur)})` : ""}
+                      </label>
+                    </div>
+                  </div>
+                </Section>
+              ) : null}
+
+              <Section num={isCancelled ? 3 : 4} title="Notes">
+                <div className="glass-2 rounded-[14px] px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-brand-border">
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Internal notes…" className="w-full resize-none bg-transparent text-body text-ink outline-none placeholder:text-ink-3" />
+                </div>
+              </Section>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-glass-divider px-6 py-4">
+              <p className="min-w-0 flex-1 text-label text-ink-2">
+                {showErrors && errorCount ? `${errorCount} field${errorCount === 1 ? "" : "s"} need attention` : "Changes apply to this booking only."}
               </p>
-              <div>
-                <Label htmlFor="edit-stay-unit" required>
-                  Billing type
-                </Label>
-                <Select value={stayUnit} onValueChange={(v) => handleStayUnitChange(v as StayUnit)}>
-                  <SelectTrigger id="edit-stay-unit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="month">Monthly rent</SelectItem>
-                    <SelectItem value="night">Nightly / short visitor</SelectItem>
-                  </SelectContent>
-                </Select>
-                {stayUnit !== originalStayUnit ? (
-                  <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
-                    Switching will recalculate check-out, rent total, and the payment ledger for
-                    this stay.
-                  </p>
-                ) : null}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="edit-move-in" required>
-                    Move-in
-                  </Label>
-                  <Input
-                    id="edit-move-in"
-                    type="date"
-                    value={moveIn}
-                    onChange={(e) => setMoveIn(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-duration" required>
-                    {isNightStay ? "Nights" : "Months"}
-                  </Label>
-                  <Input
-                    id="edit-duration"
-                    type="number"
-                    min={1}
-                    max={isNightStay ? 60 : 24}
-                    value={isNightStay ? nights : months}
-                    onChange={(e) =>
-                      isNightStay ? setNights(e.target.value) : setMonths(e.target.value)
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-seats" required>
-                    Seats
-                  </Label>
-                  <Input
-                    id="edit-seats"
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={seats}
-                    onChange={(e) => setSeats(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-check-out" required={overrideCheckOut}>
-                    Check-out {overrideCheckOut ? "" : "(auto)"}
-                  </Label>
-                  <Input
-                    id="edit-check-out"
-                    type="date"
-                    value={checkOut}
-                    disabled={!overrideCheckOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                  />
-                  <label className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={overrideCheckOut}
-                      onChange={(e) => setOverrideCheckOut(e.target.checked)}
-                    />
-                    Set check-out manually
-                  </label>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="edit-price">
-                    {isNightStay ? "Price per seat / night" : "Price per seat / month"}
-                  </Label>
-                  <Input
-                    id="edit-price"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={pricePerSeat}
-                    onChange={(e) => setPricePerSeat(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-total">Rent total</Label>
-                  <Input
-                    id="edit-total"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={totalAmount}
-                    disabled={autoTotal}
-                    onChange={(e) => setTotalAmount(e.target.value)}
-                  />
-                  <label className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={autoTotal}
-                      onChange={(e) => setAutoTotal(e.target.checked)}
-                    />
-                    Auto-calculate total
-                    {previewTotal != null ? ` (${formatMoney(previewTotal, cur)})` : ""}
-                  </label>
-                </div>
-              </div>
+              <Dialog.Close asChild><GlassButton type="button" variant="ghost">Cancel</GlassButton></Dialog.Close>
+              <GlassButton type="submit" disabled={updateDetails.isPending} className={cn(!canSave && "opacity-60")}>
+                {updateDetails.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <Pencil aria-hidden />} {updateDetails.isPending ? "Saving…" : "Save changes"}
+              </GlassButton>
             </div>
-          )}
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
 
-          <div>
-            <Label htmlFor="edit-notes">Notes</Label>
-            <Textarea
-              id="edit-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Internal notes…"
-            />
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSave || updateDetails.isPending}>
-              {updateDetails.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Saving…
-                </>
-              ) : (
-                "Save changes"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+function Stepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <FieldLabel required>{label}</FieldLabel>
+      <div className="glass-2 flex h-11 w-fit items-center gap-1 rounded-[14px] px-1">
+        <StepBtn label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}><Minus /></StepBtn>
+        <span className="w-10 text-center text-body font-semibold text-ink">{value}</span>
+        <StepBtn label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}><Plus /></StepBtn>
+      </div>
+    </div>
   );
 }

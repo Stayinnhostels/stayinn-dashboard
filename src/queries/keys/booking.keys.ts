@@ -10,4 +10,5 @@ export const bookingKeys = {
   overview: (days: number, weeks: number, months: number, hostel?: string) =>
     [...bookingKeys.all, "overview", days, weeks, months, hostel ?? "all"] as const,
   revenue: () => [...bookingKeys.all, "revenue"] as const,
+  summary: (hostel?: string) => [...bookingKeys.all, "summary", hostel ?? "all"] as const,
 };

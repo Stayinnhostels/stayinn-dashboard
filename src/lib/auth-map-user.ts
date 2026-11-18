@@ -14,11 +14,20 @@ export function mapLoginUserDtoToAuthUser(u: LoginApiUserDto): AuthUser {
     role: u.role as UserRole,
     emailVerified: !!u.emailVerified,
     avatarUrl: avatar || undefined,
+    jobTitle: typeof u.jobTitle === "string" && u.jobTitle.trim() ? u.jobTitle.trim() : undefined,
   };
+}
+
+/** Thrown when valid credentials belong to an account that may not use the admin console. */
+export class NotConsoleUserError extends Error {
+  constructor() {
+    super("Only a super administrator can sign in to this console.");
+    this.name = "NotConsoleUserError";
+  }
 }
 
 export function assertSuperAdminConsoleUser(user: AuthUser): void {
   if (user.role !== "super_admin") {
-    throw new Error("Only a super administrator can sign in to this console.");
+    throw new NotConsoleUserError();
   }
 }

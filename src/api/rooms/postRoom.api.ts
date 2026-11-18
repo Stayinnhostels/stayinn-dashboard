@@ -8,7 +8,11 @@ type PostRoomResponse = {
   room: Room;
 };
 
-export async function postRoomApi(token: string, draft: RoomDraft, hostelId?: string): Promise<Room> {
+export async function postRoomApi(
+  token: string,
+  draft: RoomDraft,
+  hostelId?: string,
+): Promise<Room> {
   const data = await apiFetch<PostRoomResponse>("/api/v1/rooms", {
     method: "POST",
     token,

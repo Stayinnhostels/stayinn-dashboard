@@ -26,10 +26,9 @@ export async function getPaymentsApi(token: string, params: PaymentsListParams =
   if (params.hostel) search.set("hostel", params.hostel);
 
   const q = search.toString();
-  const data = await apiFetch<GetPaymentsResponse>(
-    `/api/v1/bookings/payments${q ? `?${q}` : ""}`,
-    { token },
-  );
+  const data = await apiFetch<GetPaymentsResponse>(`/api/v1/bookings/payments${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.payments)) {
     throw new Error("Invalid payments list response");
   }

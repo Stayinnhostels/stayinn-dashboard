@@ -10,16 +10,25 @@ type ApiFetchOptions = RequestInit & {
 
 export class ApiError extends Error {
   status: number;
+  /** Seconds until the server accepts requests again (429 responses), when it tells us. */
+  retryAfterSeconds?: number;
+  /** Machine-readable error code from the API (e.g. "BED_TAKEN"). */
+  code?: string;
+  /** Extra data the API sent with the error (e.g. suggested rooms). */
+  details?: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, retryAfterSeconds?: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
 type ApiErrorBody = {
   message?: string;
+  code?: string;
+  details?: unknown;
   errors?: {
     formErrors?: string[];
     fieldErrors?: Record<string, string[]>;
@@ -90,7 +99,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
 
   if (!res.ok) {
-    throw new ApiError(formatApiErrorMessage(data, res.status), res.status);
+    const err = new ApiError(formatApiErrorMessage(data, res.status), res.status);
+    if (typeof data.code === "string") err.code = data.code;
+    if (data.details !== undefined) err.details = data.details;
+    throw err;
   }
 
   return data;

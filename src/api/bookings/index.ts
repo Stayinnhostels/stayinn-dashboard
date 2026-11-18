@@ -1,7 +1,13 @@
 export { getPaymentsApi } from "./getPayments.api";
 export { getSecurityPaymentsApi } from "./getSecurityPayments.api";
 export { postSecurityMovementApi } from "./postSecurityMovement.api";
-export { getBookingsApi } from "./getBookings.api";
+export {
+  getBookingsApi,
+  getBookingsSummaryApi,
+  downloadBookingsCsvApi,
+  postBookingRemindersApi,
+  type BookingRemindersResult,
+} from "./getBookings.api";
 export { getBookingApi } from "./getBooking.api";
 export { getBookingDailyStatsApi } from "./getBookingDailyStats.api";
 export { getBookingOverviewStatsApi } from "./getBookingOverviewStats.api";

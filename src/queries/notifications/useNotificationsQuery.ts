@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getNotificationsApi } from "@/api/notifications";
 import { notificationKeys } from "@/queries/keys/notification.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -15,5 +15,6 @@ export function useNotificationsQuery(params: NotificationListParams = {}) {
     },
     enabled: Boolean(token),
     staleTime: 10_000,
+    placeholderData: keepPreviousData,
   });
 }

@@ -25,7 +25,9 @@ export async function getBookingRequestsApi(token: string, params: BookingReques
   if (params.page) search.set("page", String(params.page));
   if (params.hostel) search.set("hostel", params.hostel);
   const q = search.toString();
-  const data = await apiFetch<ListResponse>(`/api/v1/booking-requests${q ? `?${q}` : ""}`, { token });
+  const data = await apiFetch<ListResponse>(`/api/v1/booking-requests${q ? `?${q}` : ""}`, {
+    token,
+  });
   if (!data.success || !Array.isArray(data.requests)) {
     throw new Error("Invalid booking requests response");
   }
@@ -39,7 +41,11 @@ export async function getBookingRequestsApi(token: string, params: BookingReques
 export async function resolveBookingRequestApi(
   token: string,
   id: string,
-  body: { status: Extract<BookingRequestStatus, "approved" | "rejected">; admin_note?: string; amount_refunded?: number },
+  body: {
+    status: Extract<BookingRequestStatus, "approved" | "rejected">;
+    admin_note?: string;
+    amount_refunded?: number;
+  },
 ) {
   const data = await apiFetch<ResolveResponse>(`/api/v1/booking-requests/${id}`, {
     token,

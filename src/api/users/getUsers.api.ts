@@ -1,5 +1,11 @@
 import { apiFetch } from "@/api/apiFetch";
-import { mapApiUserToAdminUser, type AdminUser, type ApiUser, type UsersListParams, type UsersPagination } from "@/types/domain/user.types";
+import {
+  mapApiUserToAdminUser,
+  type AdminUser,
+  type ApiUser,
+  type UsersListParams,
+  type UsersPagination,
+} from "@/types/domain/user.types";
 
 type GetUsersResponse = {
   success: boolean;

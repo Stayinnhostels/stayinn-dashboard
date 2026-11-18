@@ -1,19 +1,21 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useLayoutEffect, useState } from "react";
-import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ApiError } from "@/api/apiFetch";
+import { AuthShell } from "@/components/auth/auth-ui";
+import {
+  NoDashboardAccessCard,
+  SignedOutCard,
+  SignInCard,
+  SignInSuccessCard,
+  TooManyAttemptsCard,
+  type SignInValues,
+} from "@/components/auth/auth-cards";
+import { LoadingScreen } from "@/components/system/system-screens";
 import { useAuth } from "@/lib/auth-context";
+import { NotConsoleUserError } from "@/lib/auth-map-user";
 import { unlockNotificationAudio } from "@/lib/notification-sound";
+import { clearSessionEnded, readLastEmail, readSessionEnded } from "@/lib/session-end";
 import { useLoginMutation } from "@/queries/auth/useLoginMutation";
-
-const LOGIN_LOGO_SRC = "/logos/navlogo.png?v=2";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -25,168 +27,130 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-const schema = z.object({
-  email: z.string().trim().email("Enter a valid email").max(120),
-  password: z.string().min(1, "Password is required").max(200),
-  remember: z.boolean().optional(),
-});
-type FormValues = z.infer<typeof schema>;
-
 function postLoginPath() {
   return "/admin";
+}
+
+/** How long the "Welcome back" card stays up before the dashboard opens. */
+const SUCCESS_REDIRECT_MS = 1200;
+/** Matches the API's login rate-limit window (15 minutes). */
+const DEFAULT_LOCK_SECONDS = 15 * 60;
+
+type View =
+  | { kind: "form" }
+  | { kind: "expired"; email: string }
+  | { kind: "signed-out" }
+  | { kind: "success"; name: string }
+  | { kind: "locked"; until: number }
+  | { kind: "no-access" };
+
+function initialView(): View {
+  const reason = readSessionEnded();
+  if (reason === "signed-out") return { kind: "signed-out" };
+  if (reason === "expired") {
+    const email = readLastEmail();
+    if (email) return { kind: "expired", email };
+  }
+  return { kind: "form" };
 }
 
 function LoginPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const loginMutation = useLoginMutation();
-  const [showPw, setShowPw] = useState(false);
+  const [view, setView] = useState<View>(initialView);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  // The session is stored a tick before the success card renders; hold the redirect meanwhile.
+  const signingIn = useRef(false);
+  const alreadySignedIn = !!user && view.kind !== "success" && !signingIn.current;
 
+  // Already signed in (and not in the middle of the success screen) → straight to the dashboard.
   useLayoutEffect(() => {
-    if (user) {
+    if (alreadySignedIn) {
       navigate({ to: postLoginPath(), replace: true });
     }
-  }, [user, navigate]);
+  }, [alreadySignedIn, navigate]);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "", remember: true },
-  });
+  useEffect(() => {
+    if (view.kind !== "success") return;
+    const t = window.setTimeout(() => navigate({ to: postLoginPath() }), SUCCESS_REDIRECT_MS);
+    return () => window.clearTimeout(t);
+  }, [view.kind, navigate]);
 
-  const onSubmit = async (values: FormValues) => {
+  // Tick while locked out so the "Try again in N minutes" title counts down.
+  useEffect(() => {
+    if (view.kind !== "locked") return;
+    const t = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(t);
+  }, [view.kind]);
+
+  const showForm = () => {
+    clearSessionEnded();
+    setBanner(null);
+    setView({ kind: "form" });
+  };
+
+  const onSubmit = async (values: SignInValues) => {
+    setBanner(null);
+    signingIn.current = true;
     try {
       // Unlock audio on this click so booking rings work right after login.
       unlockNotificationAudio();
-      await loginMutation.mutateAsync({
+      const data = await loginMutation.mutateAsync({
         email: values.email,
         password: values.password,
         remember: values.remember,
       });
-      toast.success("Welcome back!");
-      navigate({ to: postLoginPath() });
+      const fullName = data.user.name?.trim() ?? "";
+      setView({ kind: "success", name: fullName.split(/\s+/)[0] ?? "" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Sign in failed");
+      signingIn.current = false;
+      if (e instanceof NotConsoleUserError || (e instanceof ApiError && e.status === 403)) {
+        setView({ kind: "no-access" });
+      } else if (e instanceof ApiError && e.status === 429) {
+        const seconds = e.retryAfterSeconds ?? DEFAULT_LOCK_SECONDS;
+        setNow(Date.now());
+        setView({ kind: "locked", until: Date.now() + seconds * 1000 });
+      } else if (e instanceof ApiError && e.status === 401) {
+        setBanner("That email or password is not right. Try again or reset your password.");
+      } else if (e instanceof TypeError) {
+        setBanner("We couldn't reach the server. Check your connection and try again.");
+      } else {
+        setBanner(e instanceof Error ? e.message : "Sign in failed. Please try again.");
+      }
     }
   };
 
-  if (user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (alreadySignedIn) {
+    return <LoadingScreen />;
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(0,102,178,0.14),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(0,102,178,0.08),_transparent_45%),linear-gradient(180deg,_#f7fafc_0%,_#eef4f9_100%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-16 bottom-10 h-80 w-80 rounded-full bg-primary/15 blur-3xl"
-      />
-
-      <main className="relative z-10 w-full max-w-md">
-        <div className="mb-10 flex flex-col items-center text-center">
-          <Link to="/login" className="mb-8 inline-flex justify-center">
-            <img
-              src={LOGIN_LOGO_SRC}
-              alt="Stay Inn Hostels"
-              className="h-16 w-auto max-w-[min(100%,10rem)] object-contain object-center sm:h-20 sm:max-w-[12rem]"
-            />
-          </Link>
-          <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-[2.75rem] sm:leading-none">
-            Welcome back
-          </h1>
-        </div>
-
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-5 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-[0_18px_50px_-28px_rgba(0,64,120,0.45)] backdrop-blur-sm sm:p-8"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="email" className="font-semibold" required>
-              Email
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@email.com"
-                className="h-11 rounded-full pl-10"
-                aria-invalid={!!errors.email}
-                {...register("email")}
-              />
-            </div>
-            {errors.email && <p className="text-xs font-medium text-destructive">{errors.email.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="font-semibold" required>
-              Password
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPw ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="h-11 rounded-full pl-10 pr-10"
-                aria-invalid={!!errors.password}
-                {...register("password")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={showPw ? "Hide password" : "Show password"}
-              >
-                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="text-xs font-medium text-destructive">{errors.password.message}</p>
-            )}
-          </div>
-
-          <label className="flex cursor-pointer select-none items-center gap-2 text-sm">
-            <Checkbox {...register("remember")} defaultChecked />
-            <span className="text-muted-foreground">Remember me for 30 days</span>
-          </label>
-
-          <Button
-            type="submit"
-            disabled={loginMutation.isPending}
-            size="lg"
-            className="w-full rounded-full font-bold shadow-[var(--shadow-soft)]"
-          >
-            {loginMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Signing in…
-              </>
-            ) : (
-              "Sign in"
-            )}
-          </Button>
-        </form>
-
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Stay Inn Hostels
-        </p>
-      </main>
-    </div>
+    <AuthShell>
+      {view.kind === "success" ? (
+        <SignInSuccessCard name={view.name} durationMs={SUCCESS_REDIRECT_MS} />
+      ) : view.kind === "locked" ? (
+        <TooManyAttemptsCard
+          minutes={Math.max(1, Math.ceil((view.until - now) / 60_000))}
+          canRetry={now >= view.until}
+          onRetry={showForm}
+        />
+      ) : view.kind === "no-access" ? (
+        <NoDashboardAccessCard onBack={showForm} />
+      ) : view.kind === "signed-out" ? (
+        <SignedOutCard onSignInAgain={showForm} />
+      ) : (
+        <SignInCard
+          key={view.kind}
+          variant={view.kind === "expired" ? "expired" : "default"}
+          lockedEmail={view.kind === "expired" ? view.email : undefined}
+          banner={banner}
+          pending={loginMutation.isPending}
+          onSubmit={onSubmit}
+          onUseDifferentAccount={showForm}
+        />
+      )}
+    </AuthShell>
   );
 }

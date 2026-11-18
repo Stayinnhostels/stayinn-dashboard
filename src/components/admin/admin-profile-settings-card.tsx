@@ -23,6 +23,7 @@ export function AdminProfileSettingsCard() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.fullName ?? "");
+  const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? "");
   const [preview, setPreview] = useState<string | null>(user?.avatarUrl ?? null);
   const [dirtyAvatar, setDirtyAvatar] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -67,6 +68,7 @@ export function AdminProfileSettingsCard() {
     updateProfile.mutate(
       {
         name: trimmed,
+        jobTitle: jobTitle.trim(),
         ...(dirtyAvatar ? { avatar: preview || "" } : {}),
       },
       {
@@ -135,6 +137,16 @@ export function AdminProfileSettingsCard() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="admin-profile-title">Job title</Label>
+            <Input
+              id="admin-profile-title"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Hostel manager"
+              maxLength={80}
             />
           </div>
           <div className="grid gap-1.5">
