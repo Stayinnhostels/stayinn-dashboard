@@ -81,7 +81,7 @@ export const NAV_GROUPS: AdminNavGroup[] = [
     label: "Money",
     items: [
       { to: "/admin/payments", label: "Payments", icon: Wallet },
-      { to: "/admin/security-payments", label: "Security deposits", icon: ShieldCheck },
+      { to: "/admin/security-payments", label: "Security", icon: ShieldCheck },
       { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
       { to: "/admin/expenses", label: "Monthly Expenses", icon: Receipt },
       { to: "/admin/coupons", label: "Coupons", icon: TicketPercent },

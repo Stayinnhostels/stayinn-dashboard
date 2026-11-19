@@ -57,7 +57,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
 };
 
 /** Pages that render their own PageHeader (custom subtitle / actions, per the Figma). */
-const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$/;
+const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings(\/[^/]+)?\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$|^\/admin\/security-payments\/?$/;
 
 function resolveMeta(pathname: string) {
   if (TITLES[pathname]) return TITLES[pathname];

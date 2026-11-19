@@ -13,6 +13,7 @@ import {
   Ellipsis,
   Eye,
   EyeOff,
+  Maximize2,
   FileText,
   LogIn,
   LogOut,
@@ -46,6 +47,7 @@ import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { ReceiptDialog } from "@/components/admin/booking-detail/receipt-dialog";
 import { RecordPaymentSheet } from "@/components/admin/booking-detail/record-payment-sheet";
 import { CheckoutDialog } from "@/components/admin/booking-detail/checkout-dialog";
+import { IdImageViewer } from "@/components/admin/id-image-viewer";
 import { DISPLAY_STATUS, bookingDisplayStatus, channelLabel, occupationLine } from "@/components/admin/bookings/booking-format";
 import { useBookingQuery, useUpdateBookingStatusMutation } from "@/queries/bookings";
 import { useAddBookingNoteMutation, useVerifyIdMutation } from "@/queries/bookings/useBookingDetailActions";
@@ -134,10 +136,10 @@ function BookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4" aria-busy>
+      <div className="flex w-full flex-col gap-4 2xl:gap-5" aria-busy>
         <div className="h-[110px]" />
         <div className="glass-1 h-[66px] animate-pulse rounded-[18px]" />
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px] min-[1920px]:grid-cols-[minmax(0,1fr)_460px]">
           <div className="glass-1 h-[520px] animate-pulse rounded-[20px]" />
           <div className="glass-1 h-[520px] animate-pulse rounded-[20px]" />
         </div>
@@ -146,7 +148,7 @@ function BookingDetailPage() {
   }
   if (isError || !booking) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex w-full flex-col gap-4 2xl:gap-5">
         <BackLink />
         <div className="glass-1 rounded-[20px] py-16 text-center text-body text-danger">{error instanceof Error ? error.message : "Booking not found."}</div>
       </div>
@@ -218,7 +220,7 @@ function BookingDetailPage() {
           : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full flex-col gap-4 2xl:gap-5">
       <input ref={idInput} type="file" accept="image/*" className="hidden" onChange={(e) => { void uploadId(e.target.files?.[0]); e.target.value = ""; }} />
       <BackLink />
 
@@ -274,7 +276,7 @@ function BookingDetailPage() {
         </Banner>
       ) : null}
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px] min-[1920px]:grid-cols-[minmax(0,1fr)_460px]">
         <div className="flex min-w-0 flex-col gap-4">
           <GuestCard booking={b} idPending={idPending} />
           <IdCard
@@ -545,8 +547,10 @@ function IdCard({
   onVerify: () => void;
 }) {
   const [show, setShow] = useState(false);
+  const [viewing, setViewing] = useState<number | null>(null);
   const slots = b.id_type === "b_form" ? [["B-Form", images.bForm, "front"] as const] : b.id_type === "passport" ? [["Passport", images.front, "front"] as const] : [["CNIC front", images.front, "front"] as const, ["CNIC back", images.back, "back"] as const];
   const any = slots.some(([, src]) => src) || Boolean(images.pdf);
+  const viewable = slots.filter(([, src]) => src).map(([label, src]) => ({ label, src }));
   return (
     <Panel
       eyebrow="ID documents"
@@ -568,14 +572,21 @@ function IdCard({
           <div key={label} className="flex flex-col gap-1.5">
             <span className="text-label font-medium text-ink-3">{label}</span>
             {src ? (
-              <div className="relative h-[152px] overflow-hidden rounded-[14px] bg-glass-inset">
-                <img src={src} alt={`${label} for ${b.guest_name}`} className={cn("size-full object-cover transition-[filter] duration-200", !show && "blur-md")} />
+              <button
+                type="button"
+                onClick={() => setViewing(viewable.findIndex((v) => v.label === label))}
+                aria-label={`Open ${label}`}
+                className="group relative aspect-[1.586] max-h-[320px] w-full cursor-zoom-in overflow-hidden rounded-[14px] bg-glass-inset outline-none focus-visible:ring-2 focus-visible:ring-brand-border"
+              >
+                <img src={src} alt={`${label} for ${b.guest_name}`} className={cn("size-full object-contain p-2 transition duration-200 group-hover:scale-[1.02]", !show && "blur-md")} />
                 {!show ? (
-                  <span className="glass-3 absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-label font-medium text-ink"><EyeOff className="size-3.5" aria-hidden /> Hidden</span>
-                ) : null}
-              </div>
+                  <span className="glass-3 absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-label font-medium text-ink"><EyeOff className="size-3.5" aria-hidden /> Hidden · tap to view</span>
+                ) : (
+                  <span className="glass-3 absolute right-2.5 bottom-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-label font-medium text-ink opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"><Maximize2 className="size-3.5" aria-hidden /> View</span>
+                )}
+              </button>
             ) : (
-              <button type="button" onClick={() => onUpload(slot)} className="flex h-[152px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.2px] border-dashed border-brand-border bg-glass-inset text-ink-2 outline-none hover:bg-brand-tint focus-visible:ring-2 focus-visible:ring-brand-border">
+              <button type="button" onClick={() => onUpload(slot)} className="flex aspect-[1.586] max-h-[320px] w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.2px] border-dashed border-brand-border bg-glass-inset text-ink-2 outline-none hover:bg-brand-tint focus-visible:ring-2 focus-visible:ring-brand-border">
                 <Upload className="size-[18px]" aria-hidden />
                 <span className="text-label font-medium">{label}</span>
               </button>
@@ -594,6 +605,7 @@ function IdCard({
           <a href={images.pdf} download={`id-${b.guest_name.replace(/\s+/g, "-")}.pdf`} aria-label="Download PDF" className="flex size-8 items-center justify-center rounded-[10px] text-ink-2 hover:bg-glass-2 hover:text-ink"><Download className="size-4" /></a>
         </div>
       ) : null}
+      <IdImageViewer images={viewable} index={viewing ?? 0} onIndexChange={setViewing} open={viewing !== null && viewable.length > 0} onOpenChange={(o) => !o && setViewing(null)} owner={b.guest_name} />
       {b.id_verified_at ? (
         <p className="flex items-center gap-1.5 text-label font-medium text-success"><ShieldCheck className="size-3.5" aria-hidden /> ID verified{b.id_verified_by_name ? ` · by ${b.id_verified_by_name}` : ""} · {fmtDay(b.id_verified_at.slice(0, 10), false)}</p>
       ) : any ? (

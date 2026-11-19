@@ -7,6 +7,12 @@ export type PlanUsage = {
   room_limit: number | null;
   rooms_used: number;
   percent: number | null;
+  /** Real occupancy (draft rooms excluded). */
+  rooms_total?: number;
+  rooms_occupied?: number;
+  beds_total?: number;
+  beds_occupied?: number;
+  occupancy_percent?: number;
 };
 
 export async function getPlanApi(token: string, hostel?: string): Promise<PlanUsage> {

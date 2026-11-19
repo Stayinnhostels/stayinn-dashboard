@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Download,
   Eye,
+  Maximize2,
   EyeOff,
   FileText,
   Loader2,
@@ -28,6 +29,7 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/compone
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { GlassButton, GlassProgress } from "@/components/glass";
 import { RentStatusPill } from "@/components/admin/residents/rent-status";
+import { IdImageViewer } from "@/components/admin/id-image-viewer";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { Booking, BookingActivity, BookingPayment } from "@/types/domain/booking.types";
@@ -396,6 +398,7 @@ export function ContactCard({ detail, booking }: { detail: ResidentDetail; booki
   const r = detail.resident;
   const [showCnic, setShowCnic] = useState(false);
   const [showImg, setShowImg] = useState(false);
+  const [viewing, setViewing] = useState<number | null>(null);
   const masked = r.cnic ? r.cnic.replace(/^(\d{5}-)(\d{7})(-\d)$/, "$1•••••••$3") : "";
   const imgs = [
     r.cnic_image_front ? { src: r.cnic_image_front, label: "CNIC front" } : null,
@@ -412,15 +415,21 @@ export function ContactCard({ detail, booking }: { detail: ResidentDetail; booki
       </div>
       {imgs.length ? (
         <div className="grid grid-cols-2 gap-2">
-          {imgs.map((i) => (
+          {imgs.map((i, idx) => (
             <figure key={i.label} className="flex flex-col gap-1">
-              <button type="button" onClick={() => setShowImg((v) => !v)} className="relative h-20 cursor-pointer overflow-hidden rounded-[12px]">
+              <button type="button" onClick={() => setViewing(idx)} aria-label={`Open ${i.label}`} className="group relative aspect-[1.586] w-full cursor-zoom-in overflow-hidden rounded-[12px] bg-glass-inset outline-none focus-visible:ring-2 focus-visible:ring-brand-border">
                 <img src={i.src} alt={i.label} className={cn("size-full object-cover transition", !showImg && "scale-110 blur-md")} />
-                <span className="absolute inset-0 flex items-center justify-center"><span className="flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white">{showImg ? <EyeOff className="size-3" aria-hidden /> : <Eye className="size-3" aria-hidden />}{showImg ? "Hide" : "Show"}</span></span>
+                <span className={cn("absolute inset-0 flex items-center justify-center transition-opacity", showImg && "opacity-0 group-hover:opacity-100")}><span className="flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white"><Maximize2 className="size-3" aria-hidden />View</span></span>
               </button>
               <figcaption className="text-[11px] text-ink-3">{i.label}</figcaption>
             </figure>
           ))}
+        </div>
+      ) : null}
+      {imgs.length ? (
+        <div className="-mt-1 flex">
+          <button type="button" onClick={() => setShowImg((v) => !v)} className="flex cursor-pointer items-center gap-1 text-label font-medium text-brand-text">{showImg ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}{showImg ? "Blur images" : "Show images"}</button>
+          <IdImageViewer images={imgs} index={viewing ?? 0} onIndexChange={setViewing} open={viewing !== null} onOpenChange={(o) => !o && setViewing(null)} owner={r.name} />
         </div>
       ) : <p className="text-label text-ink-3">No ID images on file.</p>}
     </Card>

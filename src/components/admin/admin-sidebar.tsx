@@ -29,6 +29,7 @@ import {
 } from "./shell/admin-nav";
 import { AccountAvatar, AccountMenu, useAccountInfo } from "./shell/admin-account";
 import { usePlanQuery } from "@/queries/admin/usePlanQuery";
+import type { PlanUsage } from "@/api/admin/getPlan.api";
 import { useCommandMenu } from "./shell/admin-command-menu";
 
 /**
@@ -220,14 +221,10 @@ function ExpandedSidebar({ onCollapse }: { onCollapse: () => void }) {
         <PlanCard
           className="shrink-0"
           title={plan.plan_name}
-          caption={
-            plan.room_limit
-              ? `${plan.rooms_used} of ${plan.room_limit} rooms used`
-              : `${plan.rooms_used} room${plan.rooms_used === 1 ? "" : "s"} · no limit`
-          }
-          used={plan.rooms_used}
-          total={plan.room_limit ?? 0}
-          showPercent={plan.room_limit != null}
+          caption={planCaption(plan)}
+          used={plan.beds_total ? plan.beds_occupied ?? 0 : plan.rooms_used}
+          total={plan.beds_total ? plan.beds_total : plan.room_limit ?? 0}
+          showPercent={Boolean(plan.beds_total) || plan.room_limit != null}
         />
       ) : null}
 
@@ -526,4 +523,14 @@ function CollapsedRail({ onExpand }: { onExpand: () => void }) {
       </AccountMenu>
     </div>
   );
+}
+
+/** "15 rooms · 41 of 42 beds filled" — real room total and bed occupancy (older API: plan limit). */
+function planCaption(plan: PlanUsage) {
+  if (plan.rooms_total != null && plan.beds_total) {
+    const rooms = `${plan.rooms_total} room${plan.rooms_total === 1 ? "" : "s"}`;
+    return `${rooms} · ${plan.beds_occupied ?? 0} of ${plan.beds_total} beds filled`;
+  }
+  if (plan.rooms_total != null) return `${plan.rooms_total} room${plan.rooms_total === 1 ? "" : "s"}`;
+  return plan.room_limit ? `${plan.rooms_used} of ${plan.room_limit} rooms used` : `${plan.rooms_used} room${plan.rooms_used === 1 ? "" : "s"}`;
 }
