@@ -153,7 +153,7 @@ export function RoomCard({
           className="h-1 w-full overflow-hidden rounded-[4px] bg-glass-inset"
         >
           {!outOfService ? (
-            <div className="h-full rounded-[4px] bg-brand" style={{ width: `${pctFull}%` }} />
+            <div className="dash-fill h-full rounded-[4px] bg-brand" style={{ width: `${pctFull}%` }} />
           ) : null}
         </div>
         <div className="flex items-center gap-2">

@@ -4,3 +4,10 @@ export {
   useUpdateExpenseMutation,
   useDeleteExpenseMutation,
 } from "./useExpenseMutations";
+export {
+  useFinanceOverviewQuery,
+  useExpensesListQuery,
+  useRecurringExpensesQuery,
+  useCreateRecurringExpenseMutation,
+  useDeleteRecurringExpenseMutation,
+} from "./useFinanceQueries";

@@ -11,12 +11,12 @@ import {
   MessageSquare,
   Receipt,
   Settings,
-  Shield,
   ShieldCheck,
   Sparkles,
   Star,
   TicketPercent,
   TrendingUp,
+  UserCog,
   Users,
   Wallet,
   Wrench,
@@ -42,7 +42,7 @@ export type AdminNavItem = {
 };
 
 export type AdminNavGroup = {
-  id: "operations" | "money" | "people" | "system";
+  id: "operations" | "money" | "people" | "website" | "system";
   label: string;
   items: AdminNavItem[];
 };
@@ -59,6 +59,14 @@ export const PRINCIPAL_NAV: AdminNavItem[] = [
   { to: "/admin/rooms", label: "Rooms", icon: Bed },
 ];
 
+/**
+ * Groups by job:
+ *  Operations – running the hostel day to day (requests, repairs, locations, amenities)
+ *  Money      – money in, money held, money out, then the reports
+ *  People     – your team and every login account (guests + admins)
+ *  Website    – what the public site shows and what comes in from it
+ *  System     – alerts and app settings
+ */
 export const NAV_GROUPS: AdminNavGroup[] = [
   {
     id: "operations",
@@ -70,10 +78,9 @@ export const NAV_GROUPS: AdminNavGroup[] = [
         icon: ClipboardList,
         countKey: "booking_requests",
       },
-      { to: "/admin/residents-by-room", label: "Residents by Room", icon: Building2 },
-      { to: "/admin/monthly-rent", label: "Monthly Rent", icon: Receipt },
       { to: "/admin/maintenance", label: "Maintenance", icon: Wrench, countKey: "maintenance" },
       { to: "/admin/facilities", label: "Facilities", icon: Sparkles },
+      { to: "/admin/hostels", label: "Properties", icon: Building2 },
     ],
   },
   {
@@ -82,19 +89,26 @@ export const NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { to: "/admin/payments", label: "Payments", icon: Wallet },
       { to: "/admin/security-payments", label: "Security", icon: ShieldCheck },
-      { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
       { to: "/admin/expenses", label: "Monthly Expenses", icon: Receipt },
-      { to: "/admin/coupons", label: "Coupons", icon: TicketPercent },
+      { to: "/admin/financials", label: "Revenue & Analytics", icon: TrendingUp },
     ],
   },
   {
     id: "people",
     label: "People",
     items: [
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/staff", label: "Staff", icon: Shield },
+      { to: "/admin/staff", label: "Staff", icon: UserCog },
+      { to: "/admin/users", label: "User Accounts", icon: Users },
+    ],
+  },
+  {
+    id: "website",
+    label: "Website",
+    items: [
+      { to: "/admin/website", label: "Website Content", icon: Globe },
       { to: "/admin/messages", label: "Messages", icon: MessageSquare, countKey: "messages" },
       { to: "/admin/reviews", label: "Reviews", icon: Star, countKey: "reviews" },
+      { to: "/admin/coupons", label: "Coupons", icon: TicketPercent },
     ],
   },
   {
@@ -102,8 +116,6 @@ export const NAV_GROUPS: AdminNavGroup[] = [
     label: "System",
     items: [
       { to: "/admin/notifications", label: "Notifications", icon: Bell, countKey: "notifications" },
-      { to: "/admin/hostels", label: "Properties", icon: Building2 },
-      { to: "/admin/website", label: "Website Content", icon: Globe },
       { to: "/admin/settings", label: "Settings", icon: Settings },
     ],
   },

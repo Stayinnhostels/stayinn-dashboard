@@ -2,6 +2,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 import { GlassButton, GlassIconButton } from "./button";
 import { StatusChip, type StatusChipProps } from "./chips";
 
@@ -110,7 +111,7 @@ export function GlassProgress({
       style={{ height }}
     >
       <div
-        className={cn("h-full rounded-full transition-[width]", fill)}
+        className={cn("dash-fill h-full rounded-full transition-[width]", fill)}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -154,7 +155,7 @@ export function KpiCard({
         <p className="min-w-0 flex-1 truncate text-left text-body font-medium text-ink-2">{label}</p>
       </div>
       <div className="flex min-w-0 items-baseline gap-2">
-        <p className={cn("text-kpi whitespace-nowrap text-ink", valueClassName)}>{value}</p>
+        <p className={cn("text-kpi whitespace-nowrap text-ink", valueClassName)}>{typeof value === "number" || typeof value === "string" ? <CountUp value={value} delay={250} /> : value}</p>
         {context ? <p className="truncate text-label font-medium text-ink-2">{context}</p> : null}
       </div>
     </>
@@ -174,7 +175,7 @@ export function KpiCard({
           }
         }}
         className={cn(
-          "flex cursor-pointer flex-col gap-3.5 p-5 outline-none transition-[filter] hover:brightness-[1.02] focus-visible:ring-2 focus-visible:ring-brand-border",
+          "dash-sheen flex cursor-pointer flex-col gap-3.5 p-5 outline-none transition-[filter] hover:brightness-[1.02] focus-visible:ring-2 focus-visible:ring-brand-border",
           active && "ring-2 ring-brand-border",
           className,
         )}
@@ -183,7 +184,7 @@ export function KpiCard({
       </GlassPanel>
     );
   }
-  return <GlassPanel level={2} className={cn("flex flex-col gap-3.5 p-5", className)}>{body}</GlassPanel>;
+  return <GlassPanel level={2} className={cn("dash-sheen flex flex-col gap-3.5 p-5", className)}>{body}</GlassPanel>;
 }
 
 /**

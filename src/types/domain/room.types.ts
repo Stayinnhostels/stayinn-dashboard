@@ -72,7 +72,12 @@ export type Room = {
   hostel_name?: string | null;
   title: string;
   room_number: number | null;
+  /** Markdown, written with the rich text editor (plain text from before still works). */
   description: string;
+  /** Server-rendered safe HTML of `description` (detail payloads only). */
+  description_html?: string;
+  /** `description` without Markdown syntax. */
+  description_text?: string;
   price_per_night: number;
   price_per_night_usd: number;
   price_per_night_pkr: number;

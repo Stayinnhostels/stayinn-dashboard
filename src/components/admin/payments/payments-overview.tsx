@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Banknote, Check, CircleDollarSign, Clock, CreditCard, Landmark, MessageCircle, ShieldCheck, Smartphone, Sparkles, TriangleAlert, Wallet } from "lucide-react";
 import { GlassButton, GlassProgress } from "@/components/glass";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { PaymentsOverview } from "@/types/domain/payments.types";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 
 export const METHOD_ICON: Record<string, React.ReactNode> = {
   cash: <Wallet />,
@@ -44,7 +45,7 @@ function Kpi({ icon, label, value, sub, danger, progress, onClick }: { icon: Rea
   return (
     <Comp type={onClick ? "button" : undefined} onClick={onClick} className={cn("glass-2 flex flex-col gap-2 rounded-[22px] px-4 py-4 text-left md:px-5 md:py-5", onClick && "cursor-pointer hover:brightness-[1.02]")}>
       <span className="flex items-center gap-2 text-label font-medium text-ink-2 [&_svg]:size-4">{icon}{label}</span>
-      <span className={cn("truncate text-[22px] leading-7 font-semibold tracking-tight md:text-[30px] md:leading-9", danger ? "text-danger" : "text-ink")}>{value}</span>
+      <span className={cn("truncate text-[22px] leading-7 font-semibold tracking-tight md:text-[30px] md:leading-9", danger ? "text-danger" : "text-ink")}><CountUp value={value} delay={250} /></span>
       <span className="truncate text-label text-ink-3">{sub}</span>
       {progress != null ? <GlassProgress value={progress} /> : null}
     </Comp>
@@ -90,8 +91,9 @@ export function MoneyChart({ data, monthName }: { data: PaymentsOverview | undef
           {bars.map((b, i) => (
             <div key={b.key} className="group relative flex h-full flex-1 cursor-default items-end" onMouseEnter={() => setHover(i)}>
               <div
-                className={cn("w-full rounded-t-[4px] transition-opacity", b.amount > 0 ? "bg-brand" : "bg-glass-inset", hover != null && hover !== i && "opacity-50")}
-                style={{ height: b.amount > 0 ? `${Math.max(4, (b.amount / max) * 100)}%` : "3px" }}
+                key={`${mode}-${b.key}`}
+                className={cn("dash-bar w-full rounded-t-[4px] transition-opacity", b.amount > 0 ? "bg-brand" : "bg-glass-inset", hover != null && hover !== i && "opacity-50")}
+                style={{ height: b.amount > 0 ? `${Math.max(4, (b.amount / max) * 100)}%` : "3px", "--dash-d": `${300 + i * 35}ms` } as CSSProperties}
               />
             </div>
           ))}
@@ -131,7 +133,7 @@ export function MethodsCard({ data }: { data: PaymentsOverview | undefined }) {
             <span className="font-semibold text-ink">{formatMoney(m.amount, cur)}</span>
             <span className="w-9 text-right text-label text-ink-3">{m.percent}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-glass-inset"><div className="h-full rounded-full bg-brand" style={{ width: `${m.percent}%` }} /></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-glass-inset"><div className="dash-fill h-full rounded-full bg-brand" style={{ width: `${m.percent}%` }} /></div>
         </div>
       ))}
     </section>

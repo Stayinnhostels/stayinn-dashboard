@@ -58,7 +58,7 @@ export function RentByResident({ rows, onCollect, onReceipt, footer }: Props) {
                     <td className="px-3 py-3"><p className="text-body font-semibold text-ink">{formatMoney(m.due, r.currency)}</p><p className="text-label text-ink-3">{m.what}</p></td>
                     <td className="w-[180px] px-3 py-3">
                       <p className="text-label text-ink-3"><span className="text-body font-semibold text-ink">{formatMoney(m.collected, r.currency)}</span> of {formatMoney(m.due, r.currency).replace(/^Rs\s/, "")}</p>
-                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="h-full rounded-full bg-brand" style={{ width: `${m.due ? Math.min(100, (m.collected / m.due) * 100) : 0}%` }} /></div>
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="dash-fill h-full rounded-full bg-brand" style={{ width: `${m.due ? Math.min(100, (m.collected / m.due) * 100) : 0}%` }} /></div>
                     </td>
                     <td className="px-3 py-3">
                       {r.last_payment ? (
@@ -101,7 +101,7 @@ export function RentByResident({ rows, onCollect, onReceipt, footer }: Props) {
                 <p className="text-label text-ink-3"><span className="text-body font-semibold text-ink">{formatMoney(m.collected, r.currency)}</span> of {formatMoney(m.due, r.currency).replace(/^Rs\s/, "")}</p>
                 <RowAction r={r} m={m} onCollect={onCollect} onReceipt={onReceipt} />
               </div>
-              <div className="ml-10 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="h-full rounded-full bg-brand" style={{ width: `${m.due ? Math.min(100, (m.collected / m.due) * 100) : 0}%` }} /></div>
+              <div className="ml-10 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="dash-fill h-full rounded-full bg-brand" style={{ width: `${m.due ? Math.min(100, (m.collected / m.due) * 100) : 0}%` }} /></div>
             </div>
           );
         })}

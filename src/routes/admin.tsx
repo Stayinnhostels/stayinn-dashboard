@@ -1,6 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useGlassDark } from "@/lib/glass-theme";
+import { cn } from "@/lib/utils";
+import { DarkBackdrop } from "@/components/admin/shell/dark-backdrop";
+import { useScrollReveal } from "@/components/admin/dashboard/dashboard-motion";
 import { PageHeader } from "@/components/admin/page-header";
 import { useAuth } from "@/lib/auth-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
@@ -31,7 +34,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Guest Requests",
     subtitle: "Cancel, room change & seat requests",
   },
-  "/admin/users": { title: "Users", subtitle: "" },
+  "/admin/users": { title: "User Accounts", subtitle: "" },
   "/admin/messages": { title: "Messages", subtitle: "" },
   "/admin/payments": { title: "Payments", subtitle: "" },
   "/admin/security-payments": { title: "Security", subtitle: "" },
@@ -57,7 +60,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
 };
 
 /** Pages that render their own PageHeader (custom subtitle / actions, per the Figma). */
-const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings(\/[^/]+)?\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$|^\/admin\/security-payments\/?$/;
+const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings(\/[^/]+)?\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$|^\/admin\/security-payments\/?$|^\/admin\/(financials|expenses|coupons)\/?$/;
 
 function resolveMeta(pathname: string) {
   if (TITLES[pathname]) return TITLES[pathname];
@@ -92,6 +95,10 @@ function AdminLayout() {
     };
   }, [dark]);
 
+  // Sections below the fold animate when scrolled to (re-armed on every page).
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollReveal(mainRef, `${pathname}|${loading || !user ? "wait" : "ready"}`);
+
   if (loading || !user) {
     return <LoadingScreen />;
   }
@@ -123,13 +130,14 @@ function AdminLayout() {
           <CommandMenuProvider>
             {/* Figma "02 · Desktop · Light Glass": floating sidebar + glass main shell, 24px gutters */}
             <div className="glass-root flex h-svh min-h-0 w-full gap-5 overflow-hidden md:p-6">
+              {dark ? <DarkBackdrop /> : null}
               <OnboardingTour />
               <AdminSidebar />
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:glass-1 md:rounded-[28px]">
                 <div className="px-4 pt-3 md:p-0">
                   <AdminHeader />
                 </div>
-                <main className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-[calc(104px+env(safe-area-inset-bottom))] md:p-6">
+                <main ref={mainRef} className={cn("min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-[calc(104px+env(safe-area-inset-bottom))] md:p-6", pathname !== "/admin" && "page-enter")}>
                   {CUSTOM_HEADER_ROUTES.test(pathname) ? null : (
                     <PageHeader title={meta.title} subtitle={meta.subtitle} />
                   )}

@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GlassButton, KpiCard } from "@/components/glass";
 import { PageHeader } from "@/components/admin/page-header";
-import { glassMenuClass } from "@/components/admin/shell/admin-account";
+import { glassMenuClass, useAccountInfo } from "@/components/admin/shell/admin-account";
+import { CountUp, DashboardGreeting, delay } from "@/components/admin/dashboard/dashboard-motion";
 import {
   ChartCard,
   GlassAreaChart,
@@ -69,6 +70,7 @@ function pct(part: number, total: number) {
 
 function DashboardPage() {
   const { hostelId, activeHostel } = useHostelScope();
+  const { name } = useAccountInfo();
   const [days, setDays] = useState<(typeof PERIODS)[number]>(30);
   const { data, isLoading, isError, error } = useBookingOverviewStatsQuery(
     days,
@@ -163,8 +165,8 @@ function DashboardPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        className="mb-0 md:mb-0"
-        title="Dashboard"
+        className="dash-rise mb-0 md:mb-0"
+        title={<DashboardGreeting name={name} />}
         subtitle={subtitle}
         actions={
           <>
@@ -207,16 +209,19 @@ function DashboardPage() {
 
       {/* KPI row */}
       <div data-tour="dashboard-kpis" className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
+        <div className="dash-rise" style={delay(180)}>
         <KpiCard
-          icon={<CalendarDays />}
+          className="dash-sheen h-full"          icon={<CalendarDays />}
           label="Current bookings"
-          value={isLoading ? "—" : (data?.status.active ?? 0)}
+          value={isLoading ? "—" : <CountUp value={data?.status.active ?? 0} delay={300} />}
           context={insights ? `Arriving tonight: ${insights.arrivals_today}` : undefined}
         />
+        </div>
+        <div className="dash-rise" style={delay(270)}>
         <KpiCard
-          icon={<LogOut />}
+          className="dash-sheen h-full"          icon={<LogOut />}
           label="Check-outs today"
-          value={isLoading ? "—" : checkoutsToday}
+          value={isLoading ? "—" : <CountUp value={checkoutsToday} delay={390} />}
           context={
             insights
               ? checkoutsToday > 0
@@ -225,23 +230,30 @@ function DashboardPage() {
               : undefined
           }
         />
+        </div>
+        <div className="dash-rise" style={delay(360)}>
         <KpiCard
-          icon={<DoorOpen />}
+          className="dash-sheen h-full"          icon={<DoorOpen />}
           label="Total rooms"
-          value={isLoading ? "—" : (occ?.rooms_total ?? 0)}
+          value={isLoading ? "—" : <CountUp value={occ?.rooms_total ?? 0} delay={480} />}
           context={occ ? `${occ.rooms_available} available` : undefined}
         />
+        </div>
+        <div className="dash-rise" style={delay(450)}>
         <KpiCard
-          icon={<BedDouble />}
+          className="dash-sheen h-full"          icon={<BedDouble />}
           label="Occupancy"
-          value={isLoading ? "—" : `${occ?.rate ?? 0}%`}
+          value={isLoading ? "—" : <CountUp value={`${occ?.rate ?? 0}%`} delay={570} />}
           context={occ ? `${occ.beds_occupied} / ${occ.beds_total} bookable beds` : undefined}
         />
+        </div>
       </div>
 
       {/* Hero row */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <ChartCard
+          className="dash-rise"
+          style={delay(560)}
           title="Weekly bookings"
           subtitle={`Last ${WEEKS} weeks${weeklyRange ? ` · ${weeklyRange}` : ""}`}
           legend={<LegendItem label="Bookings" value={`${weeklyTotal} total`} />}
@@ -250,22 +262,24 @@ function DashboardPage() {
             data={weekly}
             height={300}
             barSize={46}
+            animationDelay={650}
             deltaLabel={(prev) => `vs ${prev.label}`}
             empty={isLoading ? "Loading…" : "No bookings in these weeks"}
           />
         </ChartCard>
 
-        <ChartCard title="On-time check-ins" subtitle={`Last ${WEEKS} weeks`}>
+        <ChartCard className="dash-rise" style={delay(650)} title="On-time check-ins" subtitle={`Last ${WEEKS} weeks`}>
           <div className="flex flex-1 flex-col items-center justify-center gap-5">
             <GlassDonut
               size={200}
               thickness={18}
               slices={onTimeSlices}
+              animationDelay={900}
               ariaLabel={`${pct(onTime, measured)}% of ${measured} check-ins were on time`}
               center={
                 measured > 0 ? (
                   <>
-                    <span className="text-kpi text-ink">{pct(onTime, measured)}%</span>
+                    <span className="text-kpi text-ink"><CountUp value={`${pct(onTime, measured)}%`} delay={900} /></span>
                     <span className="text-label font-medium text-ink-2">
                       {onTime} of {measured} check-ins
                     </span>
@@ -287,23 +301,25 @@ function DashboardPage() {
 
       {/* Trends row */}
       <div className="grid gap-5 lg:grid-cols-3">
-        <ChartCard title="Weekly check-ins" subtitle={`Last ${WEEKS} weeks`}>
+        <ChartCard className="dash-rise" style={delay(760)} title="Weekly check-ins" subtitle={`Last ${WEEKS} weeks`}>
           <GlassBarChart
             data={checkins}
             height={210}
             barSize={20}
+            animationDelay={850}
             steps={2}
             showEveryLabel={2}
             empty={isLoading ? "Loading…" : "No check-ins yet"}
           />
         </ChartCard>
 
-        <ChartCard title="Monthly bookings" subtitle={`Last ${MONTHS} months`}>
+        <ChartCard className="dash-rise" style={delay(850)} title="Monthly bookings" subtitle={`Last ${MONTHS} months`}>
           <GlassAreaChart
             data={monthly}
             height={210}
             unit="bookings"
             steps={3}
+            animationDelay={1100}
             dots
             partialLabel="Partial month"
             deltaLabel={(prev) => `vs ${prev.label}`}
@@ -311,16 +327,17 @@ function DashboardPage() {
           />
         </ChartCard>
 
-        <ChartCard title="Booking sources" subtitle={`Last ${days} days`}>
+        <ChartCard className="dash-rise" style={delay(940)} title="Booking sources" subtitle={`Last ${days} days`}>
           <div className="flex flex-1 items-center gap-5">
             <GlassDonut
               size={150}
               thickness={16}
               slices={sourceSlices}
+              animationDelay={1150}
               ariaLabel={`${sourcesTotal} bookings by source`}
               center={
                 <>
-                  <span className="text-kpi text-ink">{isLoading ? "—" : sourcesTotal}</span>
+                  <span className="text-kpi text-ink">{isLoading ? "—" : <CountUp value={sourcesTotal} delay={1150} />}</span>
                   <span className="text-label font-medium text-ink-2">
                     {sourcesTotal === 1 ? "booking" : "bookings"}
                   </span>
@@ -333,8 +350,8 @@ function DashboardPage() {
                   {isLoading ? "Loading…" : "No bookings in this period"}
                 </li>
               ) : (
-                sourceSlices.slice(0, 4).map((s) => (
-                  <li key={s.key} className="flex flex-col gap-0.5">
+                sourceSlices.slice(0, 4).map((s, i) => (
+                  <li key={s.key} className="dash-rise flex flex-col gap-0.5" style={delay(1200 + i * 90)}>
                     <span className="flex items-center gap-2">
                       <span
                         aria-hidden
@@ -345,7 +362,7 @@ function DashboardPage() {
                         {s.label}
                       </span>
                       <span className="text-body font-semibold text-ink">
-                        {pct(s.value, sourcesTotal)}%
+                        <CountUp value={`${pct(s.value, sourcesTotal)}%`} delay={1250 + i * 90} />
                       </span>
                     </span>
                     <span className="text-label text-ink-3">
@@ -361,6 +378,8 @@ function DashboardPage() {
 
       {/* Daily bookings */}
       <ChartCard
+        className="dash-rise"
+        style={delay(1040)}
         title={`Daily bookings — last ${days} days`}
         subtitle={`${dailyTotal} ${dailyTotal === 1 ? "booking" : "bookings"} in this period`}
         legend={
@@ -376,6 +395,7 @@ function DashboardPage() {
           unit="bookings"
           smooth
           markPeak
+          animationDelay={1150}
           showEveryLabel={Math.max(1, Math.round(daily.length / 15))}
           empty={isLoading ? "Loading…" : "No bookings in this period"}
         />

@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { BoardResident, BoardRoom } from "@/types/domain/resident-roll.types";
 import { RentStatusPill } from "./rent-status";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 
 type Filter = "all" | "free" | "full" | "empty" | "maintenance";
 const monShort = (k: string | null) => {
@@ -180,7 +181,7 @@ function Kpi({ icon, label, value, sub }: { icon: React.ReactNode; label: string
   return (
     <div className="glass-2 flex flex-col gap-2 rounded-[20px] px-4 py-4 md:px-5">
       <span className="flex items-center gap-2 text-label font-medium text-ink-2 [&_svg]:size-4">{icon}{label}</span>
-      <span className="text-[22px] leading-7 font-semibold tracking-tight text-ink md:text-[28px] md:leading-9">{value}</span>
+      <span className="text-[22px] leading-7 font-semibold tracking-tight text-ink md:text-[28px] md:leading-9"><CountUp value={value} delay={250} /></span>
       <span className="truncate text-label text-ink-3">{sub}</span>
     </div>
   );

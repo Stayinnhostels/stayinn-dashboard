@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   DndContext,
@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, ImageIcon, Loader2, Plus, X } from "lucide-react";
+import { keepEscapeForEditor } from "@/components/glass/rich-text-editor-esc";
 import { toast } from "sonner";
 import { getRoomApi } from "@/api/rooms";
 import { compressImageFile } from "@/lib/compress-image";
@@ -31,7 +32,6 @@ import {
   GlassIconButton,
   GlassInput,
   GlassSelect,
-  GlassTextarea,
 } from "@/components/glass";
 import {
   ROOM_AMENITY_OPTIONS,
@@ -68,6 +68,26 @@ const blank: RoomDraft = {
 };
 
 const DESCRIPTION_MAX = 5000;
+const TITLE_MAX = 200;
+
+/** The editor (Tiptap) loads on demand, so the rooms page stays light until the modal opens. */
+const RichTextEditor = lazy(() =>
+  import("@/components/glass/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+);
+
+function EditorFallback({ full }: { full?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "glass-2 flex flex-col rounded-[14px] bg-glass-inset!",
+        full ? "h-[min(511px,calc(92svh-290px))] min-h-[290px]" : "h-[183px]",
+      )}
+    >
+      <div className="h-[41px] border-b border-glass-divider" />
+      <div className="m-3.5 h-4 w-2/3 animate-pulse rounded bg-glass-1" />
+    </div>
+  );
+}
 
 function roomToDraft(room: Partial<Room> | null | undefined, suggestedRoomNumber = 101): RoomDraft {
   if (!room) return { ...blank, room_number: suggestedRoomNumber };
@@ -111,6 +131,7 @@ type Errors = Partial<
     | "room_number"
     | "floor"
     | "title"
+    | "description"
     | "price_usd"
     | "price_pkr"
     | "category"
@@ -157,6 +178,7 @@ export function RoomFormDialog({
   const [imageUrl, setImageUrl] = useState("");
   const [loadingImages, setLoadingImages] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [listingOpen, setListingOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const isEdit = Boolean(initial?.id);
@@ -166,6 +188,7 @@ export function RoomFormDialog({
     const next = roomToDraft(initial, suggestedRoomNumber);
     setDraft(next);
     setAttempted(false);
+    setListingOpen(false);
     setImageUrl("");
     setText({
       room_number:
@@ -253,6 +276,8 @@ export function RoomFormDialog({
     )
       e.floor = "Use 0 (ground) to 200";
     if (!draft.title.trim()) e.title = "Title is required";
+    if (draft.description.length > DESCRIPTION_MAX)
+      e.description = `Keep the description under ${DESCRIPTION_MAX.toLocaleString("en-US")} characters`;
     if (!Number.isFinite(parsed.usd) || parsed.usd < 0) e.price_usd = "Enter a price of 0 or more";
     if (!Number.isFinite(parsed.pkr) || parsed.pkr < 0) e.price_pkr = "Enter a price of 0 or more";
     if (!draft.category.trim()) e.category = "Choose a category";
@@ -285,7 +310,7 @@ export function RoomFormDialog({
     )
       e.display_order = "1 or more";
     return e;
-  }, [parsed, draft.title, draft.category]);
+  }, [parsed, draft.title, draft.description, draft.category]);
 
   const hasErrors = Object.keys(errors).length > 0;
   const show = (k: keyof Errors) => (attempted ? errors[k] : undefined);
@@ -363,6 +388,7 @@ export function RoomFormDialog({
             e.preventDefault();
             titleRef.current?.focus();
           }}
+          onEscapeKeyDown={keepEscapeForEditor}
           className="glass-3 fixed top-1/2 left-1/2 z-50 flex max-h-[min(92svh,1400px)] w-[calc(100%-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] font-geist text-ink outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           <header className="flex shrink-0 items-center justify-between gap-4 border-b border-glass-divider px-6 py-5">
@@ -432,21 +458,20 @@ export function RoomFormDialog({
                   )}
                 </GlassField>
               </div>
-              <GlassField label="Description">
+              <GlassField label="Description" error={show("description")}>
                 {(p) => (
-                  <div className="relative">
-                    <GlassTextarea
-                      {...p}
-                      className={cn(insetInput, "h-24 resize-none pb-7")}
+                  <Suspense fallback={<EditorFallback />}>
+                    <RichTextEditor
+                      id={p.id}
+                      invalid={p["aria-invalid"]}
+                      describedBy={p["aria-describedby"]}
                       value={draft.description}
+                      onChange={(description) => setDraft((d) => ({ ...d, description }))}
                       maxLength={DESCRIPTION_MAX}
-                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                       placeholder="What makes this room nice to stay in?"
+                      onExpand={() => setListingOpen(true)}
                     />
-                    <span className="pointer-events-none absolute right-3.5 bottom-3 text-label text-ink-3">
-                      {draft.description.length} / {DESCRIPTION_MAX}
-                    </span>
-                  </div>
+                  </Suspense>
                 )}
               </GlassField>
             </FormSection>
@@ -713,6 +738,138 @@ export function RoomFormDialog({
               {submitting ? <Loader2 className="animate-spin" /> : isEdit ? <Check /> : <Plus />}
               {submitting ? "Saving…" : isEdit ? "Save changes" : "Create room"}
             </GlassButton>
+          </footer>
+          <RoomListingDialog
+            open={listingOpen}
+            title={draft.title}
+            description={draft.description}
+            onClose={() => setListingOpen(false)}
+            onDone={(title, description) => {
+              setDraft((d) => ({ ...d, title, description }));
+              setListingOpen(false);
+            }}
+          />
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/**
+ * Figma 01.07 / 02.07 · Rooms — Room listing editor. Opened from the description's expand
+ * button: title + full-size description editor. Done copies both back to the room form;
+ * Cancel / Escape leaves the form as it was.
+ */
+function RoomListingDialog({
+  open,
+  title,
+  description,
+  onClose,
+  onDone,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  onClose: () => void;
+  onDone: (title: string, description: string) => void;
+}) {
+  const [t, setT] = useState(title);
+  const [d, setD] = useState(description);
+  const [tried, setTried] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setT(title);
+    setD(description);
+    setTried(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const titleError = !t.trim() ? "Title is required" : undefined;
+  const descError =
+    d.length > DESCRIPTION_MAX
+      ? `Keep the description under ${DESCRIPTION_MAX.toLocaleString("en-US")} characters`
+      : undefined;
+
+  function done() {
+    setTried(true);
+    if (titleError || descError) return;
+    onDone(t, d);
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onEscapeKeyDown={keepEscapeForEditor}
+          className="glass-3 fixed top-1/2 left-1/2 z-50 flex max-h-[min(94svh,1400px)] w-[calc(100%-24px)] max-w-[880px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] font-geist text-ink outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        >
+          <header className="flex shrink-0 items-center justify-between gap-4 border-b border-glass-divider px-6 py-5">
+            <div className="min-w-0">
+              <Dialog.Title className="text-hero text-ink">Room listing</Dialog.Title>
+              <p className="truncate text-body text-ink-2">Title and description guests see on the website</p>
+            </div>
+            <Dialog.Close asChild>
+              <GlassIconButton aria-label="Close">
+                <X />
+              </GlassIconButton>
+            </Dialog.Close>
+          </header>
+
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain p-4 sm:p-6">
+            <GlassField label="Title" required error={tried ? titleError : undefined}>
+              {(p) => (
+                <GlassInput
+                  {...p}
+                  className={insetInput}
+                  value={t}
+                  onChange={(e) => setT(e.target.value)}
+                  placeholder="e.g. Private double"
+                  maxLength={TITLE_MAX}
+                />
+              )}
+            </GlassField>
+            <div className="flex items-center gap-2 text-label text-ink-3">
+              <span className="min-w-0 flex-1">
+                Shown on room cards, bookings and the website. Keep it short — no formatting.
+              </span>
+              <span className="shrink-0 tabular-nums">
+                {t.length} / {TITLE_MAX}
+              </span>
+            </div>
+            <GlassField label="Description" className="mt-3" error={tried ? descError : undefined}>
+              {(p) => (
+                <Suspense fallback={<EditorFallback full />}>
+                  <RichTextEditor
+                    id={p.id}
+                    invalid={p["aria-invalid"]}
+                    describedBy={p["aria-describedby"]}
+                    size="full"
+                    autoFocus
+                    value={d}
+                    onChange={setD}
+                    maxLength={DESCRIPTION_MAX}
+                    placeholder="Describe the room: what’s inside, who it suits, what’s nearby…"
+                  />
+                </Suspense>
+              )}
+            </GlassField>
+          </div>
+
+          <footer className="flex shrink-0 items-center justify-end gap-2.5 border-t border-glass-divider px-6 py-4">
+            <p className="min-w-0 flex-1 text-label font-medium text-ink-3">
+              {tried && (titleError || descError) ? (
+                <span className="text-danger">Fix the highlighted fields</span>
+              ) : (
+                "Changes go back to the room form — save the room to publish them."
+              )}
+            </p>
+            <Dialog.Close asChild>
+              <GlassButton variant="ghost">Cancel</GlassButton>
+            </Dialog.Close>
+            <GlassButton onClick={done}>Done</GlassButton>
           </footer>
         </Dialog.Content>
       </Dialog.Portal>

@@ -63,7 +63,7 @@
 
 /* ───────────────────────── Dark ───────────────────────── */
 .dark {
-  --gl-bg-base: #000000;
+  --gl-bg-base: #07080b;
   --gl-scrim: #00000099;
   --gl-tour-scrim: rgba(0, 0, 0, 0.55);
 
@@ -78,14 +78,15 @@
   --gl-brand-primary-border: #3b82f699;
   --gl-brand-glow: #3b82f573;
 
-  --gl-glass-1: #ffffff0b;
-  --gl-glass-2: #ffffff16;
-  --gl-glass-3: #0d0d10;
-  --gl-glass-stroke: #ffffff21;
-  --gl-glass-highlight: #ffffff24;
-  --gl-glass-rim: #ffffff06;
-  --gl-glass-inset: #ffffff0d;
-  --gl-glass-divider: #ffffff12;
+  /* Deep, slightly cool navy glass (flat white tints read as sun-faded grey on black). */
+  --gl-glass-1: rgba(14, 17, 26, 0.4);
+  --gl-glass-2: rgba(22, 27, 40, 0.5);
+  --gl-glass-3: #161c2b;
+  --gl-glass-stroke: rgba(150, 170, 225, 0.14);
+  --gl-glass-highlight: rgba(190, 205, 255, 0.1);
+  --gl-glass-rim: rgba(0, 0, 0, 0);
+  --gl-glass-inset: rgba(120, 140, 190, 0.08);
+  --gl-glass-divider: rgba(150, 170, 220, 0.1);
 
   --gl-shadow-contact: #00000066;
   --gl-shadow-soft: #00000080;

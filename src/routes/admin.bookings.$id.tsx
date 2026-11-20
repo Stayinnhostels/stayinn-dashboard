@@ -718,7 +718,7 @@ function StayCard({ booking: b }: { booking: Booking }) {
           <span className="text-label font-medium text-brand-text">{reserved ? `Arrives ${b.move_in === today ? "today" : fmtDay(b.move_in, false)}${b.expected_arrival_time ? ` ${b.expected_arrival_time}` : ""}` : `${left} night${left === 1 ? "" : "s"} left`}</span>
         </div>
         <div className="relative h-2 rounded-[8px] bg-glass-inset">
-          <div className="h-2 rounded-[8px] bg-brand" style={{ width: `${(reserved ? 0 : elapsed) * 100}%` }} />
+          <div className="dash-fill h-2 rounded-[8px] bg-brand" style={{ width: `${(reserved ? 0 : elapsed) * 100}%` }} />
           <span aria-hidden className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-brand bg-glass-3" style={{ left: `${(reserved ? 0 : elapsed) * 100}%` }} />
         </div>
         <div className="flex justify-between text-label text-ink-2"><span>{fmtDay(b.move_in)} · in</span><span>{fmtDay(b.check_out)} · out</span></div>

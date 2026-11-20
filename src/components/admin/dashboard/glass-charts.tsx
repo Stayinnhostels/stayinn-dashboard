@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -6,6 +6,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,6 +14,7 @@ import {
   type TooltipProps,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { prefersReducedMotion, useInView } from "./dashboard-motion";
 
 /**
  * Charts for the Glass dashboard (Figma 01/02 · Dashboard).
@@ -34,16 +36,21 @@ export function ChartCard({
   subtitle,
   legend,
   className,
+  style,
   children,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   legend?: ReactNode;
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   return (
-    <section className={cn("glass-1 flex min-w-0 flex-col gap-4 rounded-[20px] p-5", className)}>
+    <section
+      className={cn("glass-1 flex min-w-0 flex-col gap-4 rounded-[20px] p-5", className)}
+      style={style}
+    >
       <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="truncate text-card-title text-ink">{title}</h2>
@@ -149,6 +156,7 @@ export function GlassBarChart({
   deltaLabel,
   showEveryLabel = 1,
   empty,
+  animationDelay = 0,
 }: {
   data: BarPoint[];
   height: number;
@@ -159,7 +167,10 @@ export function GlassBarChart({
   /** Show only every Nth x label (the last bar is always labelled). */
   showEveryLabel?: number;
   empty?: ReactNode;
+  /** ms before the bars start growing (entrance stagger). */
+  animationDelay?: number;
 }) {
+  const animate = !prefersReducedMotion();
   const max = Math.max(0, ...data.map((d) => d.value));
   const ticks = ticksFor(max, steps);
   const lastIndex = data.length - 1;
@@ -229,7 +240,23 @@ export function GlassBarChart({
               );
             }}
           />
-          <Bar dataKey="value" barSize={barSize} radius={[10, 10, 4, 4]} isAnimationActive={false}>
+          <Bar
+            dataKey="value"
+            barSize={barSize}
+            radius={[10, 10, 4, 4]}
+            isAnimationActive={false}
+            shape={(raw: unknown) => {
+              const props = raw as ComponentProps<typeof Rectangle> & { index?: number };
+              return (
+                <g
+                  className={animate ? "dash-bar" : undefined}
+                  style={{ "--dash-d": `${animationDelay + (props.index ?? 0) * 75}ms` } as CSSProperties}
+                >
+                  <Rectangle {...props} />
+                </g>
+              );
+            }}
+          >
             {data.map((d, i) => (
               <Cell
                 key={String(d.key)}
@@ -272,6 +299,7 @@ export function GlassAreaChart({
   showEveryLabel = 1,
   partialLabel,
   empty,
+  animationDelay = 0,
 }: {
   data: LinePoint[];
   height: number;
@@ -284,7 +312,10 @@ export function GlassAreaChart({
   showEveryLabel?: number;
   partialLabel?: string;
   empty?: ReactNode;
+  /** ms before the line starts drawing (entrance stagger). */
+  animationDelay?: number;
 }) {
+  const animate = !prefersReducedMotion();
   const gradientId = useId().replace(/:/g, "");
   const max = Math.max(0, ...data.map((d) => d.value));
   const ticks = ticksFor(max, steps);
@@ -299,9 +330,19 @@ export function GlassAreaChart({
     dashed: hasPartial && i >= data.length - 2 ? d.value : null,
   }));
   const type = smooth ? "monotone" : "linear";
+  // Dots pop as the scan line passes them.
+  const REVEAL_MS = 1600;
+  const dotDelay = (i: number) =>
+    animationDelay + Math.round((data.length > 1 ? i / (data.length - 1) : 0) * REVEAL_MS * 0.92);
+  const revealKey = allZero ? "empty" : `data-${data.length}`;
 
   return (
     <div className="relative w-full" style={{ height }}>
+      <div
+        key={revealKey}
+        className={cn("absolute inset-0", animate && !allZero && "dash-reveal")}
+        style={{ "--dash-d": `${animationDelay}ms` } as CSSProperties}
+      >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={{ top: 12, right: 18, bottom: 0, left: -12 }}>
           <defs>
@@ -381,20 +422,40 @@ export function GlassAreaChart({
                     p.cx == null || p.cy == null ? (
                       <g key={p.index} />
                     ) : (
-                      <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={BRAND} />
+                      <circle
+                        key={p.index}
+                        className="dash-pop"
+                        style={{ "--dash-d": `${dotDelay(p.index ?? 0)}ms` } as CSSProperties}
+                        cx={p.cx}
+                        cy={p.cy}
+                        r={4}
+                        fill={BRAND}
+                      />
                     )
                 : peakIndex >= 0
                   ? (p: { cx?: number; cy?: number; index?: number }) =>
                       p.index === peakIndex && p.cx != null && p.cy != null ? (
-                        <circle
-                          key={p.index}
-                          cx={p.cx}
-                          cy={p.cy}
-                          r={5}
-                          fill="var(--gl-glass-3)"
-                          stroke={BRAND}
-                          strokeWidth={2.5}
-                        />
+                        <g key={p.index}>
+                          <circle
+                            className="dash-ping"
+                            style={{ "--dash-d": `${dotDelay(p.index) + 300}ms` } as CSSProperties}
+                            cx={p.cx}
+                            cy={p.cy}
+                            r={5}
+                            fill={BRAND}
+                            opacity={0}
+                          />
+                          <circle
+                            className="dash-pop"
+                            style={{ "--dash-d": `${dotDelay(p.index)}ms` } as CSSProperties}
+                            cx={p.cx}
+                            cy={p.cy}
+                            r={5}
+                            fill="var(--gl-glass-3)"
+                            stroke={BRAND}
+                            strokeWidth={2.5}
+                          />
+                        </g>
                       ) : (
                         <g key={p.index} />
                       )
@@ -423,6 +484,15 @@ export function GlassAreaChart({
           ) : null}
         </AreaChart>
       </ResponsiveContainer>
+      </div>
+      {animate && !allZero ? (
+        <span
+          key={`scan-${revealKey}`}
+          aria-hidden
+          className="dash-scan"
+          style={{ "--dash-d": `${animationDelay}ms` } as CSSProperties}
+        />
+      ) : null}
       {hasPartial && partialLabel ? (
         <span className="pointer-events-none absolute right-2 bottom-7 text-label text-ink-3">
           {partialLabel}
@@ -444,12 +514,15 @@ export function GlassDonut({
   thickness,
   center,
   ariaLabel,
+  animationDelay = 0,
 }: {
   slices: DonutSlice[];
   size: number;
   thickness: number;
   center: ReactNode;
   ariaLabel: string;
+  /** ms before the ring starts sweeping in (entrance stagger). */
+  animationDelay?: number;
 }) {
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
@@ -466,6 +539,10 @@ export function GlassDonut({
       aria-label={ariaLabel}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <g
+          className="dash-spin"
+          style={{ "--dash-d": `${animationDelay}ms`, transformOrigin: "center", transformBox: "fill-box" } as CSSProperties}
+        >
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -475,30 +552,79 @@ export function GlassDonut({
           strokeWidth={thickness}
         />
         {total > 0
-          ? visible.map((s) => {
+          ? visible.map((s, i) => {
               const len = (s.value / total) * c;
               const dash = Math.max(0, len - gap);
               const el = (
-                <circle
+                <DonutArc
                   key={s.key}
-                  cx={size / 2}
-                  cy={size / 2}
+                  size={size}
                   r={r}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={thickness}
-                  strokeDasharray={`${dash} ${c - dash}`}
-                  strokeDashoffset={-offset}
+                  c={c}
+                  thickness={thickness}
+                  color={s.color}
+                  dash={dash}
+                  offset={offset}
+                  delayMs={animationDelay + i * 160}
                 />
               );
               offset += len;
               return el;
             })
           : null}
+        </g>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         {center}
       </div>
     </div>
+  );
+}
+
+/** One ring segment; sweeps from 0 to its length when it first appears or changes. */
+function DonutArc({
+  size,
+  r,
+  c,
+  thickness,
+  color,
+  dash,
+  offset,
+  delayMs,
+}: {
+  size: number;
+  r: number;
+  c: number;
+  thickness: number;
+  color: string;
+  dash: number;
+  offset: number;
+  delayMs: number;
+}) {
+  const ref = useRef<SVGCircleElement>(null);
+  const { inView, late } = useInView(ref);
+  const [shown, setShown] = useState(prefersReducedMotion);
+  useEffect(() => {
+    if (shown || !inView) return;
+    const raf = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(raf);
+  }, [shown, inView]);
+  const d = shown ? dash : 0;
+  const ease = "1.3s cubic-bezier(0.16, 1, 0.3, 1)";
+  // Scrolled to later: drop the page-load delay, keep the slice-to-slice stagger.
+  const wait = late ? (delayMs % 1000) % 480 : delayMs;
+  return (
+    <circle
+      ref={ref}
+      cx={size / 2}
+      cy={size / 2}
+      r={r}
+      fill="none"
+      stroke={color}
+      strokeWidth={thickness}
+      strokeDasharray={`${d} ${c - d}`}
+      strokeDashoffset={-offset}
+      style={{ transition: `stroke-dasharray ${ease} ${wait}ms, stroke-dashoffset ${ease} ${wait}ms` }}
+    />
   );
 }

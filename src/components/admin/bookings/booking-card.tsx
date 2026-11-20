@@ -123,7 +123,7 @@ export function BookingCard({
         </div>
         <div className="h-1 overflow-hidden rounded-[4px] bg-glass-divider">
           <div
-            className="h-1 rounded-[4px] bg-brand"
+            className="dash-fill h-1 rounded-[4px] bg-brand"
             style={{ width: `${Math.max(3, Math.round(stayProgress(b) * 100))}%` }}
           />
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, Ellipsis, PanelLeft, Search } from "lucide-react";
+import { ChevronRight, ChevronsLeft, Ellipsis, PanelLeft, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   CountBadge,
@@ -39,6 +39,15 @@ import { useCommandMenu } from "./shell/admin-command-menu";
 
 const SIDEBAR_COLLAPSED_KEY = "stay-inn-admin-sidebar-collapsed";
 const SIDEBAR_SECTIONS_KEY = "stay-inn-admin-sidebar-sections";
+const SIDEBAR_HIDDEN_KEY = "stay-inn-admin-sidebar-hidden";
+
+function readHidden() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_HIDDEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function readCollapsed() {
   try {
@@ -72,6 +81,35 @@ function usePathname() {
 
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  // Fully hidden (0px): a small arrow tab on the left edge brings it back. ⌘B / Ctrl+B toggles.
+  const [hidden, setHiddenState] = useState(readHidden);
+  const setHidden = (next: boolean) => {
+    setHiddenState(next);
+    try {
+      window.localStorage.setItem(SIDEBAR_HIDDEN_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.isContentEditable) return;
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setHiddenState((prev) => {
+          const next = !prev;
+          try {
+            window.localStorage.setItem(SIDEBAR_HIDDEN_KEY, next ? "1" : "0");
+          } catch {
+            /* ignore */
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -89,21 +127,43 @@ export function AdminSidebar() {
   // each other: the outgoing one fades out first, then the incoming one fades in,
   // so nothing reflows or jumps while the panel resizes.
   return (
-    <aside
-      aria-label="Main navigation"
-      className={cn(
-        "glass-1 relative hidden h-full shrink-0 overflow-hidden rounded-[28px] font-geist md:block",
-        "transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-        collapsed ? "w-[76px]" : "w-[264px]",
-      )}
-    >
-      <SidebarLayer visible={!collapsed} width={264}>
-        <ExpandedSidebar onCollapse={toggle} />
-      </SidebarLayer>
-      <SidebarLayer visible={collapsed} width={76}>
-        <CollapsedRail onExpand={toggle} />
-      </SidebarLayer>
-    </aside>
+    <>
+      <aside
+        aria-label="Main navigation"
+        aria-hidden={hidden || undefined}
+        inert={hidden}
+        className={cn(
+          "glass-1 relative hidden h-full shrink-0 overflow-hidden rounded-[28px] font-geist md:block",
+          "transition-[width,margin,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          // Hidden: 0 wide and pull back the 20px gap so the main panel fills the screen.
+          hidden ? "-mr-5 w-0 border-0 opacity-0" : collapsed ? "w-[76px]" : "w-[264px]",
+        )}
+      >
+        <SidebarLayer visible={!hidden && !collapsed} width={264}>
+          <ExpandedSidebar onCollapse={toggle} onHide={() => setHidden(true)} />
+        </SidebarLayer>
+        <SidebarLayer visible={!hidden && collapsed} width={76}>
+          <CollapsedRail onExpand={toggle} onHide={() => setHidden(true)} />
+        </SidebarLayer>
+      </aside>
+      {hidden ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Show sidebar"
+              onClick={() => setHidden(false)}
+              className="glass-3 fixed top-1/2 left-0 z-40 hidden h-14 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r-[14px] border-l-0 text-ink-2 outline-none transition-[width,color] hover:w-8 hover:text-ink focus-visible:ring-2 focus-visible:ring-brand-border md:flex"
+            >
+              <ChevronRight aria-hidden className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8} className="font-geist">
+            Show sidebar · ⌘B
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
+    </>
   );
 }
 
@@ -135,7 +195,7 @@ function SidebarLayer({
 
 /* ───────────────────────── Expanded ───────────────────────── */
 
-function ExpandedSidebar({ onCollapse }: { onCollapse: () => void }) {
+function ExpandedSidebar({ onCollapse, onHide }: { onCollapse: () => void; onHide: () => void }) {
   const pathname = usePathname();
   const { setOpen: openSearch } = useCommandMenu();
   const { name, title } = useAccountInfo();
@@ -175,9 +235,24 @@ function ExpandedSidebar({ onCollapse }: { onCollapse: () => void }) {
           <LogoMark />
           <span className="text-[18px] leading-5 font-semibold text-ink">stayinn</span>
         </Link>
-        <GlassIconButton aria-label="Collapse sidebar" size="sm" onClick={onCollapse}>
-          <PanelLeft />
-        </GlassIconButton>
+        <div className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <GlassIconButton aria-label="Collapse sidebar" size="sm" onClick={onCollapse}>
+                <PanelLeft />
+              </GlassIconButton>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="font-geist">Icons only</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <GlassIconButton aria-label="Hide sidebar" size="sm" onClick={onHide}>
+                <ChevronsLeft />
+              </GlassIconButton>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="font-geist">Hide sidebar · ⌘B</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       <button
@@ -347,6 +422,10 @@ function SidebarGroup({
                     to={item.to as "/admin"}
                     aria-label={n > 0 ? `${item.label}, ${n} need attention` : undefined}
                   >
+                    <item.icon
+                      aria-hidden
+                      className={cn("size-4 shrink-0", active ? "text-brand-text" : "text-ink-3")}
+                    />
                     <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
                   </Link>
                 </SubNavItem>
@@ -456,7 +535,7 @@ function RailLink({
   );
 }
 
-function CollapsedRail({ onExpand }: { onExpand: () => void }) {
+function CollapsedRail({ onExpand, onHide }: { onExpand: () => void; onHide: () => void }) {
   const pathname = usePathname();
   const { setOpen: openSearch } = useCommandMenu();
   const { name } = useAccountInfo();
@@ -474,6 +553,9 @@ function CollapsedRail({ onExpand }: { onExpand: () => void }) {
       <GlassIconButton aria-label="Expand sidebar" className="size-9" onClick={onExpand}>
         <PanelLeft />
       </GlassIconButton>
+      <RailButton label="Hide sidebar (⌘B)" onClick={onHide}>
+        <ChevronsLeft />
+      </RailButton>
       <RailDivider />
       <RailButton label="Search (⌘K)" tour="sidebar-search" onClick={() => openSearch(true)}>
         <Search />

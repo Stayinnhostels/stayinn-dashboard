@@ -94,7 +94,7 @@ export function DepositsTable({ rows, actions, footer }: { rows: DepositRow[]; a
                     <td className="text-body text-ink">{r.returned > 0 ? m(r.returned) : dash}</td>
                     <td className="pr-6">
                       <p className={cn("text-body", r.held > 0 ? "font-semibold text-ink" : "text-ink-3")}>{m(r.held)}</p>
-                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="h-full rounded-full bg-brand" style={{ width: `${(r.held / maxHeld) * 100}%` }} /></div>
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-glass-inset"><div className="dash-fill h-full rounded-full bg-brand" style={{ width: `${(r.held / maxHeld) * 100}%` }} /></div>
                     </td>
                     <td><DepositStatusPill status={r.status} /></td>
                     <td className="pr-2.5">

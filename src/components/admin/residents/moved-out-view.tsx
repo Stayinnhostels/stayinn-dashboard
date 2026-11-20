@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/auth/auth.store";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { MovedOutRow } from "@/types/domain/resident-roll.types";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 
 const PAGE = 20;
 const dm = (k: string | null) => {
@@ -165,7 +166,7 @@ function Stat({ label, value, sub, danger }: { label: string; value: string; sub
   return (
     <div className="glass-2 flex flex-col gap-1 rounded-[20px] px-5 py-4">
       <span className="text-label text-ink-2">{label}</span>
-      <span className={cn("text-kpi", danger ? "text-danger" : "text-ink")}>{value}</span>
+      <span className={cn("text-kpi", danger ? "text-danger" : "text-ink")}><CountUp value={value} delay={250} /></span>
       <span className="text-label text-ink-3">{sub}</span>
     </div>
   );

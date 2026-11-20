@@ -38,3 +38,8 @@ export async function downloadMonthProfitLossExcelApi(token: string, month: stri
     `profit-loss-${month}.xlsx`,
   );
 }
+
+export async function downloadFinanceOverviewApi(token: string, params: { from: string; to: string; currency: string; hostel?: string }) {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
+  await downloadBinary(token, `/api/v1/expenses/finance-overview/export?${q}`, `revenue-profit-${params.from}-to-${params.to}.xlsx`);
+}

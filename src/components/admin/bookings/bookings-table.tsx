@@ -77,7 +77,7 @@ export function BookingsTable({
     <div className="glass-2 overflow-hidden rounded-[20px]">
       <div className="flex">
         {/* Pinned left: checkbox + guest */}
-        <div className="w-[220px] shrink-0 sm:w-[280px]" role="rowgroup">
+        <div className="w-[220px] shrink-0 sm:w-[280px]" role="rowgroup" data-reveal-rows>
           <div className={cn("flex items-center border-b border-glass-divider bg-glass-inset pl-3", HEADER_H)}>
             <span className="flex w-7 justify-center">
               <GlassCheckbox
@@ -115,7 +115,7 @@ export function BookingsTable({
 
         {/* Scrolling track */}
         <div className="min-w-0 flex-1 overflow-x-auto">
-          <div style={{ minWidth: trackWidth }}>
+          <div style={{ minWidth: trackWidth }} data-reveal-rows>
             <div className={cn("flex border-b border-glass-divider bg-glass-inset", HEADER_H)}>
               {columns.map((c) => (
                 <div

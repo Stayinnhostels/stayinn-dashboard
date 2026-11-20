@@ -35,6 +35,7 @@ import { useHostelScope } from "@/lib/use-hostel-scope";
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { RentPaymentStatus } from "@/types/domain/resident.types";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 
 type TabKey = "overview" | "payments" | "invoices" | "documents" | "activity";
 
@@ -321,7 +322,7 @@ function Kpi({ label, value, sub, danger }: { label: string; value: string; sub:
   return (
     <div className="flex min-w-0 flex-col gap-1 md:border-l md:border-glass-divider md:pl-4 md:first:border-l-0 md:first:pl-0">
       <span className="text-eyebrow text-ink-3 uppercase">{label}</span>
-      <span className={cn("truncate text-[22px] leading-7 font-semibold tracking-tight md:text-[26px] md:leading-8", danger ? "text-danger" : "text-ink")}>{value}</span>
+      <span className={cn("truncate text-[22px] leading-7 font-semibold tracking-tight md:text-[26px] md:leading-8", danger ? "text-danger" : "text-ink")}><CountUp value={value} delay={250} /></span>
       <span className="truncate text-label text-ink-3">{sub}</span>
     </div>
   );

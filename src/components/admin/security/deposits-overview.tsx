@@ -2,6 +2,7 @@ import { Banknote, Clock, RefreshCw, Shield, TriangleAlert } from "lucide-react"
 import { formatMoney } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { DepositRow, DepositStatus, DepositsResponse } from "@/types/domain/security-deposits.types";
+import { CountUp } from "@/components/admin/dashboard/dashboard-motion";
 
 export const dayMon = (key: string | null | undefined) =>
   key ? new Date(`${key.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
@@ -56,7 +57,7 @@ function Kpi({ icon, label, short, value, sub, mobileSub, hero, className }: { i
         {label}
       </span>
       <span className={cn("md:hidden", hero ? "text-eyebrow font-semibold tracking-wide text-ink-3 uppercase" : "text-label text-ink-2")}>{hero ? label : short ?? label}</span>
-      <span className={cn("truncate font-semibold tracking-tight text-ink", hero ? "text-[30px] leading-9 md:text-[30px]" : "text-[15px] leading-5 md:text-[30px] md:leading-9")}>{value}</span>
+      <span className={cn("truncate font-semibold tracking-tight text-ink", hero ? "text-[30px] leading-9 md:text-[30px]" : "text-[15px] leading-5 md:text-[30px] md:leading-9")}><CountUp value={value} delay={250} /></span>
       <span className={cn("truncate text-label text-ink-3", !hero && "hidden md:block")}>
         <span className="hidden md:inline">{sub}</span>
         <span className="md:hidden">{mobileSub ?? sub}</span>

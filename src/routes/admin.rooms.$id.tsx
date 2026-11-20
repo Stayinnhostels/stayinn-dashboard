@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RichTextView } from "@/components/glass/rich-text-view";
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -394,7 +395,7 @@ function RoomDetailPage() {
             </Card>
           )}
 
-          {!isDorm ? <AboutCard description={room.description} amenities={room.amenities} /> : null}
+          {!isDorm ? <AboutCard description={room.description} descriptionHtml={room.description_html} amenities={room.amenities} /> : null}
         </div>
 
         {/* Right column */}
@@ -476,7 +477,7 @@ function RoomDetailPage() {
             </section>
           ) : null}
 
-          {isDorm ? <AboutCard description={room.description} amenities={room.amenities} /> : null}
+          {isDorm ? <AboutCard description={room.description} descriptionHtml={room.description_html} amenities={room.amenities} /> : null}
         </div>
       </div>
 
@@ -585,7 +586,7 @@ function CurrentStay({ booking, capacity, checkOutTime, today }: { booking: BedB
             </span>
           </div>
           <div className="relative h-2 w-full rounded-[8px] bg-glass-inset">
-            <div className="h-2 rounded-[8px] bg-brand" style={{ width: `${elapsed * 100}%` }} />
+            <div className="dash-fill h-2 rounded-[8px] bg-brand" style={{ width: `${elapsed * 100}%` }} />
             <span
               aria-hidden
               className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-brand bg-glass-3"
@@ -602,10 +603,22 @@ function CurrentStay({ booking, capacity, checkOutTime, today }: { booking: BedB
   );
 }
 
-function AboutCard({ description, amenities }: { description?: string | null; amenities?: string[] }) {
+function AboutCard({
+  description,
+  descriptionHtml,
+  amenities,
+}: {
+  description?: string | null;
+  descriptionHtml?: string | null;
+  amenities?: string[];
+}) {
   return (
     <Card eyebrow="About this room">
-      <p className="text-body whitespace-pre-line text-ink">{description?.trim() || <span className="text-ink-3">No description yet.</span>}</p>
+      {description?.trim() ? (
+        <RichTextView html={descriptionHtml} text={description} />
+      ) : (
+        <p className="text-body text-ink-3">No description yet.</p>
+      )}
       {amenities?.length ? (
         <div className="flex flex-wrap gap-2">
           {amenities.map((a) => (
