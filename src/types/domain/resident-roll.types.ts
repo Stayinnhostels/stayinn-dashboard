@@ -57,6 +57,13 @@ export type RollSummary = {
   partial: { count: number; left: number };
   not_paid: { count: number; amount: number };
   reminder_count: number;
+  /** Still owed from earlier months (+ unpaid deposits), living + moved out — same rule as Bookings → Outstanding. */
+  earlier_unpaid?: {
+    amount: number;
+    living: { count: number; amount: number };
+    moved_out: { count: number; amount: number };
+    people: { name: string; booking_id: string; amount: number; moved_out?: boolean }[];
+  };
 };
 
 export type RollResponse = {

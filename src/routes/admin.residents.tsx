@@ -50,7 +50,7 @@ import { formatMoney } from "@/lib/payments";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { cn } from "@/lib/utils";
 import type { RentPaymentStatus } from "@/types/domain/resident.types";
-import type { RollRow, RollSort, RollStatusFilter } from "@/types/domain/resident-roll.types";
+import type { RollRow, RollSort, RollStatusFilter, RollSummary } from "@/types/domain/resident-roll.types";
 
 type Tab = "living" | "moved_out";
 type View = "roll" | "by_room" | "rent";
@@ -358,7 +358,7 @@ function ResidentsList() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-eyebrow text-ink-2 uppercase">Outstanding</p>
+                <p className="text-eyebrow text-ink-2 uppercase">{mName} outstanding</p>
                 <p className={cn("text-[24px] leading-8 font-semibold", s && s.outstanding > 0 ? "text-danger" : "text-ink-3")}>{s ? formatMoney(s.outstanding, cur) : "—"}</p>
               </div>
               {s && s.reminder_count > 0 ? (
@@ -366,6 +366,7 @@ function ResidentsList() {
               ) : null}
             </div>
             <GlassProgress value={s?.percent ?? 0} />
+            {s?.earlier_unpaid && s.earlier_unpaid.amount > 0 ? <EarlierUnpaid e={s.earlier_unpaid} cur={cur} onOpenGrid={() => setView("rent")} /> : null}
             <div className="hidden gap-2.5 md:grid md:grid-cols-3">
               <StatusTile icon={<Check />} label="Paid" count={s?.paid.count} sub={s ? (s.paid.count ? `${formatMoney(s.paid.amount, cur)} collected` : "—") : ""} active={status === "paid"} onClick={() => setStatus(status === "paid" ? "all" : "paid")} />
               <StatusTile icon={<Banknote />} label="Partial" count={s?.partial.count} sub={s ? (s.partial.count ? `${formatMoney(s.partial.left, cur)} left` : "Nothing left") : ""} active={status === "partial"} onClick={() => setStatus(status === "partial" ? "all" : "partial")} />
@@ -448,7 +449,11 @@ function ResidentsList() {
             <EmptyState
               icon={<Check />}
               title={`Everyone has paid for ${mName}`}
-              body={`${formatMoney(s!.collected, cur)} collected from ${data.counts.living} resident${data.counts.living === 1 ? "" : "s"}. ${monthName(shiftMonth(month, 1))} rent starts on 1 ${monthName(shiftMonth(month, 1)).slice(0, 3)} — you can close ${mName} now.`}
+              body={
+                s!.earlier_unpaid && s!.earlier_unpaid.amount > 0
+                  ? `${formatMoney(s!.collected, cur)} collected from ${data.counts.living} resident${data.counts.living === 1 ? "" : "s"}. ${formatMoney(s!.earlier_unpaid.amount, cur)} from earlier months is still unpaid — see the list above.`
+                  : `${formatMoney(s!.collected, cur)} collected from ${data.counts.living} resident${data.counts.living === 1 ? "" : "s"}. ${monthName(shiftMonth(month, 1))} rent starts on 1 ${monthName(shiftMonth(month, 1)).slice(0, 3)} — you can close ${mName} now.`
+              }
               actions={
                 <>
                   <GlassButton variant="glass" onClick={() => void exportFile("excel")}><Download aria-hidden /> Download report</GlassButton>
@@ -626,6 +631,48 @@ function ViewSwitch({ view, onChange }: { view: "roll" | "by_room" | "rent"; onC
       <button type="button" onClick={() => onChange("roll")} className={item(view === "roll")}><Rows3 aria-hidden />Residents</button>
       <button type="button" onClick={() => onChange("rent")} className={item(view === "rent")}><LayoutGrid aria-hidden /><span className="md:hidden">Rent</span><span className="hidden md:inline">Monthly rent</span></button>
       <button type="button" onClick={() => onChange("by_room")} className={item(view === "by_room")}><BedDouble aria-hidden />By room</button>
+    </div>
+  );
+}
+
+/**
+ * "This month is paid, but older months are not": money still owed from earlier months, for people
+ * living here and people who moved out. Adds up to the same figure as Bookings → Outstanding.
+ */
+function EarlierUnpaid({ e, cur, onOpenGrid }: { e: NonNullable<RollSummary["earlier_unpaid"]>; cur: "pkr" | "usd"; onOpenGrid: () => void }) {
+  const [open, setOpen] = useState(false);
+  const parts = [
+    e.living.count ? `${e.living.count} living here (${formatMoney(e.living.amount, cur)})` : null,
+    e.moved_out.count ? `${e.moved_out.count} moved out (${formatMoney(e.moved_out.amount, cur)})` : null,
+  ].filter(Boolean);
+  return (
+    <div className="flex flex-col gap-2 rounded-[14px] border border-danger/25 bg-danger-tint px-3.5 py-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <TriangleAlert className="size-4 shrink-0 text-danger" aria-hidden />
+        <p className="min-w-0 flex-1 text-body text-ink">
+          <span className="font-semibold text-danger">{formatMoney(e.amount, cur)}</span> still unpaid from earlier months
+          <span className="text-ink-2"> · {parts.join(" · ")}</span>
+        </p>
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="cursor-pointer text-label font-semibold text-brand-text hover:underline">
+          {open ? "Hide people" : `Show ${e.people.length} ${e.people.length === 1 ? "person" : "people"}`}
+        </button>
+        <button type="button" onClick={onOpenGrid} className="cursor-pointer text-label font-semibold text-brand-text hover:underline">
+          Open monthly rent
+        </button>
+      </div>
+      {open ? (
+        <ul className="grid gap-1.5 sm:grid-cols-2">
+          {e.people.map((p) => (
+            <li key={p.booking_id}>
+              <Link to="/admin/residents/$id" params={{ id: p.booking_id }} className="flex items-center gap-2 rounded-[10px] bg-glass-2 px-3 py-2 hover:bg-glass-inset">
+                <span className="min-w-0 flex-1 truncate text-body text-ink">{p.name}</span>
+                {p.moved_out ? <span className="shrink-0 text-label text-ink-3">moved out</span> : null}
+                <span className="shrink-0 text-body font-semibold text-danger tabular-nums">{formatMoney(p.amount, cur)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
