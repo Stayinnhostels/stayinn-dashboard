@@ -41,9 +41,9 @@ export function compactMoney(n: number, cur: string) {
 /** Figma "KPI" — 32px icon tile, 14/20 label, 32/36 value, 12/16 context. */
 export function FinKpi({ icon, label, value, sub, danger, className }: { icon: React.ReactNode; label: React.ReactNode; value: string; sub?: React.ReactNode; danger?: boolean; className?: string }) {
   return (
-    <div className={cn("glass-2 flex min-w-0 flex-col gap-2.5 rounded-[22px] p-4 md:p-5", className)}>
+    <div className={cn("dash-sheen glass-2 flex min-w-0 flex-col gap-2.5 rounded-[22px] p-4 md:p-5", className)}>
       <div className="flex min-w-0 items-center gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-glass-2 text-ink [&_svg]:size-4">{icon}</span>
+        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] [&_svg]:size-4", danger ? "bg-danger-tint text-danger" : "bg-glass-2 text-ink")}>{icon}</span>
         <span className="truncate text-body font-medium text-ink-2">{label}</span>
       </div>
       <p className={cn("truncate text-[24px] leading-8 font-semibold tracking-[-0.48px] md:text-[32px] md:leading-9", danger ? "text-danger" : "text-ink")}>

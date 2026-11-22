@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getBookingRequestsApi } from "@/api/booking-requests/bookingRequests.api";
 import { bookingRequestKeys } from "@/queries/keys/booking-request.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -18,5 +18,6 @@ export function useBookingRequestsQuery(
     },
     enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 10_000,
+    placeholderData: keepPreviousData,
   });
 }

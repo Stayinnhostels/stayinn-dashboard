@@ -48,6 +48,7 @@ export function useAuth() {
     queryClient.removeQueries({ queryKey: authKeys.all });
   }, [queryClient, storeLogout]);
 
-  const isAdmin = user?.role === "super_admin";
+  // Any dashboard role (super admin or staff); pages a staff role may not use show a no-access screen.
+  const isAdmin = ["super_admin", "front_desk", "maintenance", "accountant"].includes(user?.role ?? "");
   return { user, token, loading, isAdmin, logout };
 }

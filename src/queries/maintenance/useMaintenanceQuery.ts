@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMaintenanceApi } from "@/api/maintenance";
 import { maintenanceKeys } from "@/queries/keys/maintenance.keys";
 import { useAuthStore } from "@/stores/auth/auth.store";
@@ -18,5 +18,6 @@ export function useMaintenanceQuery(
     },
     enabled: (options.enabled ?? true) && Boolean(token),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }

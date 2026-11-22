@@ -61,6 +61,7 @@ export const Route = createFileRoute("/admin/bookings/$id")({
   component: BookingDetailPage,
   validateSearch: (search: Record<string, unknown>) => ({
     edit: search.edit === true || search.edit === "1" || search.edit === "true" ? true : undefined,
+    checkout: search.checkout === true || search.checkout === "1" || search.checkout === "true" ? true : undefined,
   }),
 });
 
@@ -106,7 +107,7 @@ const ordinal = (n: number) => `${n}${["th", "st", "nd", "rd"][(n % 100 > 10 && 
 
 function BookingDetailPage() {
   const { id } = Route.useParams();
-  const { edit: editFromSearch } = Route.useSearch();
+  const { edit: editFromSearch, checkout: checkoutFromSearch } = Route.useSearch();
   const navigate = useNavigate();
   const { data: booking, isLoading, isError, error } = useBookingQuery(id);
   const { data: resident } = useResidentDetailQuery(booking ? id : null);
@@ -117,7 +118,8 @@ function BookingDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Schedule → "Check out" opens the dialog straight away (Figma 19.02).
+  const [checkoutOpen, setCheckoutOpen] = useState(Boolean(checkoutFromSearch));
   const [payOpen, setPayOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);

@@ -17,8 +17,6 @@ import { useNavCountsQuery } from "@/queries/admin/useNavCountsQuery";
 import type { NavCounts } from "@/api/admin/getNavCounts.api";
 import { cn } from "@/lib/utils";
 import {
-  NAV_GROUPS,
-  PRINCIPAL_NAV,
   badgeLabel,
   groupCount,
   groupHasActive,
@@ -31,6 +29,7 @@ import { AccountAvatar, AccountMenu, useAccountInfo } from "./shell/admin-accoun
 import { usePlanQuery } from "@/queries/admin/usePlanQuery";
 import type { PlanUsage } from "@/api/admin/getPlan.api";
 import { useCommandMenu } from "./shell/admin-command-menu";
+import { useVisibleNav } from "./shell/use-visible-nav";
 
 /**
  * Figma "Sidebar / Expanded" (264px) and "Sidebar / Collapsed" (76px rail):
@@ -198,6 +197,7 @@ function SidebarLayer({
 function ExpandedSidebar({ onCollapse, onHide }: { onCollapse: () => void; onHide: () => void }) {
   const pathname = usePathname();
   const { setOpen: openSearch } = useCommandMenu();
+  const { principal: PRINCIPAL, groups: GROUPS } = useVisibleNav();
   const { name, title } = useAccountInfo();
   const { data: counts } = useNavCountsQuery();
   const { data: plan } = usePlanQuery();
@@ -205,8 +205,8 @@ function ExpandedSidebar({ onCollapse, onHide }: { onCollapse: () => void; onHid
 
   // The group holding the current page opens by itself.
   const activeGroupId = useMemo(
-    () => NAV_GROUPS.find((g) => groupHasActive(pathname, g))?.id,
-    [pathname],
+    () => GROUPS.find((g) => groupHasActive(pathname, g))?.id,
+    [pathname, GROUPS],
   );
   useEffect(() => {
     if (!activeGroupId) return;
@@ -269,7 +269,7 @@ function ExpandedSidebar({ onCollapse, onHide }: { onCollapse: () => void; onHid
       <nav className="-mx-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-4 pb-2 [&>*]:shrink-0">
         <NavGroupLabel>Principal</NavGroupLabel>
         <div data-tour="nav-principal" className="flex flex-col gap-1 [&>*]:shrink-0">
-          {PRINCIPAL_NAV.map((item) => (
+          {PRINCIPAL.map((item) => (
             <SidebarLink
               key={item.to}
               item={item}
@@ -280,7 +280,7 @@ function ExpandedSidebar({ onCollapse, onHide }: { onCollapse: () => void; onHid
           ))}
         </div>
 
-        {NAV_GROUPS.map((group) => (
+        {GROUPS.map((group) => (
           <SidebarGroup
             key={group.id}
             group={group}
@@ -536,6 +536,7 @@ function RailLink({
 }
 
 function CollapsedRail({ onExpand, onHide }: { onExpand: () => void; onHide: () => void }) {
+  const { principal: PRINCIPAL, groups: GROUPS } = useVisibleNav();
   const pathname = usePathname();
   const { setOpen: openSearch } = useCommandMenu();
   const { name } = useAccountInfo();
@@ -564,7 +565,7 @@ function CollapsedRail({ onExpand, onHide }: { onExpand: () => void; onHide: () 
 
       <nav className="-mx-3.5 flex min-h-0 w-[calc(100%+28px)] flex-1 flex-col items-center gap-1.5 overflow-y-auto overscroll-contain px-3.5 [&>*]:shrink-0">
         <div data-tour="nav-principal" className="flex flex-col items-center gap-1.5 [&>*]:shrink-0">
-          {PRINCIPAL_NAV.map((item) => (
+          {PRINCIPAL.map((item) => (
             <RailLink
               key={item.to}
               item={item}
@@ -574,7 +575,7 @@ function CollapsedRail({ onExpand, onHide }: { onExpand: () => void; onHide: () 
             />
           ))}
         </div>
-        {NAV_GROUPS.map((group) => (
+        {GROUPS.map((group) => (
           <div
             key={group.id}
             className="flex flex-col items-center gap-1.5"

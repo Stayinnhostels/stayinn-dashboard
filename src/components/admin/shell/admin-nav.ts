@@ -39,6 +39,8 @@ export type AdminNavItem = {
   tabLabel?: string;
   /** Which sidebar badge count belongs to this page (GET /admin/nav-counts). */
   countKey?: keyof NavCounts;
+  /** Other paths that highlight this item (e.g. Schedule under Bookings). */
+  also?: string[];
 };
 
 export type AdminNavGroup = {
@@ -49,7 +51,7 @@ export type AdminNavGroup = {
 
 export const PRINCIPAL_NAV: AdminNavItem[] = [
   { to: "/admin", label: "Dashboard", tabLabel: "Home", icon: LayoutDashboard, exact: true },
-  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, countKey: "bookings" },
+  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, countKey: "bookings", also: ["/admin/schedule"] },
   {
     to: "/admin/residents",
     label: "Residents",
@@ -131,6 +133,7 @@ export const HOME_TAB_ICON = House;
 
 export function isNavItemActive(pathname: string, item: AdminNavItem) {
   if (item.exact) return pathname === item.to;
+  if (item.also?.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return true;
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 }
 
@@ -153,4 +156,12 @@ export function groupCount(group: AdminNavGroup, counts?: NavCounts | null) {
 /** "99+" for big numbers so the badge stays round. */
 export function badgeLabel(n: number) {
   return n > 99 ? "99+" : String(n);
+}
+
+/** The nav the signed-in user may see (staff roles: only their permitted areas, Figma 13.03). */
+export function filterNav(canSee: (to: string) => boolean) {
+  return {
+    principal: PRINCIPAL_NAV.filter((i) => canSee(i.to)),
+    groups: NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => canSee(i.to)) })).filter((g) => g.items.length > 0),
+  };
 }

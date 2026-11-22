@@ -7,10 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { ThemeSwitcher } from "@/components/glass/theme-switcher";
 import { cn } from "@/lib/utils";
 import { useOnboardingTourStore } from "@/stores/tour/onboarding-tour.store";
+import { useVisibleNav } from "./use-visible-nav";
 import {
   HOME_TAB_ICON,
-  NAV_GROUPS,
-  PRINCIPAL_NAV,
   badgeLabel,
   isNavItemActive,
   itemCount,
@@ -28,7 +27,8 @@ import { useCommandMenu } from "./admin-command-menu";
 export function AdminMobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [moreOpen, setMoreOpen] = useState(false);
-  const onPrincipalPage = PRINCIPAL_NAV.some((item) => isNavItemActive(pathname, item));
+  const { principal: PRINCIPAL, groups: GROUPS } = useVisibleNav();
+  const onPrincipalPage = PRINCIPAL.some((item) => isNavItemActive(pathname, item));
 
   return (
     <>
@@ -37,7 +37,7 @@ export function AdminMobileNav() {
         data-tour="mobile-tabbar"
         className="fixed inset-x-6 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 md:hidden"
       >
-        {PRINCIPAL_NAV.map((item) => {
+        {PRINCIPAL.map((item) => {
           const Icon = item.to === "/admin" ? HOME_TAB_ICON : item.icon;
           return (
             <TabItem key={item.to} asChild icon={<Icon />} active={isNavItemActive(pathname, item)}>
@@ -75,6 +75,7 @@ function MoreSheet({
   const { setOpen: openSearch } = useCommandMenu();
   const startTour = useOnboardingTourStore((s) => s.start);
   const { data: counts } = useNavCountsQuery();
+  const { groups: GROUPS } = useVisibleNav();
   const close = () => onOpenChange(false);
 
   return (
@@ -108,7 +109,7 @@ function MoreSheet({
               <span className="text-body text-ink-3">Search</span>
             </button>
 
-            {NAV_GROUPS.map((group) => (
+            {GROUPS.map((group) => (
               <section key={group.id} className="flex flex-col gap-3" aria-label={group.label}>
                 <h3 className="px-1 pt-1.5 text-eyebrow text-ink-3">{group.label}</h3>
                 {group.items.map((item) => (

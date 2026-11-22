@@ -22,6 +22,8 @@ function hostelInputToBody(input: HostelInput): Record<string, unknown> {
   if (input.email != null) body.email = input.email;
   if (input.whatsapp != null) body.whatsapp = input.whatsapp;
   if (input.map_url != null) body.mapUrl = input.map_url;
+  if (input.cover_image != null) body.coverImage = input.cover_image;
+  if (input.opening_note != null) body.openingNote = input.opening_note;
   if (input.latitude != null) body.latitude = input.latitude;
   if (input.longitude != null) body.longitude = input.longitude;
   if (input.check_in_time != null) body.checkInTime = input.check_in_time;
@@ -57,6 +59,8 @@ function hostelPatchToBody(input: Partial<HostelInput>): Record<string, unknown>
   if (input.email != null) body.email = input.email;
   if (input.whatsapp != null) body.whatsapp = input.whatsapp;
   if (input.map_url != null) body.mapUrl = input.map_url;
+  if (input.cover_image != null) body.coverImage = input.cover_image;
+  if (input.opening_note != null) body.openingNote = input.opening_note;
   if (input.latitude != null) body.latitude = input.latitude;
   if (input.longitude != null) body.longitude = input.longitude;
   if (input.check_in_time != null) body.checkInTime = input.check_in_time;

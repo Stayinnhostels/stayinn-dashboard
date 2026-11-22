@@ -16,7 +16,7 @@ function parseSession(raw: string | null): StoredSession | null {
     const parsed = JSON.parse(raw) as StoredSession;
     if (!parsed?.user || !parsed?.token || typeof parsed.token !== "string") return null;
     if (parsed.token === "mock-token") return null;
-    if (parsed.user.role !== "super_admin") return null;
+    if (!["super_admin", "front_desk", "maintenance", "accountant"].includes(parsed.user.role)) return null;
     if (parsed.refreshToken != null && typeof parsed.refreshToken !== "string") return null;
     return parsed;
   } catch {

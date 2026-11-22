@@ -34,10 +34,74 @@ export type BookingRequest = {
   booking_status?: string | null;
   seats_booked?: number | null;
   room_title?: string | null;
+  /** Figma 10 · Guest requests additions. */
+  booking_code?: string | null;
+  seat_label?: string | null;
+  room_number?: number | null;
+  move_in?: string | null;
+  check_out?: string | null;
+  price_per_seat?: number | null;
+  currency?: string;
+  extra_amount?: number;
+  /** Paid so far on the booking (cancel requests). */
+  paid_total?: number | null;
+  reply_template?: string | null;
+  refund_method?: RefundMethod | null;
+  resolved_by_name?: string | null;
+  reply_emailed_at?: string | null;
+};
+
+export type RefundMethod = "cash" | "jazzcash" | "easypaisa" | "bank";
+
+export type BookingRequestCounts = {
+  status: Record<BookingRequestStatus | "all", number>;
+  type: Record<BookingRequestType | "all", number>;
+};
+
+export type BookingRequestKpis = {
+  oldest_pending_at: string | null;
+  approved_this_month: number;
+  extension_rent_this_month: number;
+  currency: string;
+  rejected_this_month: number;
+  top_reject_reason: string | null;
+  avg_reply_hours: number | null;
+};
+
+export type BookingRequestImpact = {
+  stay?: { move_in: string | null; check_out: string | null; months: number | null; nights: number | null; stay_unit: "month" | "night" };
+  extend?: {
+    from: string;
+    to: string;
+    bed_free: boolean;
+    bed_holder: string | null;
+    bed_checked: boolean;
+    added_units: number;
+    unit: "month" | "night";
+    monthly_rent: number;
+    extra_amount: number;
+    added_months: string[];
+  };
+  cancel?: {
+    paid: number;
+    days_before_arrival: number | null;
+    arrived: boolean;
+    policy: string;
+    policy_text: string;
+    share: number;
+    allows_label: string;
+    amount: number;
+    frees_from: string | null;
+    frees_to: string | null;
+  };
+  room_change?: { room_title: string; beds_available: number; enough_beds: boolean; status: string | null; current_rent: number } | null;
+  additional_seat?: { beds_available: number; enough_beds: boolean; added_seats: number; extra_rent: number };
 };
 
 export type BookingRequestListParams = {
   status?: BookingRequestStatus;
+  type?: BookingRequestType;
+  search?: string;
   limit?: number;
   page?: number;
   hostel?: string;

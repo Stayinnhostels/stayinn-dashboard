@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
+import { Link as RouterLink } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRightToLine,
@@ -17,6 +18,7 @@ import {
   UserPlus,
   Users,
   X,
+  CalendarRange,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -422,6 +424,11 @@ function BookingsListPage() {
         }
         actions={
           <>
+            <GlassButton asChild variant="glass">
+              <RouterLink to="/admin/schedule">
+                <CalendarRange aria-hidden /> Schedule
+              </RouterLink>
+            </GlassButton>
             <GlassButton
               variant="glass"
               onClick={() => void exportCsv()}

@@ -3,7 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CornerDownLeft, Search } from "lucide-react";
-import { NAV_GROUPS, PRINCIPAL_NAV, type AdminNavItem } from "./admin-nav";
+import { type AdminNavItem } from "./admin-nav";
+import { useVisibleNav } from "./use-visible-nav";
 
 type Ctx = { open: boolean; setOpen: (open: boolean) => void };
 const CommandMenuContext = React.createContext<Ctx | null>(null);
@@ -38,10 +39,10 @@ export function CommandMenuProvider({ children }: { children: React.ReactNode })
   );
 }
 
-const SECTIONS: { label: string; items: AdminNavItem[] }[] = [
-  { label: "Principal", items: PRINCIPAL_NAV },
-  ...NAV_GROUPS.map((g) => ({ label: g.label, items: g.items })),
-];
+function useSections(): { label: string; items: AdminNavItem[] }[] {
+  const { principal, groups } = useVisibleNav();
+  return [{ label: "Principal", items: principal }, ...groups.map((g) => ({ label: g.label, items: g.items }))];
+}
 
 /** "Go to a page" palette. Glass-3 dialog with the same search field as the sidebar. */
 function AdminCommandMenu({
@@ -52,6 +53,7 @@ function AdminCommandMenu({
   onOpenChange: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const SECTIONS = useSections();
 
   const go = (to: string) => {
     onOpenChange(false);

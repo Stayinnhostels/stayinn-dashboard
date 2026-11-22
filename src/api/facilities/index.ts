@@ -1,4 +1,4 @@
-export { getFacilitiesApi } from "./getFacilities.api";
+export { getFacilitiesApi, putFacilityOrderApi } from "./getFacilities.api";
 export { postFacilityApi } from "./postFacility.api";
 export { patchFacilityApi } from "./patchFacility.api";
 export { deleteFacilityApi } from "./deleteFacility.api";

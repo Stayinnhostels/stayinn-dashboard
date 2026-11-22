@@ -37,6 +37,8 @@ export function useCreateMaintenanceMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: maintenanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
 }
@@ -52,6 +54,8 @@ export function useUpdateMaintenanceMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: maintenanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
 }
@@ -80,6 +84,8 @@ export function useUpdateMaintenanceStatusMutation() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: maintenanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
 }
@@ -95,6 +101,8 @@ export function useDeleteMaintenanceMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: maintenanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "nav-counts"] });
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
     },
   });
 }

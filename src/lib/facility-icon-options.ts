@@ -20,4 +20,10 @@ export const FACILITY_ICON_OPTIONS = [
   "MapPin",
   "Users",
   "Heart",
+  "Package",
+  "Building2",
+  "KeyRound",
+  "Clock",
+  "CreditCard",
+  "Smartphone",
 ] as const;

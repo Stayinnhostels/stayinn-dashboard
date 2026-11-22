@@ -24,6 +24,9 @@ export function initialsFromName(name: string) {
 export function roleLabel(role: AuthUser["role"] | undefined) {
   if (role === "super_admin") return "Super Admin";
   if (role === "admin") return "Admin";
+  if (role === "front_desk") return "Front desk";
+  if (role === "maintenance") return "Maintenance";
+  if (role === "accountant") return "Accountant";
   return role ?? "Admin";
 }
 

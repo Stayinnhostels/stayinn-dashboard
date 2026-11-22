@@ -4,4 +4,5 @@ export {
   useUpdateFacilityMutation,
   useDeleteFacilityMutation,
   useSeedMissingFacilitiesMutation,
+  useReorderFacilitiesMutation,
 } from "./useFacilityMutations";

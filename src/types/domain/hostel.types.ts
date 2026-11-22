@@ -14,6 +14,8 @@ export type Hostel = {
   email: string;
   whatsapp: string;
   map_url: string;
+  cover_image?: string;
+  opening_note?: string;
   latitude: number | null;
   longitude: number | null;
   check_in_time: string;
@@ -47,6 +49,8 @@ export type HostelInput = {
   email?: string;
   whatsapp?: string;
   map_url?: string;
+  cover_image?: string;
+  opening_note?: string;
   latitude?: number | null;
   longitude?: number | null;
   check_in_time?: string;
@@ -64,3 +68,5 @@ export type HostelInput = {
   quiet_hours_start?: string;
   quiet_hours_end?: string;
 };
+
+export type HostelStats = Record<string, { beds_total: number; beds_filled: number; rooms: number; monthly_revenue: number; currency: string; photo: string | null }>;

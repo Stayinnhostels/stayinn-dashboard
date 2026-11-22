@@ -6,6 +6,8 @@ import { DarkBackdrop } from "@/components/admin/shell/dark-backdrop";
 import { useScrollReveal } from "@/components/admin/dashboard/dashboard-motion";
 import { PageHeader } from "@/components/admin/page-header";
 import { useAuth } from "@/lib/auth-context";
+import { canUseRoute, useSyncPermissions } from "@/lib/staff-access";
+import { ShieldOff } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminMobileNav } from "@/components/admin/shell/admin-mobile-nav";
 import { CommandMenuProvider } from "@/components/admin/shell/admin-command-menu";
@@ -30,6 +32,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin": { title: "Dashboard", subtitle: "" },
   "/admin/rooms": { title: "Rooms", subtitle: "" },
   "/admin/bookings": { title: "Bookings", subtitle: "" },
+  "/admin/schedule": { title: "Schedule", subtitle: "" },
   "/admin/booking-requests": {
     title: "Guest Requests",
     subtitle: "Cancel, room change & seat requests",
@@ -60,7 +63,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
 };
 
 /** Pages that render their own PageHeader (custom subtitle / actions, per the Figma). */
-const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings(\/[^/]+)?\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$|^\/admin\/security-payments\/?$|^\/admin\/(financials|expenses|coupons)\/?$/;
+const CUSTOM_HEADER_ROUTES = /^\/admin\/?$|^\/admin\/rooms(\/[^/]+)?\/?$|^\/admin\/notifications\/?$|^\/admin\/bookings(\/[^/]+)?\/?$|^\/admin\/users(\/[^/]+)?\/?$|^\/admin\/residents(\/[^/]+)?\/?$|^\/admin\/payments\/?$|^\/admin\/security-payments\/?$|^\/admin\/(financials|expenses|coupons|booking-requests|maintenance|facilities|staff|messages|reviews|hostels|schedule|settings)\/?$|^\/admin\/website(\/(about|faq))?\/?$/;
 
 function resolveMeta(pathname: string) {
   if (TITLES[pathname]) return TITLES[pathname];
@@ -76,6 +79,7 @@ function resolveMeta(pathname: string) {
 function AdminLayout() {
   const { user, loading, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  useSyncPermissions();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -141,7 +145,15 @@ function AdminLayout() {
                   {CUSTOM_HEADER_ROUTES.test(pathname) ? null : (
                     <PageHeader title={meta.title} subtitle={meta.subtitle} />
                   )}
-                  <Outlet />
+                  {canUseRoute(user, pathname) ? (
+                    <Outlet />
+                  ) : (
+                    <div className="glass-2 mx-auto mt-10 flex max-w-[460px] flex-col items-center gap-3 rounded-[22px] px-6 py-12 text-center">
+                      <ShieldOff className="size-8 text-ink-3" aria-hidden />
+                      <p className="text-card-title text-ink">You don't have access to this page</p>
+                      <p className="text-body text-ink-2">Your role can't open this part of the dashboard. Ask a super admin to change it on the Staff page.</p>
+                    </div>
+                  )}
                 </main>
               </div>
               <AdminMobileNav />

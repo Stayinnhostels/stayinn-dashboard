@@ -19,6 +19,12 @@ import {
   WashingMachine,
   Wifi,
   Zap,
+  Package,
+  Building2,
+  KeyRound,
+  Clock,
+  CreditCard,
+  Smartphone,
   type LucideIcon,
 } from "lucide-react";
 import { FACILITY_ICON_OPTIONS } from "@/lib/facility-icon-options";
@@ -44,6 +50,12 @@ const ICON_MAP: Record<(typeof FACILITY_ICON_OPTIONS)[number], LucideIcon> = {
   MapPin,
   Users,
   Heart,
+  Package,
+  Building2,
+  KeyRound,
+  Clock,
+  CreditCard,
+  Smartphone,
 };
 
 export function resolveFacilityIcon(name: string): LucideIcon {

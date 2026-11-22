@@ -1,4 +1,5 @@
 import type { AuthUser, UserRole } from "@/types/domain/auth.types";
+import { isConsoleRole } from "@/lib/staff-access";
 import type { LoginApiUserDto } from "@/types/api/auth/login.response.types";
 
 export function mapLoginUserDtoToAuthUser(u: LoginApiUserDto): AuthUser {
@@ -15,19 +16,20 @@ export function mapLoginUserDtoToAuthUser(u: LoginApiUserDto): AuthUser {
     emailVerified: !!u.emailVerified,
     avatarUrl: avatar || undefined,
     jobTitle: typeof u.jobTitle === "string" && u.jobTitle.trim() ? u.jobTitle.trim() : undefined,
+    permissions: Array.isArray((u as { permissions?: unknown }).permissions) ? ((u as { permissions?: string[] }).permissions ?? []) : undefined,
   };
 }
 
 /** Thrown when valid credentials belong to an account that may not use the admin console. */
 export class NotConsoleUserError extends Error {
   constructor() {
-    super("Only a super administrator can sign in to this console.");
+    super("This account can't use the dashboard. Ask a super admin to give you a staff role.");
     this.name = "NotConsoleUserError";
   }
 }
 
 export function assertSuperAdminConsoleUser(user: AuthUser): void {
-  if (user.role !== "super_admin") {
+  if (!isConsoleRole(user.role)) {
     throw new NotConsoleUserError();
   }
 }
