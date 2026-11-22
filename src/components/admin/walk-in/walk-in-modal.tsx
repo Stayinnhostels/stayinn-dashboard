@@ -26,12 +26,14 @@ import { GlassButton, Tag } from "@/components/glass";
 import { RoomThumbnail } from "@/components/admin/room-thumbnail";
 import { ApiError } from "@/api/apiFetch";
 import { getReturningGuestApi } from "@/api/rooms/roomBeds.api";
+import { ocrCnicApi } from "@/api/residents";
 import { useCreateManualBookingMutation } from "@/queries/bookings";
 import { useRoomAvailabilityQuery, useRoomBedsQuery } from "@/queries/rooms/useRoomBeds";
 import { useHostelScope } from "@/lib/use-hostel-scope";
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { compressImageFile } from "@/lib/compress-image";
 import { cn } from "@/lib/utils";
+import { securityDepositForSeats } from "@/lib/security-deposit";
 import { showWalkInSuccessToast } from "./walk-in-toast";
 import type { Room } from "@/types/domain/room.types";
 import type { Bed, BedTakenDetails, RoomAvailability } from "@/types/domain/room-beds.types";
@@ -166,6 +168,21 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
   const [returning, setReturning] = useState<string | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [conflict, setConflict] = useState<BedTakenDetails | null>(null);
+  // Same options as Bookings → Add walk-in member.
+  const [father, setFather] = useState("");
+  const [address, setAddress] = useState("");
+  const [resType, setResType] = useState<"student" | "employee" | "other">("employee");
+  const [org, setOrg] = useState("");
+  const [billing, setBilling] = useState<"full" | "prorate">("full");
+  /** Prorated arrival-month charge typed by the admin (empty = use the worked-out amount). */
+  const [firstInput, setFirstInput] = useState("");
+  const [payNow, setPayNow] = useState(1);
+  const [negRent, setNegRent] = useState(false);
+  const [rentInput, setRentInput] = useState("");
+  const [negSec, setNegSec] = useState(false);
+  const [secInput, setSecInput] = useState("");
+  const [retOn, setRetOn] = useState(false);
+  const [retInput, setRetInput] = useState("");
 
   // Reset whenever the modal opens.
   useEffect(() => {
@@ -193,8 +210,33 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
     setReturning(null);
     setShowErrors(false);
     setConflict(null);
+    setFather(""); setAddress(""); setResType("employee"); setOrg("");
+    setBilling("full"); setFirstInput(""); setPayNow(1);
+    setNegRent(false); setRentInput(""); setNegSec(false); setSecInput(""); setRetOn(false); setRetInput("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Read the CNIC once the photos are in (same as Bookings → Add walk-in member): fills empty fields only.
+  const [ocrBusy, setOcrBusy] = useState(false);
+  useEffect(() => {
+    if (!open || !token || idType !== "cnic" || !front) return;
+    let cancelled = false;
+    setOcrBusy(true);
+    ocrCnicApi(token, { front, back: back || undefined })
+      .then((f) => {
+        if (cancelled) return;
+        if (f.name) setName((v) => v || f.name!);
+        if (f.cnic) setIdNumber((v) => v || f.cnic!);
+        if (f.father_name) setFather((v) => v || f.father_name!);
+        if (f.gender) setGender((v) => v || f.gender!);
+        if (f.address) setAddress((v) => v || f.address!);
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setOcrBusy(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, token, idType, front, back]);
 
   const bedsQuery = useRoomBedsQuery(room?.id ?? "", { enabled: open && Boolean(room) });
   const bedData = bedsQuery.data;
@@ -219,11 +261,32 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
   const pkrRate = Number(room?.price_per_night_pkr ?? 0);
   const rate = currency === "usd" ? usdRate : pkrRate;
   const factor = dur.unit === "month" ? dur.n : dur.n / 30;
-  const total = Math.round(rate * Math.max(seats, 0) * factor * 100) / 100;
+  const monthlyStay = dur.unit === "month";
+  // Monthly members: negotiated rent, arrival-month charge (full / prorated / your own amount),
+  // months paid now and the security deposit — same rules as Bookings → Add walk-in member.
+  const rentPerSeat = monthlyStay && negRent && Number(rentInput) > 0 ? Number(rentInput) : rate;
+  const monthly = rentPerSeat * Math.max(seats, 0);
+  const ci = new Date(`${checkInDate}T00:00:00`);
+  const dim = new Date(ci.getFullYear(), ci.getMonth() + 1, 0).getDate();
+  const daysLeft = dim - ci.getDate() + 1;
+  const prorated = Math.round((monthly * daysLeft) / dim);
+  const customFirst = firstInput === "" ? null : Number(firstInput);
+  const proratedCharge = customFirst != null && Number.isFinite(customFirst) && customFirst >= 0 ? customFirst : prorated;
+  const firstCharge = billing === "prorate" ? proratedCharge : monthly;
+  const listSecurity = monthlyStay ? securityDepositForSeats(Math.max(seats, 1), currency) : 0;
+  const security = monthlyStay ? (negSec && secInput !== "" ? Number(secInput) || 0 : listSecurity) : 0;
+  const returnable = retOn && retInput !== "" ? Math.min(Number(retInput) || 0, security) : security;
+  const payMonths = Math.min(Math.max(1, payNow), dur.n);
+  const total = monthlyStay
+    ? Math.round((firstCharge + monthly * (dur.n - 1)) * 100) / 100
+    : Math.round(rate * Math.max(seats, 0) * factor * 100) / 100;
   const totalOther = Math.round((currency === "usd" ? pkrRate : usdRate) * Math.max(seats, 0) * factor * 100) / 100;
+  /** What is due at the desk now: months being paid (+ deposit for monthly members). */
+  const dueNow = monthlyStay ? Math.round((firstCharge + monthly * (payMonths - 1) + security) * 100) / 100 : total;
+  const monShort = ci.toLocaleDateString("en-GB", { month: "short" });
   const receivedNum = received.trim() === "" ? 0 : Number(received);
-  const balance = Math.round((total - receivedNum) * 100) / 100;
-  const payState = !seats ? "unpaid" : receivedNum <= 0 ? "unpaid" : receivedNum > total ? "overpaid" : receivedNum >= total ? "paid" : "partial";
+  const balance = Math.round((dueNow - receivedNum) * 100) / 100;
+  const payState = !seats ? "unpaid" : receivedNum <= 0 ? "unpaid" : receivedNum > dueNow ? "overpaid" : receivedNum >= dueNow ? "paid" : "partial";
   const checkOutKey = addToKey(checkInDate, dur.unit, dur.n);
   const idUploaded = idType === "cnic" ? Boolean(front && back) : Boolean(front);
   const bedLabel = beds.length ? beds.map((n) => `Bed ${n}`).join(", ") : null;
@@ -244,9 +307,12 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
   if (!emName.trim()) errors.emName = "Emergency contact is required";
   const epe = phoneError(emPhone);
   if (epe) errors.emPhone = epe === "Phone is required" ? "Emergency phone is required" : epe;
+  if ((resType === "employee" || resType === "student") && !org.trim()) errors.org = resType === "employee" ? "Company name is required" : "Institution name is required";
+  if (monthlyStay && negRent && !(Number(rentInput) > 0)) errors.rent = "Enter the agreed monthly rent";
+  if (monthlyStay && billing === "prorate" && customFirst != null && (!Number.isFinite(customFirst) || customFirst < 0)) errors.firstMonth = "Enter a valid amount";
   if (received.trim() === "") errors.received = "Enter the amount received (0 if unpaid)";
   else if (!Number.isFinite(receivedNum) || receivedNum < 0) errors.received = "Enter a valid amount";
-  else if (receivedNum > total && seats) errors.received = `Exceeds total of ${money(total, currency)} — enter ${Math.round(total).toLocaleString("en-US")} or less`;
+  else if (receivedNum > dueNow && seats) errors.received = `Exceeds ${money(dueNow, currency)} due now — enter ${Math.round(dueNow).toLocaleString("en-US")} or less`;
   const errorCount = Object.keys(errors).length;
   const canSave = errorCount === 0 && !conflict;
   const canCheckIn = canSave && idUploaded;
@@ -314,15 +380,29 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
               }),
         guest_guardian_name: emName.trim(),
         guest_guardian_contact: emPhone.trim(),
-        resident_type: "",
+        guest_father_name: father.trim() || undefined,
+        guest_permanent_address: address.trim() || undefined,
+        resident_type: resType,
+        ...(resType === "employee" ? { guest_company: org.trim() } : resType === "student" ? { guest_institution: org.trim() } : {}),
         seats_booked: seats,
         ...(isDorm && beds.length ? { seat_label: beds.map((n) => `Bed ${n}`).join(", ") } : {}),
         stay_unit: dur.unit,
-        ...(dur.unit === "month" ? { months: dur.n } : { nights: dur.n }),
+        ...(dur.unit === "month"
+          ? {
+              months: dur.n,
+              months_to_pay: payMonths,
+              first_month_billing: billing,
+              ...(billing === "prorate" && customFirst != null && Number.isFinite(customFirst) ? { first_month_amount: customFirst } : {}),
+              ...(negRent ? { price_per_seat: rentPerSeat } : {}),
+              security_amount: security,
+              security_returnable: returnable,
+            }
+          : { nights: dur.n }),
         move_in: checkInDate,
         expected_arrival_time: checkInTime,
         currency,
         amount_received: receivedNum,
+        ...(monthlyStay && receivedNum > 0 ? { amount_includes_security: true } : {}),
         payment_method: method,
         notes: notes.trim() || undefined,
       },
@@ -443,7 +523,13 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
                         ["Check-out", isDorm && !beds.length ? "—" : `${fmtShort(checkOutKey)} · ${checkOutTime}`],
                         ["Duration", dur.label],
                         ["Guests", String(isDorm ? Math.max(beds.length, 1) : party)],
-                        ["Rate", seats ? `${money(rate, currency)} × ${seats} seat${seats === 1 ? "" : "s"} × ${dur.n} ${dur.unit === "month" ? (dur.n === 1 ? "month" : "months") : dur.n === 1 ? "night" : "nights"}` : "—"],
+                        ...(monthlyStay
+                          ? ([
+                              ["Rent / month", seats ? `${money(monthly, currency)}${negRent && rentPerSeat !== rate ? " (negotiated)" : ""}` : "—"],
+                              [`${monShort} (${billing === "prorate" ? "prorated" : "full"})`, seats ? money(firstCharge, currency) : "—"],
+                              ["Security (once)", money(security, currency)],
+                            ] as [string, string][])
+                          : ([["Rate", seats ? `${money(rate, currency)} × ${seats} seat${seats === 1 ? "" : "s"} × ${dur.n} ${dur.n === 1 ? "night" : "nights"}` : "—"]] as [string, string][])),
                         ["Received", money(receivedNum || 0, currency)],
                         ["Balance", seats ? `${balance < 0 ? "-" : ""}${money(Math.abs(balance), currency)}` : "—"],
                       ]
@@ -672,6 +758,27 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
                       />
                       <TextField label="Emergency contact" required value={emName} onChange={setEmName} placeholder="Name" error={fieldError("emName")} />
                       <TextField label="Emergency phone" required value={emPhone} onChange={setEmPhone} placeholder="+92 3__ _______" inputMode="tel" error={fieldError("emPhone")} />
+                      <TextField label="Father / husband name" value={father} onChange={setFather} placeholder="Father / husband name" />
+                      <TextField label="Permanent address" value={address} onChange={setAddress} placeholder="Home address" />
+                      <SegmentedField
+                        label="Type"
+                        value={resType}
+                        onChange={(v) => {
+                          setResType(v as typeof resType);
+                          setOrg("");
+                        }}
+                        options={[["student", "Student"], ["employee", "Employee"], ["other", "Other"]]}
+                      />
+                      {resType !== "other" ? (
+                        <TextField
+                          label={resType === "employee" ? "Company name" : "Institution name"}
+                          required
+                          value={org}
+                          onChange={setOrg}
+                          placeholder={resType === "employee" ? "Employer or company" : "School, college or university"}
+                          error={fieldError("org")}
+                        />
+                      ) : null}
                     </div>
                     <div className="flex flex-col gap-2.5">
                       <div className="flex items-center gap-2">
@@ -685,13 +792,56 @@ export function WalkInModal({ open, onOpenChange, room: initialRoom = null, pres
                         {idType === "cnic" ? <DropZone label="CNIC back" value={back} onChange={setBack} /> : null}
                       </div>
                       <p className="text-label font-medium text-ink-3">
-                        {idType === "cnic" ? "No CNIC? Switch ID type to B-Form or Passport." : "Upload a clear photo of the document."}
+                        {ocrBusy ? "Reading the CNIC…" : idType === "cnic" ? "No CNIC? Switch ID type to B-Form or Passport. Details fill in from the CNIC photos." : "Upload a clear photo of the document."}
                       </p>
                     </div>
                   </Section>
 
                   {/* 3 · Payment */}
-                  <Section num={3} title="Payment">
+                  <Section num={3} title={monthlyStay ? "Billing & payment" : "Payment"}>
+                    {monthlyStay ? (
+                      <div className="flex flex-col gap-3">
+                        <SegmentedField
+                          label={`Arrival month (${monShort}) charge`}
+                          value={billing}
+                          onChange={(v) => setBilling(v as typeof billing)}
+                          options={[["full", `Full month — ${money(monthly, currency)}`], ["prorate", `Prorated — ${money(proratedCharge, currency)}`]]}
+                        />
+                        {billing === "prorate" ? (
+                          <div className="flex flex-col gap-1.5">
+                            <TextField label={`Prorated charge for ${monShort}`} value={firstInput} onChange={(v) => setFirstInput(v.replace(/[^\d.]/g, ""))} placeholder={String(prorated)} inputMode="decimal" error={fieldError("firstMonth")} />
+                            <p className="text-label text-ink-3">
+                              {daysLeft} day{daysLeft === 1 ? "" : "s"} left in {monShort} → worked out {money(prorated, currency)}. Leave empty to use it, or type your own amount.
+                              {customFirst != null && Number.isFinite(customFirst) && customFirst !== prorated ? (
+                                <span className={customFirst > prorated ? "text-warning" : "text-brand-text"}> {money(Math.abs(customFirst - prorated), currency)} {customFirst > prorated ? "more" : "less"} than worked out.</span>
+                              ) : null}
+                            </p>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-label font-medium text-ink-2">Paying now (months of rent)</span>
+                          <div className="glass-2 flex h-11 w-fit items-center gap-1 rounded-[14px] px-1">
+                            <StepBtn label="Fewer months" disabled={payMonths <= 1} onClick={() => setPayNow(Math.max(1, payMonths - 1))}>
+                              <Minus />
+                            </StepBtn>
+                            <span className="w-8 text-center text-body font-semibold text-ink">{payMonths}</span>
+                            <StepBtn label="More months" disabled={payMonths >= dur.n} onClick={() => setPayNow(Math.min(dur.n, payMonths + 1))}>
+                              <Plus />
+                            </StepBtn>
+                          </div>
+                          <span className="text-label text-ink-3">Counted from the check-in month.</span>
+                        </div>
+                        <Switch on={negRent} onChange={setNegRent} label="Use negotiated monthly rent" />
+                        {negRent ? <TextField label="Agreed rent / month" value={rentInput} onChange={(v) => setRentInput(v.replace(/[^\d.]/g, ""))} placeholder={String(rate)} inputMode="decimal" error={fieldError("rent")} /> : null}
+                        <Switch on={negSec} onChange={setNegSec} label="Use negotiated security deposit" />
+                        {negSec ? <TextField label="Security deposit" value={secInput} onChange={(v) => setSecInput(v.replace(/[^\d.]/g, ""))} placeholder={String(listSecurity)} inputMode="decimal" /> : null}
+                        <Switch on={retOn} onChange={setRetOn} label="Set returnable security (amount to give back later)" />
+                        {retOn ? <TextField label="Returnable security" value={retInput} onChange={(v) => setRetInput(v.replace(/[^\d.]/g, ""))} placeholder={String(security)} inputMode="decimal" /> : null}
+                        <p className="text-label text-ink-3">
+                          Due now: {money(dueNow, currency)} ({payMonths} month{payMonths === 1 ? "" : "s"} of rent{security ? ` + ${money(security, currency)} deposit` : ""})
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="grid gap-3 md:grid-cols-2">
                       <div className="flex flex-col gap-1.5">
                         <FieldLabel>Rate (read-only)</FieldLabel>
@@ -1299,5 +1449,17 @@ function RoomOption({ r, selected, onPick }: { r: RoomAvailability; selected: bo
         {leaving ? `${r.frees_today} from ${r.frees_at}` : `${r.free_now} free`}
       </Tag>
     </button>
+  );
+}
+
+/** On/off switch row (same look as Bookings → Add walk-in member). */
+function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5 text-body text-ink">
+      <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className={cn("relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors", on ? "bg-brand" : "bg-glass-inset ring-1 ring-glass-stroke")}>
+        <span className={cn("absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform", on && "translate-x-4")} />
+      </button>
+      {label}
+    </label>
   );
 }

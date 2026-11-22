@@ -30,7 +30,11 @@ export function CreateInvoiceDialog({ booking, detail, open, onOpenChange }: { b
   const cur = booking.currency ?? "pkr";
   const money = (n: number) => formatMoney(n, cur);
   const now = monthKeyOf();
-  const rows = useMemo(() => monthRows(detail).filter((m) => m.month <= now).reverse(), [detail, now]);
+  // Months up to now, plus later months already paid (fully or partly) in advance.
+  const rows = useMemo(
+    () => monthRows(detail).filter((m) => m.month <= now || m.collected > 0 || m.extrasPaid > 0 || m.payment_status === "paid").reverse(),
+    [detail, now],
+  );
 
   const [preset, setPreset] = useState<Preset>("unpaid");
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -70,10 +74,10 @@ export function CreateInvoiceDialog({ booking, detail, open, onOpenChange }: { b
     ...(withExtras ? extrasForMonths.map((e) => ({ label: e.label, amount: e.amount })) : []),
   ];
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
+  // One payment can cover several months, so show what was paid towards the chosen months only.
   const paidLines = withPayments
-    ? (booking.payments ?? [])
-        .filter((p) => p.paid_at && months.includes(p.paid_at.slice(0, 7)))
-        .map((p) => ({ label: `Paid ${new Date(p.paid_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${p.method_label} · ${p.reference}`, amount: p.amount }))
+    ? [...chosen.filter((m) => m.collected > 0).map((m) => ({ label: `Paid · rent ${monLong(m.month)} ${m.month.slice(0, 4)}`, amount: m.collected })),
+       ...(withExtras ? extrasForMonths.filter((e) => e.paid > 0).map((e) => ({ label: `Paid · ${e.label}`, amount: e.paid })) : [])]
     : [];
   const paidFromMonths = chosen.reduce((s, m) => s + m.collected, 0) + (withExtras ? extrasForMonths.reduce((s, e) => s + e.paid, 0) : 0);
   const paidShown = withPayments ? paidFromMonths : 0;
