@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Percent, Plus, Sparkles, Ticket, Users } from "lucide-react";
@@ -65,7 +66,7 @@ function CouponsPage() {
           <FinKpi icon={<Sparkles />} label="Best code" value={s?.best ? s.best.code : "—"} sub={s ? (s.best ? `${s.best.bookings} booking${s.best.bookings === 1 ? "" : "s"} so far` : "No bookings with a code yet") : ""} />
         </div>
 
-        <Segmented
+        <StickyBar><Segmented
           className="self-start"
           label="Show"
           value={filter}
@@ -76,7 +77,7 @@ function CouponsPage() {
             ["scheduled", "Scheduled", counts?.scheduled],
             ["ended", "Ended", counts?.ended],
           ] as const}
-        />
+        /></StickyBar>
 
         {isError ? (
           <div className="glass-2 rounded-[22px] px-4 py-14 text-center text-body text-danger">Could not load coupons. Is the API running?</div>

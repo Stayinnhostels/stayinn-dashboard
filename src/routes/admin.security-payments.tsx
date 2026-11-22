@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2, Plus } from "lucide-react";
@@ -161,7 +162,7 @@ function SecurityDepositsPage() {
         <LeavingBanner data={data} onSettle={settle} />
 
         {/* Desktop toolbar */}
-        <div className="glass-2 hidden flex-wrap items-center gap-2 rounded-[20px] p-3 md:flex">
+        <StickyBar className="max-md:hidden"><div className="glass-2 hidden flex-wrap items-center gap-2 rounded-[20px] p-3 md:flex">
           <div className="no-scrollbar flex max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-glass-divider bg-glass-inset p-1">
             {tabs.map(([k, l]) => (
               <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)} className={cn("flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 text-body font-medium", tab === k ? "glass-3 border-glass-stroke text-ink" : "border-transparent text-ink-2 hover:text-ink")}>
@@ -172,7 +173,7 @@ function SecurityDepositsPage() {
           </div>
           <GlassSearch className="min-w-[180px] flex-1" placeholder="Guest, phone or payer" shortcut="" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search deposits" />
           <ScopePick value={scope} onChange={setScope} />
-        </div>
+        </div></StickyBar>
         {/* Mobile filter chips */}
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
           {tabs.map(([k, l]) => (

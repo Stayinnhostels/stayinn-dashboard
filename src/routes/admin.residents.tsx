@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, Link, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -392,7 +393,7 @@ function ResidentsList() {
           </div>
 
           {/* Toolbar */}
-          <div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
+          <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
             <ViewSwitch view={view === "rent" ? "rent" : "roll"} onChange={setView} />
             <GlassSearch className="min-w-[180px] flex-1 md:max-w-[260px]" placeholder="Name, room or phone" shortcut="" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search residents" />
             <Popover>
@@ -427,7 +428,7 @@ function ResidentsList() {
                 ))}
               </PopoverContent>
             </Popover>
-          </div>
+          </div></StickyBar>
 
           <p className={cn("-mt-1 hidden items-center gap-1.5 text-label text-ink-3", view === "rent" ? "" : "md:flex")}><Info className="size-3.5" aria-hidden /> {view === "rent" ? "Monthly rent · one column per month. Click any month to fix or change it." : "Residents · one row per person. Press “Mark paid” when someone pays, or click a name to open their profile."}</p>
 

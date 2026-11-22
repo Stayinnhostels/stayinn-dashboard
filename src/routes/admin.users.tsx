@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, Link, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useEffect, useState } from "react";
@@ -106,7 +107,7 @@ function UsersList() {
           </Link>
         </div>
 
-        <div className="glass-2 flex flex-wrap items-center gap-2.5 rounded-[22px] p-3">
+        <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2.5 rounded-[22px] p-3">
           <Segmented
             label="Show"
             value={tab}
@@ -138,7 +139,7 @@ function UsersList() {
               <option value="name">Name A–Z</option>
             </select>
           </span>
-        </div>
+        </div></StickyBar>
 
         <div className="glass-2 overflow-hidden rounded-[22px]">
           {isError ? (

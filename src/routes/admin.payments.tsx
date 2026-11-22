@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2, Plus } from "lucide-react";
@@ -191,7 +192,7 @@ function PaymentsPage() {
 
         {tab === "rent" ? (
           <>
-            <div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
+            <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
               <div className="no-scrollbar flex max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-glass-divider bg-glass-inset p-1">
                 {(
                   [
@@ -214,7 +215,7 @@ function PaymentsPage() {
                 <SimplePick label="Room" value={room} options={(roll.data?.rooms ?? []).map((r) => [r.id, r.label])} onChange={setRoom} />
                 <SimplePick label="Method" value={method} options={(overview.data?.methods ?? []).filter((m) => m.method !== "none").map((m) => [m.method, m.label])} onChange={setMethod} />
               </div>
-            </div>
+            </div></StickyBar>
             {roll.isLoading ? (
               <div className="glass-2 h-[420px] animate-pulse rounded-[20px]" />
             ) : rows.length === 0 ? (
@@ -240,7 +241,7 @@ function PaymentsPage() {
           </>
         ) : tab === "transactions" ? (
           <>
-            <TxToolbar data={tx.data} f={tf} set={(p) => setTf((x) => ({ ...x, ...p }))} />
+            <StickyBar><TxToolbar data={tx.data} f={tf} set={(p) => setTf((x) => ({ ...x, ...p }))} /></StickyBar>
             {tx.isLoading ? (
               <div className="glass-2 h-[420px] animate-pulse rounded-[20px]" />
             ) : (

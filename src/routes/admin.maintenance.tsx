@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BedDouble, Check, ChevronDown, Clock, Download, Minus, Plus, Search, Users, X } from "lucide-react";
@@ -205,7 +206,7 @@ function MaintenancePage() {
         ) : null}
 
         {desktop ? (
-          <div className="glass-2 flex flex-wrap items-center gap-2.5 rounded-[22px] p-3">
+          <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2.5 rounded-[22px] p-3">
             <Segmented
               label="Priority"
               value={chip}
@@ -244,7 +245,7 @@ function MaintenancePage() {
                 </option>
               ))}
             </FilterSelect>
-          </div>
+          </div></StickyBar>
         ) : (
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4" role="radiogroup" aria-label="Status">
             {COLUMNS.map(([k, l]) => (

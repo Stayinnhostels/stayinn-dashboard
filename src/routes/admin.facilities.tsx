@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -124,7 +125,7 @@ function FacilitiesPage() {
 
         <div className="grid items-start gap-4 md:gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3 max-md:hidden">
+            <StickyBar className="mx-0 px-0 max-md:hidden md:mx-0 md:px-0"><div className="flex flex-wrap items-center gap-3 max-md:hidden">
               <Segmented
                 label="Show"
                 value={filter}
@@ -142,7 +143,7 @@ function FacilitiesPage() {
                 </button>
               ) : null}
               {filter === "all" ? <span className="text-label text-ink-2 max-sm:hidden">Drag ⠿ to change the order</span> : null}
-            </div>
+            </div></StickyBar>
 
             {isError ? (
               <div className="glass-2 rounded-[22px] px-4 py-14 text-center text-body text-danger">Could not load facilities. Is the API running?</div>

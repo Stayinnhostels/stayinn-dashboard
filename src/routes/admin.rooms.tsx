@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -297,7 +298,7 @@ function RoomsListPage() {
       />
 
       {/* Toolbar */}
-      <div className="glass-2 flex flex-col gap-3 rounded-[18px] p-3 md:flex-row md:items-center md:justify-between">
+      <StickyBar><div className="glass-2 flex flex-col gap-3 rounded-[18px] p-3 md:flex-row md:items-center md:justify-between">
         <label className="glass-inset flex h-10 w-full items-center gap-2.5 rounded-[12px] px-3.5 md:w-[340px]">
           <Search aria-hidden className="size-4 shrink-0 text-ink-3" />
           <input
@@ -346,7 +347,7 @@ function RoomsListPage() {
             );
           })}
         </div>
-      </div>
+      </div></StickyBar>
 
       {/* Bulk actions */}
       {selected.size > 0 ? (

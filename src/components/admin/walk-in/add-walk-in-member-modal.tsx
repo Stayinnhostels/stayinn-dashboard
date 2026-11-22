@@ -78,7 +78,9 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   const [moveIn, setMoveIn] = useState(todayKey());
   const [seats, setSeats] = useState(1);
   const [length, setLength] = useState(1);
-  const [billing, setBilling] = useState<"full" | "prorate">("full");
+  const [billing, setBilling] = useState<"full" | "prorate" | "custom">("full");
+  /** Custom arrival-month charge — can be more or less than the prorated amount. */
+  const [firstInput, setFirstInput] = useState("");
   const [payNow, setPayNow] = useState(1);
   const [negRent, setNegRent] = useState(false);
   const [rentInput, setRentInput] = useState("");
@@ -97,7 +99,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
     setUseBForm(false); setFront(""); setBack(""); setBForm(""); setPdf(""); setAuto([]);
     setName(""); setCnic(""); setFather(""); setGender("male"); setAddress(""); setPhone(""); setGuardian(""); setEmail("");
     setType("employee"); setOrg(""); setUnit("month"); setMoveIn(todayKey()); setSeats(1); setLength(1);
-    setBilling("full"); setPayNow(1); setNegRent(false); setRentInput(""); setNegSec(false); setSecInput(""); setRetOn(false); setRetInput("");
+    setBilling("full"); setFirstInput(""); setPayNow(1); setNegRent(false); setRentInput(""); setNegSec(false); setSecInput(""); setRetOn(false); setRetInput("");
     setMethod("cash"); setReceived(""); setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -135,7 +137,8 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   const mi = parse(moveIn);
   const dim = new Date(mi.getFullYear(), mi.getMonth() + 1, 0).getDate();
   const prorated = Math.round((monthly * (dim - mi.getDate() + 1)) / dim);
-  const firstCharge = billing === "prorate" ? prorated : monthly;
+  const customFirst = firstInput === "" ? null : Number(firstInput);
+  const firstCharge = billing === "prorate" ? prorated : billing === "custom" ? (customFirst != null && Number.isFinite(customFirst) ? customFirst : 0) : monthly;
   const fullStay = unit === "month" ? firstCharge + monthly * (length - 1) : nightly * seats * length;
   const collectNow = unit === "month" ? firstCharge + monthly * Math.max(0, payNow - 1) + security : fullStay;
   const receivedNum = received === "" ? 0 : Number(received) || 0;
@@ -165,6 +168,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   if (!moveIn) errors.moveIn = "Move-in is required";
   if (room && seats > Math.max(1, freeSeats)) errors.seats = `Only ${freeSeats} seat(s) available`;
   if (negRent && !(Number(rentInput) > 0)) errors.rent = "Enter the agreed monthly rent";
+  if (unit === "month" && billing === "custom" && (customFirst == null || !Number.isFinite(customFirst) || customFirst < 0)) errors.firstMonth = `Enter what you charge for ${monthName}`;
   if (receivedNum > collectNow) errors.received = `Exceeds ${fmtMoney(collectNow)} — enter that or less`;
   const errorCount = Object.keys(errors).length;
   const err = (k: string) => (showErrors ? errors[k] : undefined);
@@ -197,7 +201,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
         ...(type === "employee" ? { guest_company: org.trim() } : type === "student" ? { guest_institution: org.trim() } : {}),
         seats_booked: seats,
         stay_unit: unit,
-        ...(unit === "month" ? { months: length, months_to_pay: payNow, first_month_billing: billing } : { nights: length, nightly_rate: nightly }),
+        ...(unit === "month" ? { months: length, months_to_pay: payNow, first_month_billing: billing, ...(billing === "custom" && customFirst != null ? { first_month_amount: customFirst } : {}) } : { nights: length, nightly_rate: nightly }),
         move_in: moveIn,
         currency: cur,
         ...(negRent ? { price_per_seat: rent } : {}),
@@ -270,7 +274,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
                         {negRent && rent !== listRent ? <Tag tone="brand" showDot>Negotiated</Tag> : null}
                       </span>
                     ) : fmtMoney(nightly)],
-                    ...(unit === "month" ? [[`${monthName} (${billing === "prorate" ? "prorated" : "full"})`, fmtMoney(firstCharge)]] : []),
+                    ...(unit === "month" ? [[`${monthName} (${billing === "prorate" ? "prorated" : billing === "custom" ? "custom" : "full"})`, fmtMoney(firstCharge)]] : []),
                     [`Full stay (${length} ${unit === "month" ? "mo" : length === 1 ? "night" : "nights"})`, fmtMoney(fullStay)],
                     ...(unit === "month" ? [["Security (once)", fmtMoney(security)], ["Returnable", fmtMoney(returnable)]] : []),
                     ["Received", fmtMoney(receivedNum)],
@@ -382,7 +386,18 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
               <Section num={5} title="Billing">
                 {unit === "month" ? (
                   <>
-                    <SegmentedField label={`Arrival month (${monthName}) charge`} value={billing} onChange={(v) => setBilling(v as typeof billing)} options={[["full", `Full month — ${fmtMoney(monthly)}`], ["prorate", `Prorated — ${fmtMoney(prorated)}`]]} />
+                    <SegmentedField label={`Arrival month (${monthName}) charge`} value={billing} onChange={(v) => setBilling(v as typeof billing)} options={[["full", `Full month — ${fmtMoney(monthly)}`], ["prorate", `Prorated — ${fmtMoney(prorated)}`], ["custom", "Custom amount"]]} />
+                    {billing === "custom" ? (
+                      <div className="flex flex-col gap-1.5">
+                        <TextField label={`${monthName} charge`} required value={firstInput} onChange={(v) => setFirstInput(v.replace(/[^\d.]/g, ""))} placeholder={String(prorated)} inputMode="decimal" error={err("firstMonth")} />
+                        <p className="text-label text-ink-3">
+                          Prorated would be {fmtMoney(prorated)} · full month {fmtMoney(monthly)}
+                          {customFirst != null && Number.isFinite(customFirst) && customFirst !== prorated ? (
+                            <span className={customFirst > prorated ? "text-warning" : "text-brand-text"}> · {fmtMoney(Math.abs(customFirst - prorated))} {customFirst > prorated ? "more" : "less"} than prorated</span>
+                          ) : null}
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="flex flex-col gap-1.5">
                       <Stepper label="Paying now (months of rent)" value={payNow} min={1} max={length} onChange={setPayNow} />
                       <p className="text-label text-ink-3">Counted from the move-in month. Set move-in to the real check-in date if they already live here.</p>

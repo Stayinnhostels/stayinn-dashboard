@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -152,7 +153,7 @@ function SchedulePage() {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <StickyBar><div className="flex flex-wrap items-center gap-2.5">
           <Segmented label="View" value={view} onChange={setView} stretch={mobile} className={mobile ? "w-full" : undefined} options={[["week", "Week"], ["today", "Today"], ["month", "Month"]] as const} />
           <span className="flex-1" />
           {view === "week" && !mobile ? (
@@ -173,7 +174,7 @@ function SchedulePage() {
               </Filter>
             </>
           ) : null}
-        </div>
+        </div></StickyBar>
 
         {week.isError ? (
           <div className="glass-2 rounded-[22px] px-4 py-14 text-center text-body text-danger">Could not load the schedule. Is the API running?</div>

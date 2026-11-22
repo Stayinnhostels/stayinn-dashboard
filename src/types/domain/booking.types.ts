@@ -53,6 +53,8 @@ export type Booking = {
   currency?: "pkr" | "usd" | null;
   amount_refunded?: number | null;
   amount_retained?: number | null;
+  /** How the arrival month was charged at check-in. */
+  first_month_billing?: "full" | "prorate" | "custom" | null;
   rent_ledger?: BookingRentLedgerEntry[];
   resident_extras?: ResidentExtra[];
   status: BookingStatus;

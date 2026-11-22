@@ -741,7 +741,7 @@ function BillingCard({ booking: b }: { booking: Booking }) {
   const payTag = b.no_charge ? null : balance <= 0 && (b.paid_total ?? 0) > 0 ? { tone: "success" as const, label: "Paid" } : (b.paid_total ?? 0) > 0 ? { tone: "warning" as const, label: "Partial" } : { tone: "danger" as const, label: "Unpaid" };
   const lines: [string, number | null | undefined][] = [
     [b.rent_unit === "night" ? "Rate / night" : "Rent / month", b.rent_unit === "night" ? b.rent_amount : monthly],
-    ...(firstMonth ? [[`${firstLabel} (${firstMonth.rent_amount && monthly && firstMonth.rent_amount < monthly ? "prorated" : "full month"})`, firstMonth.rent_amount] as [string, number | null]] : []),
+    ...(firstMonth ? [[`${firstLabel} (${firstMonthKind(b.first_month_billing, firstMonth.rent_amount, monthly)})`, firstMonth.rent_amount] as [string, number | null]] : []),
     [`Full stay (${b.stay_unit === "night" ? `${b.nights} nights` : `${b.months} mo`})`, b.total_amount],
     ...(b.security_amount ? [["Security deposit (once)", b.security_amount] as [string, number], ["Returnable security", b.security_returnable ?? b.security_amount] as [string, number]] : []),
   ];
@@ -788,4 +788,12 @@ function GlassModal({ open, onOpenChange, title, wide, children }: { open: boole
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+/** Label for the arrival month line: what was chosen at check-in, or a guess for older bookings. */
+function firstMonthKind(mode: string | null | undefined, amount: number | null | undefined, monthly: number) {
+  if (mode === "custom") return "custom";
+  if (mode === "prorate") return "prorated";
+  if (mode === "full") return amount != null && monthly && amount !== monthly ? "custom" : "full month";
+  return amount && monthly && amount < monthly ? "prorated" : amount && monthly && amount > monthly ? "custom" : "full month";
 }

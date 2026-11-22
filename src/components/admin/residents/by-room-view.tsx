@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "@tanstack/react-router";
@@ -77,7 +78,7 @@ export function ByRoomView({ month, hostelId, switcher }: { month: string; hoste
         <Kpi icon={<Wrench />} label="Out of service" value={k ? `${k.out_of_service.count} room${k.out_of_service.count === 1 ? "" : "s"}` : "—"} sub={k?.out_of_service.first ?? "Everything working"} />
       </div>
 
-      <div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
+      <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
         {switcher}
         <div className="no-scrollbar flex max-w-full gap-0.5 overflow-x-auto rounded-[14px] border border-glass-divider bg-glass-inset p-1">
           {(
@@ -109,7 +110,7 @@ export function ByRoomView({ month, hostelId, switcher }: { month: string; hoste
             ))}
           </PopoverContent>
         </Popover>
-      </div>
+      </div></StickyBar>
 
       <div className="hidden flex-col gap-2 md:flex">
         <p className="flex items-center gap-1.5 text-label text-ink-3"><Info className="size-3.5" aria-hidden /> By room · each card is a room and each tile is a bed. Click a “Free” bed to add a resident. A red dot means rent is not paid.</p>

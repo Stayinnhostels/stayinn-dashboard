@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronLeft, ChevronRight, FileText, Info, Loader2, ReceiptText } from "lucide-react";
@@ -66,7 +67,7 @@ export function MovedOutView({ hostelId }: { hostelId?: string }) {
         <Stat label="Rent still owed" value={s ? formatMoney(s.rent_owed.amount, cur) : "—"} sub={s ? `${s.rent_owed.count} resident${s.rent_owed.count === 1 ? "" : "s"}` : ""} danger={(s?.rent_owed.amount ?? 0) > 0} />
       </div>
 
-      <div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
+      <StickyBar><div className="glass-2 flex flex-wrap items-center gap-2 rounded-[18px] p-2.5">
         <GlassSearch className="min-w-[180px] flex-1 md:max-w-[280px]" placeholder="Name, room or phone" shortcut="" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search moved out" />
         <span className="flex-1" />
         <Popover>
@@ -81,7 +82,7 @@ export function MovedOutView({ hostelId }: { hostelId?: string }) {
             ))}
           </PopoverContent>
         </Popover>
-      </div>
+      </div></StickyBar>
 
       <p className="flex items-center gap-1.5 text-label text-ink-3"><Info className="size-3.5" aria-hidden /> Records are kept forever. Click a name to open their profile.</p>
 

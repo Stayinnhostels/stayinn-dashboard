@@ -1,3 +1,4 @@
+import { StickyBar } from "@/components/admin/sticky-bar";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Download, Ellipsis, FileDown, FileSpreadsheet, Loader2, Paperclip, Pencil, Plus, Receipt, RefreshCw, Trash2, TrendingUp, Wallet, X } from "lucide-react";
@@ -111,10 +112,10 @@ function MonthlyExpensesPage() {
 
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-w-0 flex-col gap-3">
-            <div className="glass-2 flex flex-wrap items-center gap-2 rounded-[20px] p-3">
+            <StickyBar className="mx-0 px-0 md:mx-0 md:px-0"><div className="glass-2 flex flex-wrap items-center gap-2 rounded-[20px] p-3">
               <Segmented label="Category" value={cat} onChange={setCat} options={tabs} />
               <GlassSearch className="min-w-[180px] flex-1" placeholder="Title or vendor" shortcut="" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search expenses" />
-            </div>
+            </div></StickyBar>
             <ExpenseTable
               rows={rows}
               loading={list.isLoading}
