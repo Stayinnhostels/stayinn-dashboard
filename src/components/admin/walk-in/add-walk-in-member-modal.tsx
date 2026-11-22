@@ -78,8 +78,8 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   const [moveIn, setMoveIn] = useState(todayKey());
   const [seats, setSeats] = useState(1);
   const [length, setLength] = useState(1);
-  const [billing, setBilling] = useState<"full" | "prorate" | "custom">("full");
-  /** Custom arrival-month charge — can be more or less than the prorated amount. */
+  const [billing, setBilling] = useState<"full" | "prorate">("full");
+  /** Prorated arrival-month charge typed by the admin (empty = use the worked-out amount). */
   const [firstInput, setFirstInput] = useState("");
   const [payNow, setPayNow] = useState(1);
   const [negRent, setNegRent] = useState(false);
@@ -138,7 +138,9 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   const dim = new Date(mi.getFullYear(), mi.getMonth() + 1, 0).getDate();
   const prorated = Math.round((monthly * (dim - mi.getDate() + 1)) / dim);
   const customFirst = firstInput === "" ? null : Number(firstInput);
-  const firstCharge = billing === "prorate" ? prorated : billing === "custom" ? (customFirst != null && Number.isFinite(customFirst) ? customFirst : 0) : monthly;
+  const proratedCharge = customFirst != null && Number.isFinite(customFirst) && customFirst >= 0 ? customFirst : prorated;
+  const firstCharge = billing === "prorate" ? proratedCharge : monthly;
+  const daysLeft = dim - mi.getDate() + 1;
   const fullStay = unit === "month" ? firstCharge + monthly * (length - 1) : nightly * seats * length;
   const collectNow = unit === "month" ? firstCharge + monthly * Math.max(0, payNow - 1) + security : fullStay;
   const receivedNum = received === "" ? 0 : Number(received) || 0;
@@ -168,7 +170,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   if (!moveIn) errors.moveIn = "Move-in is required";
   if (room && seats > Math.max(1, freeSeats)) errors.seats = `Only ${freeSeats} seat(s) available`;
   if (negRent && !(Number(rentInput) > 0)) errors.rent = "Enter the agreed monthly rent";
-  if (unit === "month" && billing === "custom" && (customFirst == null || !Number.isFinite(customFirst) || customFirst < 0)) errors.firstMonth = `Enter what you charge for ${monthName}`;
+  if (unit === "month" && billing === "prorate" && customFirst != null && (!Number.isFinite(customFirst) || customFirst < 0)) errors.firstMonth = "Enter a valid amount";
   if (receivedNum > collectNow) errors.received = `Exceeds ${fmtMoney(collectNow)} — enter that or less`;
   const errorCount = Object.keys(errors).length;
   const err = (k: string) => (showErrors ? errors[k] : undefined);
@@ -201,7 +203,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
         ...(type === "employee" ? { guest_company: org.trim() } : type === "student" ? { guest_institution: org.trim() } : {}),
         seats_booked: seats,
         stay_unit: unit,
-        ...(unit === "month" ? { months: length, months_to_pay: payNow, first_month_billing: billing, ...(billing === "custom" && customFirst != null ? { first_month_amount: customFirst } : {}) } : { nights: length, nightly_rate: nightly }),
+        ...(unit === "month" ? { months: length, months_to_pay: payNow, first_month_billing: billing, ...(billing === "prorate" && customFirst != null && Number.isFinite(customFirst) ? { first_month_amount: customFirst } : {}) } : { nights: length, nightly_rate: nightly }),
         move_in: moveIn,
         currency: cur,
         ...(negRent ? { price_per_seat: rent } : {}),
@@ -274,7 +276,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
                         {negRent && rent !== listRent ? <Tag tone="brand" showDot>Negotiated</Tag> : null}
                       </span>
                     ) : fmtMoney(nightly)],
-                    ...(unit === "month" ? [[`${monthName} (${billing === "prorate" ? "prorated" : billing === "custom" ? "custom" : "full"})`, fmtMoney(firstCharge)]] : []),
+                    ...(unit === "month" ? [[`${monthName} (${billing === "prorate" ? "prorated" : "full"})`, fmtMoney(firstCharge)]] : []),
                     [`Full stay (${length} ${unit === "month" ? "mo" : length === 1 ? "night" : "nights"})`, fmtMoney(fullStay)],
                     ...(unit === "month" ? [["Security (once)", fmtMoney(security)], ["Returnable", fmtMoney(returnable)]] : []),
                     ["Received", fmtMoney(receivedNum)],
@@ -386,14 +388,15 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
               <Section num={5} title="Billing">
                 {unit === "month" ? (
                   <>
-                    <SegmentedField label={`Arrival month (${monthName}) charge`} value={billing} onChange={(v) => setBilling(v as typeof billing)} options={[["full", `Full month — ${fmtMoney(monthly)}`], ["prorate", `Prorated — ${fmtMoney(prorated)}`], ["custom", "Custom amount"]]} />
-                    {billing === "custom" ? (
+                    <SegmentedField label={`Arrival month (${monthName}) charge`} value={billing} onChange={(v) => setBilling(v as typeof billing)} options={[["full", `Full month — ${fmtMoney(monthly)}`], ["prorate", `Prorated — ${fmtMoney(proratedCharge)}`]]} />
+                    {billing === "prorate" ? (
+                      // The worked-out amount is only a suggestion: type any amount to charge more or less.
                       <div className="flex flex-col gap-1.5">
-                        <TextField label={`${monthName} charge`} required value={firstInput} onChange={(v) => setFirstInput(v.replace(/[^\d.]/g, ""))} placeholder={String(prorated)} inputMode="decimal" error={err("firstMonth")} />
+                        <TextField label={`Prorated charge for ${monthName}`} value={firstInput} onChange={(v) => setFirstInput(v.replace(/[^\d.]/g, ""))} placeholder={String(prorated)} inputMode="decimal" error={err("firstMonth")} />
                         <p className="text-label text-ink-3">
-                          Prorated would be {fmtMoney(prorated)} · full month {fmtMoney(monthly)}
+                          {daysLeft} day{daysLeft === 1 ? "" : "s"} left in {monthName} → worked out {fmtMoney(prorated)}. Leave empty to use it, or type your own amount.
                           {customFirst != null && Number.isFinite(customFirst) && customFirst !== prorated ? (
-                            <span className={customFirst > prorated ? "text-warning" : "text-brand-text"}> · {fmtMoney(Math.abs(customFirst - prorated))} {customFirst > prorated ? "more" : "less"} than prorated</span>
+                            <span className={customFirst > prorated ? "text-warning" : "text-brand-text"}> {fmtMoney(Math.abs(customFirst - prorated))} {customFirst > prorated ? "more" : "less"} than worked out.</span>
                           ) : null}
                         </p>
                       </div>
