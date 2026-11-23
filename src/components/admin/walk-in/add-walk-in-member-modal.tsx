@@ -62,6 +62,10 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
   const [back, setBack] = useState("");
   const [bForm, setBForm] = useState("");
   const [pdf, setPdf] = useState("");
+  const [pdfName, setPdfName] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  /** Text layer from a digital CNIC PDF — sent with the images so OCR is more accurate. */
+  const [pdfText, setPdfText] = useState<{ front?: string; back?: string }>({});
   const [ocrBusy, setOcrBusy] = useState(false);
   const [auto, setAuto] = useState<string[]>([]);
   const [name, setName] = useState("");
@@ -96,7 +100,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
     if (!open) return;
     setRoom(initialRoom);
     setPicking(!initialRoom);
-    setUseBForm(false); setFront(""); setBack(""); setBForm(""); setPdf(""); setAuto([]);
+    setUseBForm(false); setFront(""); setBack(""); setBForm(""); setPdf(""); setPdfName(""); setPdfText({}); setAuto([]);
     setName(""); setCnic(""); setFather(""); setGender("male"); setAddress(""); setPhone(""); setGuardian(""); setEmail("");
     setType("employee"); setOrg(""); setUnit("month"); setMoveIn(todayKey()); setSeats(1); setLength(1);
     setBilling("full"); setFirstInput(""); setPayNow(1); setNegRent(false); setRentInput(""); setNegSec(false); setSecInput(""); setRetOn(false); setRetInput("");
@@ -109,7 +113,7 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
     if (!token || useBForm || !front) return;
     let cancelled = false;
     setOcrBusy(true);
-    ocrCnicApi(token, { front, back: back || undefined })
+    ocrCnicApi(token, { front, back: back || undefined, front_text: pdfText.front || undefined, back_text: pdfText.back || undefined })
       .then((f) => {
         if (cancelled) return;
         const filled: string[] = [];
@@ -125,6 +129,37 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [front, back, useBForm, token]);
+
+  /** CNIC as a PDF: page 1 (or the top card) → front, page 2 (or the bottom card) → back. */
+  async function pickPdf(f: File | undefined) {
+    if (!f) return;
+    if (f.size > 6_000_000) return void toast.error("PDF is too large (max 6 MB)");
+    setPdfBusy(true);
+    try {
+      const { extractCnicPagesFromPdf } = await import("@/lib/extract-cnic-from-pdf");
+      const [pages, dataUrl] = await Promise.all([
+        extractCnicPagesFromPdf(f),
+        new Promise<string>((res, rej) => {
+          const rd = new FileReader();
+          rd.onload = () => res(String(rd.result));
+          rd.onerror = () => rej(new Error("Could not read the PDF"));
+          rd.readAsDataURL(f);
+        }),
+      ]);
+      setUseBForm(false);
+      setAuto([]);
+      setPdfText({ front: pages.front_text, back: pages.back_text });
+      setFront(pages.front);
+      setBack(pages.back);
+      setPdf(dataUrl);
+      setPdfName(f.name);
+      if (!pages.back) toast.message("Only one side found in the PDF — add the CNIC back as a photo for the address.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read the PDF");
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   // ── Money ──
   const listRent = Number(cur === "usd" ? room?.price_per_night_usd ?? room?.price_per_night : room?.price_per_night_pkr) || 0;
@@ -306,25 +341,20 @@ export function AddWalkInMemberModal({ open, onOpenChange, room: initialRoom = n
               {/* 1 · Guest ID */}
               <Section num={1} title="Guest ID">
                 <div className="-mt-1 flex items-center gap-3">
-                  <p className={cn("flex flex-1 items-center gap-1.5 text-label", ocrBusy || auto.length ? "text-brand-text" : "text-ink-2")}>
-                    {ocrBusy ? <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden /> : null}
-                    {ocrBusy ? "Reading the CNIC — name, CNIC number and address will fill in…" : auto.length ? `Read from CNIC · ${auto.length} field${auto.length === 1 ? "" : "s"} filled in. Check them before saving.` : useBForm ? "Upload the B-Form image." : "Upload front and back — name, CNIC number and address fill in automatically."}
+                  <p className={cn("flex flex-1 items-center gap-1.5 text-label", pdfBusy || ocrBusy || auto.length ? "text-brand-text" : "text-ink-2")}>
+                    {ocrBusy || pdfBusy ? <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden /> : null}
+                    {pdfBusy ? "Opening the PDF — placing front and back…" : ocrBusy ? "Reading the CNIC — name, CNIC number and address will fill in…" : auto.length ? `Read from CNIC · ${auto.length} field${auto.length === 1 ? "" : "s"} filled in. Check them before saving.` : useBForm ? "Upload the B-Form image." : "Upload front and back — name, CNIC number and address fill in automatically."}
                   </p>
-                  <input ref={pdfRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 6_000_000) return toast.error("PDF is too large (max 6 MB)");
-                    const rd = new FileReader();
-                    rd.onload = () => setPdf(String(rd.result));
-                    rd.readAsDataURL(f);
-                  }} />
-                  <GlassButton variant="glass" size="sm" onClick={() => pdfRef.current?.click()}><FileUp /> {pdf ? "PDF added" : "Upload PDF"}</GlassButton>
+                  <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void pickPdf(e.target.files?.[0]); e.target.value = ""; }} />
+                  <GlassButton variant="glass" size="sm" disabled={pdfBusy} title={pdfName || undefined} onClick={() => pdfRef.current?.click()}>
+                    {pdfBusy ? <Loader2 className="animate-spin" /> : <FileUp />} {pdfBusy ? "Reading PDF…" : pdf ? "Replace PDF" : "Upload PDF"}
+                  </GlassButton>
                 </div>
                 {useBForm ? (
                   <DropZone label="B-Form" value={bForm} onChange={setBForm} />
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <DropZone label="CNIC front" value={front} onChange={setFront} scanning={ocrBusy} scanLabel="Reading CNIC…" />
+                    <DropZone label="CNIC front" value={front} onChange={(v) => { setFront(v); if (!v) { setPdf(""); setPdfName(""); setPdfText({}); } }} scanning={ocrBusy} scanLabel="Reading CNIC…" />
                     <DropZone label="CNIC back (for address)" value={back} onChange={setBack} scanning={ocrBusy && Boolean(back)} scanLabel="Reading address…" />
                   </div>
                 )}

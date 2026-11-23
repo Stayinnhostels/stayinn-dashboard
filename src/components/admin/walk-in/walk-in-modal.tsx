@@ -1139,8 +1139,8 @@ export function DropZone({
       <span className="text-label font-medium text-ink-3">{label}</span>
       <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
       {value ? (
-        <div className="group relative h-24 overflow-hidden rounded-[12px]">
-          <img src={value} alt={`${label} uploaded`} className="size-full object-cover" />
+        <div className="group glass-2 relative h-44 overflow-hidden rounded-[12px] sm:h-48">
+          <img src={value} alt={`${label} uploaded`} className="size-full object-contain p-2" />
           {scanning ? (
             <div role="status" aria-live="polite" className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 text-white backdrop-blur-[1px]">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 animate-[gl-scan_1.4s_ease-in-out_infinite] bg-brand shadow-[0_0_12px_2px_var(--color-brand)]" />

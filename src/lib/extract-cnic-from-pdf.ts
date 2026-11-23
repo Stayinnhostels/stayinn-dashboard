@@ -86,15 +86,15 @@ function splitTwoCards(source: HTMLCanvasElement): { front: HTMLCanvasElement; b
   if (height >= width * 1.15) {
     const mid = Math.floor(height / 2);
     return {
-      front: sliceCanvas(source, 0, 0, width, mid),
-      back: sliceCanvas(source, 0, mid, width, height - mid),
+      front: cropToContent(sliceCanvas(source, 0, 0, width, mid)),
+      back: cropToContent(sliceCanvas(source, 0, mid, width, height - mid)),
     };
   }
   if (width >= height * 2.1) {
     const mid = Math.floor(width / 2);
     return {
-      front: sliceCanvas(source, 0, 0, mid, height),
-      back: sliceCanvas(source, mid, 0, width - mid, height),
+      front: cropToContent(sliceCanvas(source, 0, 0, mid, height)),
+      back: cropToContent(sliceCanvas(source, mid, 0, width - mid, height)),
     };
   }
   return null;
